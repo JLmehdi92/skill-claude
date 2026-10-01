@@ -1,0 +1,224 @@
+"use client";
+
+import { useRef } from "react";
+import { Drawer } from "vaul";
+import { toast } from "sonner";
+import { ArrowClockwise, Copy, DownloadSimple, Heart, MagicWand, Trash, X } from "@phosphor-icons/react";
+import { formatCredits, formatEur } from "@/lib/costs";
+import { getModel } from "@/lib/models/registry";
+import { isPending, type Generation } from "@/lib/types";
+import { Button } from "./ui";
+
+const STATUS: Record<string, string> = {
+  uploading: "Envoi des références",
+  queued: "En file d'attente",
+  generating: "En cours",
+  success: "Terminée",
+  failed: "Échouée",
+};
+
+const dateFmt = new Intl.DateTimeFormat("fr-FR", { dateStyle: "medium", timeStyle: "short" });
+
+function formatValue(key: string, value: unknown): string {
+  if (value === null || value === undefined || (Array.isArray(value) && !value.length)) return "Aucun";
+  if (typeof value === "boolean") return value ? "Oui" : "Non";
+  if (key === "duration") return Number(value) === -1 ? "Auto" : `${value} s`;
+  if (key === "aspect_ratio" && value === "adaptive") return "Auto";
+  return Array.isArray(value) ? value.join(", ") : String(value);
+}
+
+export function GenerationDrawer({
+  gen,
+  onClose,
+  onRemix,
+  onRetry,
+  onFavorite,
+  onDelete,
+}: {
+  gen: Generation | null;
+  onClose: () => void;
+  onRemix: (g: Generation) => void;
+  onRetry: (g: Generation) => void;
+  onFavorite: (g: Generation) => void;
+  onDelete: (g: Generation) => void;
+}) {
+  return (
+    <Drawer.Root open={gen !== null} onOpenChange={(o) => !o && onClose()} direction="right">
+      <Drawer.Portal>
+        <Drawer.Overlay className="fixed inset-0 z-50 bg-black/50" />
+        <Drawer.Content
+          className="fixed top-2 right-2 bottom-2 z-50 flex w-[min(540px,calc(100vw-16px))] flex-col overflow-hidden rounded-[var(--radius-surface)] border border-line-strong bg-surface outline-none"
+          aria-describedby={undefined}
+        >
+          {gen && <DrawerBody gen={gen} onClose={onClose} onRemix={onRemix} onRetry={onRetry} onFavorite={onFavorite} onDelete={onDelete} />}
+        </Drawer.Content>
+      </Drawer.Portal>
+    </Drawer.Root>
+  );
+}
+
+function DrawerBody({
+  gen,
+  onClose,
+  onRemix,
+  onRetry,
+  onFavorite,
+  onDelete,
+}: {
+  gen: Generation;
+  onClose: () => void;
+  onRemix: (g: Generation) => void;
+  onRetry: (g: Generation) => void;
+  onFavorite: (g: Generation) => void;
+  onDelete: (g: Generation) => void;
+}) {
+  const model = getModel(gen.model);
+  const output = gen.outputs[0];
+  const holdTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
+  const copy = (text: string, what: string) => navigator.clipboard.writeText(text).then(() => toast.success(`${what} copié`));
+
+  const rows: [string, string][] = model
+    ? model.fields.map((f) => [
+        f.label,
+        f.type === "select" ? (f.options.find((o) => o.value === gen.params[f.key])?.label ?? formatValue(f.key, gen.params[f.key])) : formatValue(f.key, gen.params[f.key]),
+      ])
+    : Object.entries(gen.params)
+        .filter(([k]) => k !== "prompt")
+        .map(([k, v]) => [k, formatValue(k, v)]);
+
+  return (
+    <>
+      <div className="flex h-14 shrink-0 items-center justify-between border-b border-line px-4">
+        <Drawer.Title className="text-[15px] font-medium">
+          {gen.modelLabel} <span className="font-normal text-faint">{STATUS[gen.status]}</span>
+        </Drawer.Title>
+        <button type="button" onClick={onClose} aria-label="Fermer" className="pressable rounded-full p-2 text-muted hover:bg-raised hover:text-fg">
+          <X size={16} />
+        </button>
+      </div>
+
+      <div className="flex-1 overflow-y-auto">
+        <div className="bg-canvas">
+          {gen.status === "success" && output?.kind === "video" && (
+            <video key={output.url} src={output.url} poster={gen.thumbUrl ?? undefined} controls autoPlay loop playsInline className="max-h-[56vh] w-full bg-black" />
+          )}
+          {gen.status === "success" && output?.kind === "image" && (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={output.url} alt={gen.prompt.slice(0, 120)} className="max-h-[56vh] w-full object-contain" />
+          )}
+          {gen.status === "success" && output?.kind === "audio" && <audio src={output.url} controls className="w-full p-4" />}
+          {isPending(gen.status) && <div className="shimmer aspect-video w-full" />}
+          {gen.status === "failed" && (
+            <div className="px-5 py-8">
+              <p className="text-sm font-medium text-danger">La génération a échoué</p>
+              <p className="mt-1 text-sm leading-relaxed text-muted">{gen.error}</p>
+            </div>
+          )}
+        </div>
+
+        <div className="flex flex-wrap gap-2 border-b border-line px-4 py-3">
+          <Button variant="primary" size="sm" onClick={() => onRemix(gen)}>
+            <MagicWand size={14} />
+            Remix
+          </Button>
+          <Button size="sm" onClick={() => onRetry(gen)}>
+            <ArrowClockwise size={14} />
+            Relancer
+          </Button>
+          {output && (
+            <a href={`${output.url}?download`} className="pressable inline-flex h-8 items-center gap-1.5 rounded-full border border-line-strong bg-raised px-3 text-[13px] font-medium hover:bg-hover">
+              <DownloadSimple size={14} />
+              Télécharger
+            </a>
+          )}
+          <Button size="sm" variant="ghost" onClick={() => onFavorite(gen)} aria-pressed={gen.favorite}>
+            <Heart size={14} weight={gen.favorite ? "fill" : "regular"} />
+            {gen.favorite ? "Favori" : "Ajouter aux favoris"}
+          </Button>
+        </div>
+
+        <section className="space-y-2 px-4 py-4">
+          <div className="flex items-center justify-between">
+            <h3 className="text-[13px] text-faint">Prompt</h3>
+            <button type="button" onClick={() => copy(gen.prompt, "Prompt")} className="pressable flex items-center gap-1 rounded-full px-2 py-1 text-xs text-muted hover:bg-raised hover:text-fg">
+              <Copy size={12} />
+              Copier
+            </button>
+          </div>
+          <p className="max-h-60 overflow-y-auto text-sm leading-relaxed whitespace-pre-wrap text-fg">{gen.prompt}</p>
+        </section>
+
+        {gen.inputs.length > 0 && (
+          <section className="px-4 pb-4">
+            <h3 className="pb-2 text-[13px] text-faint">Références</h3>
+            <ul className="flex flex-wrap gap-2">
+              {gen.inputs.map((i) => (
+                <li key={i.url}>
+                  <a href={i.url} target="_blank" rel="noreferrer" title={i.name} className="block overflow-hidden rounded-[var(--radius-tile)] border border-line bg-raised">
+                    {i.kind === "image" ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img src={i.url} alt={i.name} className="size-16 object-cover" />
+                    ) : (
+                      <span className="flex size-16 items-center justify-center p-1 text-center text-[10px] leading-tight break-all text-muted">{i.name}</span>
+                    )}
+                  </a>
+                </li>
+              ))}
+            </ul>
+          </section>
+        )}
+
+        <section className="grid grid-cols-2 gap-x-4 gap-y-3 border-t border-line px-4 py-4 text-sm">
+          <Detail label="Coût" value={gen.costEur !== null ? formatEur(gen.costEur) : `≈ ${formatEur(gen.estimatedEur)} (estimé)`} strong />
+          <Detail label="Crédits" value={formatCredits(gen.credits ?? gen.estimatedCredits)} />
+          {rows.map(([label, value]) => (
+            <Detail key={label} label={label} value={value} />
+          ))}
+          <Detail label="Créée le" value={dateFmt.format(gen.createdAt)} />
+          {gen.completedAt && <Detail label="Terminée le" value={dateFmt.format(gen.completedAt)} />}
+          <Detail label="Taux USD/EUR" value={gen.usdEurRate.toFixed(4)} />
+          {gen.kieTaskId && (
+            <div className="col-span-2">
+              <p className="text-[12px] text-faint">Tâche kie.ai</p>
+              <button type="button" onClick={() => copy(gen.kieTaskId!, "Identifiant")} className="mt-0.5 max-w-full truncate font-mono text-xs text-muted hover:text-fg">
+                {gen.kieTaskId}
+              </button>
+            </div>
+          )}
+        </section>
+      </div>
+
+      <div className="shrink-0 border-t border-line px-4 py-3">
+        <button
+          type="button"
+          className="hold pressable relative w-full overflow-hidden rounded-full border border-danger/30 py-2 text-[13px] text-danger"
+          onPointerDown={() => {
+            holdTimer.current = setTimeout(() => onDelete(gen), 1200);
+          }}
+          onPointerUp={() => clearTimeout(holdTimer.current)}
+          onPointerLeave={() => clearTimeout(holdTimer.current)}
+          onKeyDown={(e) => {
+            if (e.key === "Delete" || e.key === "Backspace") onDelete(gen);
+          }}
+        >
+          <span aria-hidden className="hold-overlay absolute inset-0 bg-danger/20" />
+          <span className="relative flex items-center justify-center gap-1.5">
+            <Trash size={14} />
+            Maintenir pour supprimer
+          </span>
+        </button>
+      </div>
+    </>
+  );
+}
+
+function Detail({ label, value, strong }: { label: string; value: string; strong?: boolean }) {
+  return (
+    <div className="min-w-0">
+      <p className="text-[12px] text-faint">{label}</p>
+      <p className={`mt-0.5 truncate tabular-nums ${strong ? "font-medium text-fg" : "text-muted"}`} title={value}>
+        {value}
+      </p>
+    </div>
+  );
+}

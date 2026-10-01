@@ -9,3 +9,5 @@ test-results/
 playwright-report/
 next-env.d.ts
 *.tsbuildinfo
+storage-e2e/
+storage-dev/

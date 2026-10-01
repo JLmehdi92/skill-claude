@@ -1,0 +1,152 @@
+@import "tailwindcss";
+
+/*
+ * Design tokens. One dark theme for the whole app (studio tool, media first).
+ * Shape system: controls and chips are pills, surfaces 16px, media tiles 12px.
+ * One accent (lime), used for the primary action, focus and live progress only.
+ */
+@theme {
+  --font-sans: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-geist-mono), ui-monospace, monospace;
+
+  --color-canvas: #0c0d0f;
+  --color-surface: #141518;
+  --color-raised: #1b1d21;
+  --color-hover: #23262b;
+  --color-line: rgb(255 255 255 / 0.07);
+  --color-line-strong: rgb(255 255 255 / 0.13);
+  --color-fg: #ececee;
+  --color-muted: #9a9ca3;
+  --color-faint: #868991;
+  --color-accent: #c5ec5a;
+  --color-accent-hover: #d3f57a;
+  --color-on-accent: #10120b;
+  --color-danger: #f0846e;
+  --color-warn: #f2c25b;
+  /* Chart marks: accent step validated (dataviz) for the dark surface; hover lifts to the brighter step. */
+  --color-chart: #7d9e33;
+  --color-chart-hover: #a3c94a;
+  --color-chart-track: #252b1c;
+
+  --radius-tile: 12px;
+  --radius-surface: 16px;
+
+  --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+  --ease-in-out: cubic-bezier(0.77, 0, 0.175, 1);
+  --ease-drawer: cubic-bezier(0.32, 0.72, 0, 1);
+}
+
+:root {
+  color-scheme: dark;
+}
+
+html,
+body {
+  background: var(--color-canvas);
+  color: var(--color-fg);
+}
+
+body {
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  font-feature-settings: "ss01", "cv11";
+}
+
+::selection {
+  background: rgb(197 236 90 / 0.3);
+}
+
+:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
+}
+
+/* Pressable feedback (Emil): instant, subtle. */
+.pressable {
+  transition:
+    transform 160ms var(--ease-out),
+    background-color 150ms ease,
+    color 150ms ease,
+    border-color 150ms ease,
+    opacity 150ms ease;
+}
+.pressable:active:not(:disabled) {
+  transform: scale(0.97);
+}
+
+/* Popovers scale from their trigger. */
+.popover-panel {
+  transform-origin: var(--origin, bottom left);
+  transition:
+    opacity 150ms var(--ease-out),
+    transform 150ms var(--ease-out);
+  @starting-style {
+    opacity: 0;
+    transform: scale(0.96) translateY(4px);
+  }
+}
+
+/* Loading shimmer for pending generations. Constant motion, so linear. */
+.shimmer {
+  background:
+    linear-gradient(100deg, transparent 20%, rgb(255 255 255 / 0.05) 45%, transparent 70%) 0 0 / 200% 100%,
+    var(--color-raised);
+  animation: shimmer 1.6s linear infinite;
+}
+@keyframes shimmer {
+  from {
+    background-position: 150% 0;
+  }
+  to {
+    background-position: -50% 0;
+  }
+}
+
+.fade-in {
+  animation: fade-in 220ms var(--ease-out) both;
+}
+@keyframes fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+}
+
+/* Hold to delete: slow and deliberate while pressing, snappy on release. */
+.hold-overlay {
+  clip-path: inset(0 100% 0 0);
+  transition: clip-path 200ms var(--ease-out);
+}
+.hold:active .hold-overlay {
+  clip-path: inset(0 0 0 0);
+  transition: clip-path 1.2s linear;
+}
+
+.scrollbar-none {
+  scrollbar-width: none;
+}
+.scrollbar-none::-webkit-scrollbar {
+  display: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pressable:active:not(:disabled) {
+    transform: none;
+  }
+  .popover-panel {
+    @starting-style {
+      transform: none;
+    }
+  }
+  .fade-in {
+    animation: fade-in-opacity 200ms ease both;
+  }
+  .shimmer {
+    animation: none;
+  }
+}
+@keyframes fade-in-opacity {
+  from {
+    opacity: 0;
+  }
+}
