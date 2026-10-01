@@ -305,13 +305,13 @@ export const Composer = forwardRef<
         </div>
       )}
 
-      <div className="pointer-events-none fixed inset-x-0 bottom-0 z-20 bg-gradient-to-t from-canvas via-canvas/90 to-transparent px-3 pt-10 pb-3 sm:px-6 sm:pb-5">
+      <div className="pointer-events-none fixed inset-x-0 bottom-0 z-20 bg-gradient-to-t from-canvas via-canvas/90 to-transparent px-2 pt-10 pb-[max(0.5rem,env(safe-area-inset-bottom))] sm:px-6 sm:pb-5">
         <form
           onSubmit={(e) => {
             e.preventDefault();
             void submit();
           }}
-          className="pointer-events-auto mx-auto max-w-[880px] rounded-[var(--radius-surface)] border border-line-strong bg-surface/95 shadow-[0_24px_60px_-20px_rgb(0_0_0/0.7)] backdrop-blur-xl"
+          className="pointer-events-auto mx-auto max-w-[880px] rounded-[var(--radius-surface)] border border-line-strong bg-surface/95 transition-[border-color] duration-200 focus-within:border-white/25 shadow-[0_24px_60px_-20px_rgb(0_0_0/0.7)] backdrop-blur-xl"
         >
           {attachments.length > 0 && (
             <ul className="scrollbar-none flex gap-2 overflow-x-auto px-3 pt-3.5 pb-1" aria-label="Références jointes">
@@ -342,7 +342,7 @@ export const Composer = forwardRef<
             rows={2}
             maxLength={model.promptMaxLength}
             placeholder="Décris ta scène. Cite tes références avec @Image1, @Video1..."
-            className="block max-h-[32vh] min-h-[64px] w-full resize-none bg-transparent px-4 pt-3.5 pb-2 text-[15px] leading-relaxed text-fg placeholder:text-faint focus:outline-none"
+            className="block max-h-[28vh] min-h-[60px] w-full resize-none bg-transparent px-4 pt-3.5 pb-2 text-base leading-relaxed text-fg placeholder:text-faint focus:outline-none sm:max-h-[32vh] sm:text-[15px]"
           />
 
           {visibleErrors.length > 0 && (
@@ -353,8 +353,9 @@ export const Composer = forwardRef<
             </ul>
           )}
 
-          <div className="flex items-center gap-2 border-t border-line px-2.5 py-2.5">
-            <div className="scrollbar-none -my-1 flex min-w-0 flex-1 items-center gap-1.5 overflow-x-auto px-0.5 py-1">
+          {/* Mobile: settings wrap on their own rows so none hide off-screen, actions get a full row. */}
+          <div className="flex flex-col gap-2.5 border-t border-line px-2.5 py-2.5 sm:flex-row sm:items-center sm:gap-2">
+            <div className="flex flex-wrap items-center gap-1.5 sm:scrollbar-none sm:-my-1 sm:min-w-0 sm:flex-1 sm:flex-nowrap sm:overflow-x-auto sm:px-0.5 sm:py-1">
               <AddMenu model={model} attachments={attachments} params={params} onPick={openPicker} />
               <ModelMenu model={model} />
               {mainFields.map((f) => (
@@ -363,15 +364,15 @@ export const Composer = forwardRef<
               {advancedFields.length > 0 && <AdvancedMenu fields={advancedFields} params={params} onChange={set} />}
             </div>
 
-            <div className="flex shrink-0 items-center gap-3 pl-1">
-              <div className="text-right leading-tight" title={`1 crédit = 0,005 $. Taux USD/EUR : ${usdEurRate.toFixed(4)}`}>
+            <div className="flex shrink-0 items-center justify-between gap-3 sm:justify-end sm:pl-1">
+              <div className="pl-1.5 leading-tight sm:pl-0 sm:text-right" title={`1 crédit = 0,005 $. Taux USD/EUR : ${usdEurRate.toFixed(4)}`}>
                 <div className="text-sm font-medium tabular-nums">
                   {estimate.upperBound ? "≤ " : "≈ "}
                   {formatEur(estimateEur)}
                 </div>
-                <div className="hidden text-[11px] text-faint tabular-nums sm:block">{formatCredits(estimate.credits)}</div>
+                <div className="text-[11px] text-faint tabular-nums">{formatCredits(estimate.credits)}</div>
               </div>
-              <Button type="submit" variant="primary" size="md" disabled={submitting} aria-label="Générer" className="pr-3">
+              <Button type="submit" variant="primary" size="md" disabled={submitting} aria-label="Générer" className="h-11 min-w-36 sm:h-9 sm:min-w-0 sm:pr-3">
                 {submitting ? "Envoi" : "Générer"}
                 <span className="hidden sm:inline-flex">
                   <Kbd className="border-on-accent/20 text-on-accent/70">⌘↵</Kbd>
@@ -502,7 +503,7 @@ function AddMenu({
       )}
     >
       {(close) => (
-        <div className="w-64">
+        <div className="w-full sm:w-64">
           {model.mediaSlots.map((slot) => {
             const Icon = SLOT_ICONS[slot.kind];
             const reason = blocked(slot);
@@ -540,7 +541,7 @@ function ModelMenu({ model }: { model: ModelDefinition }) {
       )}
     >
       {(close) => (
-        <div className="w-72">
+        <div className="w-full sm:w-72">
           {MODELS.map((m) => (
             <MenuItem key={m.id} selected={m.id === model.id} onClick={close} className="items-start">
               <span className="flex flex-col gap-0.5">
@@ -583,7 +584,7 @@ function FieldControl({ field, value, onChange }: { field: Field; value: unknown
         )}
       >
         {(close) => (
-          <div className="w-40">
+          <div className="w-full sm:w-40">
             <p className="px-2.5 pt-1 pb-1.5 text-[11px] text-faint">{field.label}</p>
             {field.options.map((o) => (
               <MenuItem
@@ -615,7 +616,7 @@ function FieldControl({ field, value, onChange }: { field: Field; value: unknown
         )}
       >
         {() => (
-          <div className="w-64 p-1">
+          <div className="w-full p-1 sm:w-64">
             <p className="px-1.5 pb-2 text-[11px] text-faint">Durée de la vidéo</p>
             <div className="grid grid-cols-4 gap-1">
               {DURATION_PRESETS.filter((d) => d === -1 || (d >= field.min && d <= field.max)).map((d) => (
@@ -624,7 +625,7 @@ function FieldControl({ field, value, onChange }: { field: Field; value: unknown
                   type="button"
                   onClick={() => onChange(d)}
                   className={cx(
-                    "pressable h-8 rounded-full text-[13px] tabular-nums",
+                    "pressable h-10 rounded-full text-[13px] tabular-nums sm:h-8",
                     d === v ? "bg-accent text-on-accent" : "bg-hover text-muted hover:text-fg",
                   )}
                 >
@@ -666,7 +667,7 @@ function AdvancedMenu({ fields, params, onChange }: { fields: Field[]; params: P
       )}
     >
       {() => (
-        <div className="w-80 space-y-4 p-2.5">
+        <div className="w-full space-y-4 p-2.5 sm:w-80">
           {fields.map((f) => {
             if (f.type === "seed") {
               const seed = params[f.key] as number | null;
@@ -685,7 +686,7 @@ function AdvancedMenu({ fields, params, onChange }: { fields: Field[]; params: P
                         const digits = e.target.value.replace(/\D/g, "").slice(0, 10);
                         onChange(f.key, digits ? Math.min(Number(digits), 2_147_483_647) : null);
                       }}
-                      className="h-8 min-w-0 flex-1 rounded-full border border-line-strong bg-canvas px-3 text-[13px] tabular-nums placeholder:text-faint focus:border-accent focus:outline-none"
+                      className="h-9 min-w-0 flex-1 rounded-full border border-line-strong bg-canvas px-3 text-base tabular-nums sm:h-8 sm:text-[13px] placeholder:text-faint focus:border-accent focus:outline-none"
                     />
                     <Chip onClick={() => onChange(f.key, Math.floor(Math.random() * 2_147_483_647))} aria-label="Seed au hasard">
                       <DiceFive size={14} />
@@ -719,7 +720,7 @@ function AdvancedMenu({ fields, params, onChange }: { fields: Field[]; params: P
                     value={links[0] ?? ""}
                     placeholder="https://"
                     onChange={(e) => onChange(f.key, e.target.value.trim() ? [e.target.value.trim()] : [])}
-                    className="h-8 w-full rounded-full border border-line-strong bg-canvas px-3 text-[13px] placeholder:text-faint focus:border-accent focus:outline-none"
+                    className="h-9 w-full rounded-full border border-line-strong bg-canvas px-3 text-base placeholder sm:h-8 sm:text-[13px]:text-faint focus:border-accent focus:outline-none"
                   />
                   {f.hint && <p className="text-[11px] leading-snug text-faint">{f.hint}</p>}
                 </div>

@@ -44,7 +44,7 @@ export function Chip({ active, className, ...props }: ButtonHTMLAttributes<HTMLB
       type="button"
       {...props}
       className={cx(
-        "pressable inline-flex h-8 shrink-0 items-center gap-1.5 rounded-full border px-3 text-[13px] whitespace-nowrap",
+        "pressable inline-flex h-9 shrink-0 items-center gap-1.5 rounded-full border px-3 text-[13px] whitespace-nowrap sm:h-8",
         active ? "border-line-strong bg-hover text-fg" : "border-line bg-raised text-muted hover:text-fg",
         className,
       )}
@@ -78,7 +78,13 @@ export function Popover({
       const r = anchor.current?.getBoundingClientRect();
       if (!r) return;
       const vertical = side === "top" ? { bottom: window.innerHeight - r.top + 8 } : { top: r.bottom + 8 };
-      const horizontal = align === "start" ? { left: Math.max(8, r.left) } : { right: Math.max(8, window.innerWidth - r.right) };
+      // Phones: full-width sheet above the trigger, so nothing spills off-screen.
+      const horizontal =
+        window.innerWidth < 640
+          ? { left: 8, right: 8 }
+          : align === "start"
+            ? { left: Math.max(8, r.left) }
+            : { right: Math.max(8, window.innerWidth - r.right) };
       setPos({ position: "fixed", ...vertical, ...horizontal });
     };
     place();
@@ -135,7 +141,7 @@ export function MenuItem({
       type="button"
       {...props}
       className={cx(
-        "flex w-full items-center justify-between gap-6 rounded-[9px] px-2.5 py-2 text-left text-[13px] transition-colors duration-150 disabled:cursor-not-allowed disabled:opacity-40",
+        "flex w-full items-center justify-between gap-6 rounded-[9px] px-2.5 py-3 text-left text-sm transition-colors sm:py-2 sm:text-[13px] duration-150 disabled:cursor-not-allowed disabled:opacity-40",
         selected ? "bg-hover text-fg" : "text-muted hover:bg-hover hover:text-fg",
         className,
       )}

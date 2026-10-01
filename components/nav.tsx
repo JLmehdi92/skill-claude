@@ -69,7 +69,7 @@ export function Nav() {
           )}
           <Link
             href="/depenses"
-            className="pressable flex items-center gap-2.5 rounded-full border border-line px-2.5 py-1.5 text-sm hover:border-line-strong sm:px-3"
+            className="pressable flex items-center gap-2.5 rounded-full border border-line px-2.5 py-1.5 text-sm hover:border-line-strong max-[359px]:hidden sm:px-3"
             aria-label="Dépenses du mois"
           >
             <span className="hidden text-muted sm:inline">Ce mois</span>

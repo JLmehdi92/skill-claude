@@ -51,7 +51,7 @@ export function Spending() {
   }
 
   return (
-    <main className="mx-auto max-w-6xl px-4 pt-8 pb-20 sm:px-6">
+    <main className="mx-auto max-w-6xl px-3 pt-6 pb-20 sm:px-6 sm:pt-8">
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
           <h1 className="text-3xl font-semibold tracking-tight">Dépenses</h1>
@@ -63,8 +63,8 @@ export function Spending() {
         </a>
       </div>
 
-      <section className="mt-8 grid gap-4 lg:grid-cols-[1.3fr_1fr]">
-        <div className="rounded-[var(--radius-surface)] border border-line bg-surface p-6">
+      <section className="mt-6 grid gap-4 sm:mt-8 lg:grid-cols-[1.3fr_1fr] [&>*]:min-w-0">
+        <div className="rounded-[var(--radius-surface)] border border-line bg-surface p-5 sm:p-6">
           <p className="text-sm text-muted">Ce mois-ci</p>
           <p className="mt-1 text-5xl font-semibold tracking-tight md:text-6xl">{formatEur(stats.month)}</p>
           <BudgetMeter stats={stats} onSaved={() => { load(); notifyStatsChanged(); }} />
@@ -81,7 +81,7 @@ export function Spending() {
         </dl>
       </section>
 
-      <section className="mt-4 rounded-[var(--radius-surface)] border border-line bg-surface p-6">
+      <section className="mt-4 rounded-[var(--radius-surface)] border border-line bg-surface p-5 sm:p-6">
         <div className="flex flex-wrap items-baseline justify-between gap-2">
           <h2 className="text-base font-medium">Dépenses par jour</h2>
           <p className="text-xs text-faint">30 derniers jours</p>
@@ -89,13 +89,13 @@ export function Spending() {
         <DailyChart daily={stats.daily} />
       </section>
 
-      <section className="mt-4 grid gap-4 md:grid-cols-2">
+      <section className="mt-4 grid gap-4 md:grid-cols-2 [&>*]:min-w-0">
         <Breakdown title="Par modèle" buckets={stats.byModel} />
         <Breakdown title="Par type" buckets={stats.byCategory} />
       </section>
 
-      <section className="mt-4 grid gap-4 lg:grid-cols-[1fr_2fr]">
-        <div className="rounded-[var(--radius-surface)] border border-line bg-surface p-6">
+      <section className="mt-4 grid gap-4 lg:grid-cols-[1fr_2fr] [&>*]:min-w-0">
+        <div className="rounded-[var(--radius-surface)] border border-line bg-surface p-5 sm:p-6">
           <h2 className="text-base font-medium">Solde kie.ai</h2>
           {balance === null && <div className="shimmer mt-4 h-9 w-32 rounded-full" />}
           {balance === "error" && <p className="mt-3 text-sm leading-relaxed text-muted">Solde indisponible. Vérifie ta clé API et ta connexion.</p>}
@@ -165,7 +165,7 @@ function BudgetMeter({ stats, onSaved }: { stats: Stats; onSaved: () => void }) 
             value={value}
             onChange={(e) => setValue(e.target.value.replace(/[^\d.,]/g, ""))}
             placeholder="Aucun"
-            className="h-9 w-36 rounded-full border border-line-strong bg-canvas px-4 text-sm tabular-nums placeholder:text-faint focus:border-accent focus:outline-none"
+            className="h-11 w-40 rounded-full border border-line-strong bg-canvas px-4 text-base tabular-nums sm:h-9 sm:w-36 sm:text-sm placeholder:text-faint focus:border-accent focus:outline-none"
           />
         </div>
         <Button type="submit" variant="primary">
@@ -349,7 +349,7 @@ function DailyChart({ daily }: { daily: Stats["daily"] }) {
 function Breakdown({ title, buckets }: { title: string; buckets: SpendBucket[] }) {
   const max = Math.max(...buckets.map((b) => b.eur), 0);
   return (
-    <div className="rounded-[var(--radius-surface)] border border-line bg-surface p-6">
+    <div className="rounded-[var(--radius-surface)] border border-line bg-surface p-5 sm:p-6">
       <h2 className="text-base font-medium">{title}</h2>
       {buckets.length === 0 ? (
         <p className="mt-3 text-sm text-faint">Pas encore de dépense.</p>
@@ -376,7 +376,7 @@ function Breakdown({ title, buckets }: { title: string; buckets: SpendBucket[] }
 
 function Ledger({ items }: { items: Generation[] }) {
   return (
-    <div className="rounded-[var(--radius-surface)] border border-line bg-surface p-6">
+    <div className="rounded-[var(--radius-surface)] border border-line bg-surface p-5 sm:p-6">
       <div className="flex items-baseline justify-between">
         <h2 className="text-base font-medium">Dernières générations</h2>
         <Link href="/library" className="text-xs text-muted hover:text-fg">
@@ -386,33 +386,21 @@ function Ledger({ items }: { items: Generation[] }) {
       {items.length === 0 ? (
         <p className="mt-3 text-sm text-faint">Aucune génération pour l&apos;instant.</p>
       ) : (
-        <table className="mt-3 w-full table-fixed text-sm">
-          <colgroup>
-            <col className="w-32" />
-            <col />
-            <col className="w-24" />
-          </colgroup>
-          <thead className="sr-only">
-            <tr>
-              <th>Date</th>
-              <th>Prompt</th>
-              <th>Coût</th>
-            </tr>
-          </thead>
-          <tbody>
-            {items.map((g) => (
-              <tr key={g.id} className="border-t border-line first:border-t-0">
-                <td className="py-2 text-xs text-faint tabular-nums">{dateTimeFmt.format(g.createdAt)}</td>
-                <td className="truncate py-2 pr-4 text-muted" title={g.prompt}>
+        <ul className="mt-3 divide-y divide-line">
+          {items.map((g) => (
+            <li key={g.id} className="flex items-center gap-4 py-2.5">
+              <div className="min-w-0 flex-1">
+                <p className="truncate text-sm text-muted" title={g.prompt}>
                   <span className="text-fg">{g.modelLabel}</span> {g.prompt}
-                </td>
-                <td className="py-2 text-right tabular-nums">
-                  {g.costEur !== null ? formatEur(g.costEur) : <span className="text-faint">≈ {formatEur(g.estimatedEur)}</span>}
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+                </p>
+                <p className="mt-0.5 text-xs text-faint tabular-nums">{dateTimeFmt.format(g.createdAt)}</p>
+              </div>
+              <p className="shrink-0 text-sm tabular-nums">
+                {g.costEur !== null ? formatEur(g.costEur) : <span className="text-faint">≈ {formatEur(g.estimatedEur)}</span>}
+              </p>
+            </li>
+          ))}
+        </ul>
       )}
     </div>
   );

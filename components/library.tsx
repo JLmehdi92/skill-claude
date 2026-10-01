@@ -64,7 +64,7 @@ export function Library() {
   const filtered = Boolean(q || category || status || favorite || period);
 
   return (
-    <main className="mx-auto max-w-[1600px] px-4 pt-8 pb-16 sm:px-6">
+    <main className="mx-auto max-w-[1600px] px-3 pt-6 pb-16 sm:px-6 sm:pt-8">
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
           <h1 className="text-3xl font-semibold tracking-tight">Historique</h1>
@@ -83,7 +83,7 @@ export function Library() {
       </div>
 
       <div className="mt-6 flex flex-wrap items-center gap-2">
-        <label className="relative min-w-56 flex-1 sm:max-w-80">
+        <label className="relative w-full sm:w-auto sm:min-w-56 sm:flex-1 sm:max-w-80">
           <span className="sr-only">Rechercher dans les prompts</span>
           <MagnifyingGlass size={14} className="pointer-events-none absolute top-1/2 left-3 -translate-y-1/2 text-faint" />
           <input
@@ -91,7 +91,7 @@ export function Library() {
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             placeholder="Rechercher un prompt"
-            className="h-8 w-full rounded-full border border-line bg-raised pr-3 pl-8 text-[13px] placeholder:text-faint focus:border-accent focus:outline-none"
+            className="h-10 w-full rounded-full border border-line bg-raised pr-3 pl-8 text-base placeholder:text-faint focus:border-accent focus:outline-none sm:h-8 sm:text-[13px]"
           />
         </label>
         <Segmented options={CATEGORIES} value={category} onChange={setCategory} label="Type" />
@@ -157,7 +157,7 @@ export function Library() {
 
 function Segmented({ options, value, onChange, label }: { options: { value: string; label: string }[]; value: string; onChange: (v: string) => void; label: string }) {
   return (
-    <div role="radiogroup" aria-label={label} className="flex h-8 items-center rounded-full border border-line bg-raised p-0.5">
+    <div role="radiogroup" aria-label={label} className="scrollbar-none flex h-9 max-w-full items-center overflow-x-auto rounded-full border border-line bg-raised p-0.5 sm:h-8">
       {options.map((o) => (
         <button
           key={o.value}
@@ -213,7 +213,7 @@ function ImportModal({ open, onClose, onImported }: { open: boolean; onClose: ()
           value={taskId}
           onChange={(e) => setTaskId(e.target.value)}
           autoFocus
-          className="mt-2 h-10 w-full rounded-full border border-line-strong bg-canvas px-4 font-mono text-sm focus:border-accent focus:outline-none"
+          className="mt-2 h-11 w-full rounded-full border border-line-strong bg-canvas px-4 font-mono text-base focus:border-accent focus:outline-none sm:h-10 sm:text-sm"
         />
         {err && <p className="mt-2 text-sm text-danger">{err}</p>}
         <div className="mt-6 flex justify-end gap-2">

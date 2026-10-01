@@ -10,7 +10,7 @@ export const metadata: Metadata = {
   description: "Studio local de génération vidéo et image avec kie.ai.",
 };
 
-export const viewport: Viewport = { themeColor: "#0c0d0f" };
+export const viewport: Viewport = { themeColor: "#0c0d0f", viewportFit: "cover" };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (

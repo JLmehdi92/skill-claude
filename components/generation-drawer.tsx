@@ -4,6 +4,7 @@ import { useRef } from "react";
 import { Drawer } from "vaul";
 import { toast } from "sonner";
 import { ArrowClockwise, Copy, DownloadSimple, Heart, MagicWand, Trash, X } from "@phosphor-icons/react";
+import { useMediaQuery } from "@/lib/client/use-media-query";
 import { formatCredits, formatEur } from "@/lib/costs";
 import { getModel } from "@/lib/models/registry";
 import { isPending, type Generation } from "@/lib/types";
@@ -42,14 +43,21 @@ export function GenerationDrawer({
   onFavorite: (g: Generation) => void;
   onDelete: (g: Generation) => void;
 }) {
+  // Phones get a bottom sheet (swipe down to close), larger screens a side panel.
+  const desktop = useMediaQuery("(min-width: 640px)");
   return (
-    <Drawer.Root open={gen !== null} onOpenChange={(o) => !o && onClose()} direction="right">
+    <Drawer.Root open={gen !== null} onOpenChange={(o) => !o && onClose()} direction={desktop ? "right" : "bottom"}>
       <Drawer.Portal>
         <Drawer.Overlay className="fixed inset-0 z-50 bg-black/50" />
         <Drawer.Content
-          className="fixed top-2 right-2 bottom-2 z-50 flex w-[min(540px,calc(100vw-16px))] flex-col overflow-hidden rounded-[var(--radius-surface)] border border-line-strong bg-surface outline-none"
+          className={
+            desktop
+              ? "fixed top-2 right-2 bottom-2 z-50 flex w-[min(540px,calc(100vw-16px))] flex-col overflow-hidden rounded-[var(--radius-surface)] border border-line-strong bg-surface outline-none"
+              : "fixed inset-x-0 bottom-0 z-50 flex max-h-[94dvh] flex-col overflow-hidden rounded-t-[20px] border-t border-line-strong bg-surface pb-[env(safe-area-inset-bottom)] outline-none"
+          }
           aria-describedby={undefined}
         >
+          {!desktop && <div aria-hidden className="mx-auto mt-2 h-1 w-10 shrink-0 rounded-full bg-line-strong" />}
           {gen && <DrawerBody gen={gen} onClose={onClose} onRemix={onRemix} onRetry={onRetry} onFavorite={onFavorite} onDelete={onDelete} />}
         </Drawer.Content>
       </Drawer.Portal>
@@ -88,7 +96,7 @@ function DrawerBody({
 
   return (
     <>
-      <div className="flex h-14 shrink-0 items-center justify-between border-b border-line px-4">
+      <div className="flex h-12 shrink-0 items-center justify-between border-b border-line px-4 sm:h-14">
         <Drawer.Title className="text-[15px] font-medium">
           {gen.modelLabel} <span className="font-normal text-faint">{STATUS[gen.status]}</span>
         </Drawer.Title>
@@ -100,7 +108,7 @@ function DrawerBody({
       <div className="flex-1 overflow-y-auto">
         <div className="bg-canvas">
           {gen.status === "success" && output?.kind === "video" && (
-            <video key={output.url} src={output.url} poster={gen.thumbUrl ?? undefined} controls autoPlay loop playsInline className="max-h-[56vh] w-full bg-black" />
+            <video key={output.url} src={output.url} poster={gen.thumbUrl ?? undefined} controls autoPlay muted loop playsInline className="max-h-[46dvh] w-full bg-black sm:max-h-[56vh]" />
           )}
           {gen.status === "success" && output?.kind === "image" && (
             // eslint-disable-next-line @next/next/no-img-element
@@ -191,12 +199,14 @@ function DrawerBody({
       <div className="shrink-0 border-t border-line px-4 py-3">
         <button
           type="button"
-          className="hold pressable relative w-full overflow-hidden rounded-full border border-danger/30 py-2 text-[13px] text-danger"
+          className="hold pressable relative w-full touch-manipulation overflow-hidden rounded-full border border-danger/30 py-3 text-[13px] text-danger select-none sm:py-2"
           onPointerDown={() => {
             holdTimer.current = setTimeout(() => onDelete(gen), 1200);
           }}
           onPointerUp={() => clearTimeout(holdTimer.current)}
           onPointerLeave={() => clearTimeout(holdTimer.current)}
+          onPointerCancel={() => clearTimeout(holdTimer.current)}
+          onContextMenu={(e) => e.preventDefault()}
           onKeyDown={(e) => {
             if (e.key === "Delete" || e.key === "Backspace") onDelete(gen);
           }}

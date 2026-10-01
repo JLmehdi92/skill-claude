@@ -56,14 +56,14 @@ export function Studio() {
   const live = selected ? (items.find((g) => g.id === selected.id) ?? selected) : null;
 
   return (
-    <main className="mx-auto max-w-[1600px] px-4 pt-6 pb-72 sm:px-6">
+    <main className="mx-auto max-w-[1600px] px-3 pt-4 pb-[24rem] sm:px-6 sm:pt-6 sm:pb-72">
       {!loading && items.length === 0 && (
-        <section className="fade-in max-w-2xl pt-[8vh]">
-          <h1 className="text-4xl font-semibold tracking-tight text-balance md:text-5xl">Qu&apos;est-ce qu&apos;on tourne aujourd&apos;hui ?</h1>
+        <section className="fade-in max-w-2xl pt-6 sm:pt-[8vh]">
+          <h1 className="text-3xl font-semibold tracking-tight text-balance sm:text-4xl md:text-5xl">Qu&apos;est-ce qu&apos;on tourne aujourd&apos;hui ?</h1>
           <p className="mt-4 max-w-[52ch] text-base leading-relaxed text-muted">
             Écris un prompt, ajoute des références et lance Wan 3.0. Chaque vidéo est enregistrée sur ta machine avec son coût.
           </p>
-          <ul className="mt-8 grid gap-2 sm:grid-cols-2">
+          <ul className="mt-6 grid gap-2 sm:mt-8 sm:grid-cols-2">
             {EXAMPLES.map((ex) => (
               <li key={ex}>
                 <button
