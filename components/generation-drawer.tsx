@@ -4,6 +4,7 @@ import { useRef } from "react";
 import { Drawer } from "vaul";
 import { toast } from "sonner";
 import { ArrowClockwise, Copy, DownloadSimple, Heart, LockSimple, MagicWand, Shuffle, Trash, X } from "@phosphor-icons/react";
+import { copyText } from "@/lib/client/clipboard";
 import { useMediaQuery } from "@/lib/client/use-media-query";
 import { formatCredits, formatEur } from "@/lib/costs";
 import { getModel, inferMode } from "@/lib/models/registry";
@@ -91,7 +92,10 @@ function DrawerBody({
   const model = getModel(gen.model);
   const output = gen.outputs[0];
   const holdTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
-  const copy = (text: string, what: string) => navigator.clipboard.writeText(text).then(() => toast.success(`${what} copié`));
+  const copy = async (text: string, what: string) => {
+    if (await copyText(text)) toast.success(`${what} copié`);
+    else toast.error("Copie impossible sur ce navigateur. Sélectionne le texte à la main.");
+  };
 
   const seed = typeof gen.params.seed === "number" ? gen.params.seed : null;
   const seedAuto = gen.params.seed_auto === true;

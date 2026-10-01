@@ -19,6 +19,7 @@ import {
   X,
 } from "@phosphor-icons/react";
 import { api, ApiError, notifyStatsChanged, type BudgetConflict } from "@/lib/client/api";
+import { newId } from "@/lib/client/id";
 import { creditsToEur, formatCredits, formatEur } from "@/lib/costs";
 import { kindOfFile } from "@/lib/models/media";
 import { getMode, inferMode, MODELS, summarizeMedia, validateRequest } from "@/lib/models/registry";
@@ -44,19 +45,33 @@ export interface ComposerHandle {
 const SLOT_ICONS: Record<MediaKind, typeof ImageIcon> = { image: ImageIcon, video: FilmStrip, audio: MusicNotes, document: FileIcon };
 const DURATION_PRESETS = [-1, 3, 5, 8, 10, 15, 20, 30];
 
+/**
+ * Reads a video/audio duration in the browser. iOS Safari may never fire loadedmetadata for a
+ * detached element, so this gives up after a few seconds (the server measures again with ffprobe).
+ */
 function measureDuration(file: File, kind: MediaKind): Promise<number | undefined> {
   if (kind !== "video" && kind !== "audio") return Promise.resolve(undefined);
   return new Promise((resolve) => {
     const el = document.createElement(kind);
     const url = URL.createObjectURL(file);
+    let settled = false;
     const done = (v?: number) => {
+      if (settled) return;
+      settled = true;
+      clearTimeout(timer);
+      el.removeAttribute("src");
+      el.load();
       URL.revokeObjectURL(url);
       resolve(v);
     };
+    const timer = setTimeout(() => done(undefined), 5000);
     el.preload = "metadata";
+    el.muted = true;
+    if (el instanceof HTMLVideoElement) el.playsInline = true;
     el.onloadedmetadata = () => done(Number.isFinite(el.duration) ? Math.round(el.duration * 100) / 100 : undefined);
     el.onerror = () => done(undefined);
     el.src = url;
+    el.load();
   });
 }
 
@@ -182,7 +197,17 @@ export const Composer = forwardRef<
     return next;
   };
 
+  /** Never fails silently: any unexpected error ends up in a toast. */
   const addFiles = async (files: File[], forcedSlot?: MediaSlot) => {
+    try {
+      await addFilesUnsafe(files, forcedSlot);
+    } catch (err) {
+      console.error(err);
+      toast.error("Impossible d'ajouter le fichier.", { description: err instanceof Error ? err.message : String(err) });
+    }
+  };
+
+  const addFilesUnsafe = async (files: File[], forcedSlot?: MediaSlot) => {
     if (!files.length) return;
     let target = mode;
     // Text mode takes no files: dropping some switches to the first mode that accepts them.
@@ -220,7 +245,7 @@ export const Composer = forwardRef<
         toast.error(`${slot.label} : « ${file.name} » dépasse ${Math.round(slot.maxBytes / 1024 / 1024)} Mo.`);
         continue;
       }
-      accepted.push({ id: crypto.randomUUID(), slot: slot.key, file, url: URL.createObjectURL(file), kind, duration });
+      accepted.push({ id: newId(), slot: slot.key, file, url: URL.createObjectURL(file), kind, duration });
     }
     if (accepted.length) {
       commitAttachments([...attachmentsRef.current, ...accepted]);
@@ -360,7 +385,7 @@ export const Composer = forwardRef<
           const res = await fetch(input.url);
           if (!res.ok) throw new Error(String(res.status));
           const file = new File([await res.blob()], input.name, { type: input.mime });
-          restored.push({ id: crypto.randomUUID(), slot: input.slot, file, url: URL.createObjectURL(file), kind: input.kind, duration: input.duration });
+          restored.push({ id: newId(), slot: input.slot, file, url: URL.createObjectURL(file), kind: input.kind, duration: input.duration });
         } catch {
           toast.error(`Référence introuvable : ${input.name}`);
         }
@@ -537,10 +562,13 @@ export const Composer = forwardRef<
         </form>
       </div>
 
+      {/* Visually hidden rather than display:none: iOS opens the picker more reliably this way. */}
       <input
         ref={fileInputRef}
         type="file"
-        hidden
+        tabIndex={-1}
+        aria-hidden="true"
+        className="pointer-events-none fixed top-0 left-0 size-px opacity-0"
         onChange={(e) => {
           const files = [...(e.target.files ?? [])];
           e.target.value = "";
@@ -600,7 +628,11 @@ function AttachmentThumb({
             // eslint-disable-next-line @next/next/no-img-element
             <img src={a.url} alt="" className="size-full object-cover" />
           ) : a.kind === "video" ? (
-            <video src={a.url} muted preload="metadata" className="size-full object-cover" />
+            <span className="relative block size-full">
+              {/* Shown when the browser cannot paint a frame; a decoded frame covers it. */}
+              <Icon size={22} className="absolute inset-0 m-auto text-muted" />
+              <video src={`${a.url}#t=0.1`} muted playsInline preload="metadata" className="relative size-full object-cover" />
+            </span>
           ) : (
             <Icon size={22} className="text-muted" />
           )}

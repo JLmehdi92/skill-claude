@@ -36,6 +36,7 @@ Si tu n'en as pas besoin sur téléphone, `npm start` suffit.
 
 En cas de souci :
 - **« Ce site est inaccessible » (ERR_CONNECTION_REFUSED)** : `npm run build` ne fait que compiler. Lance ensuite `npm run phone` (ou `npm start`) et garde ce terminal ouvert tant que tu utilises le site.
+- **Sur téléphone, l'app passe par `http://192.168.x.x`** : ce n'est pas une adresse « sécurisée » pour le navigateur. L'app est testée dans ce cas précis (ajout de photos et vidéos, copie, génération complète).
 - **Le téléphone ne charge pas** : vérifie qu'il est sur le même Wi-Fi que le PC. Sur Windows, accepte la demande du pare-feu pour Node.js sur « Réseaux privés ».
 - **Tester sans dépenser de crédits** : mets `KIE_MOCK=1` dans `.env.local`, puis relance `npm run phone`.
 - **« Node.js … est trop ancien »** : installe Node.js 24 LTS depuis nodejs.org, ferme et rouvre le terminal, puis `npm install`.

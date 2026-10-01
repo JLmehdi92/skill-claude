@@ -40,7 +40,8 @@ export function GenerationCard({ gen, onOpen, onRetry }: { gen: Generation; onOp
           {gen.status === "success" && output?.kind === "video" && (
             <video
               ref={video}
-              src={output.url}
+              // #t=0.1 makes iOS show the first frame when there is no server thumbnail.
+              src={gen.thumbUrl ? output.url : `${output.url}#t=0.1`}
               poster={gen.thumbUrl ?? undefined}
               muted
               loop
