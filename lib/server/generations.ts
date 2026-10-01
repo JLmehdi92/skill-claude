@@ -308,7 +308,7 @@ export function listGenerations(f: ListFilters = {}): { items: Generation[]; nex
   if (f.ids?.length) where.push(`id IN (${f.ids.map(() => "?").join(",")})`), args.push(...f.ids);
   const limit = Math.min(Math.max(f.limit ?? 40, 1), 200);
   const sql = `SELECT * FROM generations WHERE ${where.join(" AND ")} ORDER BY created_at DESC LIMIT ?`;
-  const rows = db().prepare(sql).all(...args, limit + 1) as GenerationRow[];
+  const rows = db().prepare(sql).all(...args, limit + 1) as unknown as GenerationRow[];
   const page = rows.slice(0, limit);
   return { items: page.map(toDto), nextCursor: rows.length > limit ? page[page.length - 1].created_at : null };
 }

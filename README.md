@@ -10,7 +10,7 @@ Premier modèle : **Wan 3.0** (`wan/3-0-video`), filtre NSFW désactivé par dé
 ## Lancer sur ton PC
 
 Prérequis :
-- [Node.js](https://nodejs.org) 20 ou 22 (version LTS) ;
+- [Node.js](https://nodejs.org) 24 LTS (22.13 minimum) : la base de données utilise le SQLite intégré à Node, rien à compiler ;
 - [Git](https://git-scm.com) ;
 - conseillé : `ffmpeg` pour les miniatures et la mesure exacte des durées (`winget install ffmpeg` sur Windows, `brew install ffmpeg` sur macOS).
 
@@ -38,7 +38,7 @@ En cas de souci :
 - **« Ce site est inaccessible » (ERR_CONNECTION_REFUSED)** : `npm run build` ne fait que compiler. Lance ensuite `npm run phone` (ou `npm start`) et garde ce terminal ouvert tant que tu utilises le site.
 - **Le téléphone ne charge pas** : vérifie qu'il est sur le même Wi-Fi que le PC. Sur Windows, accepte la demande du pare-feu pour Node.js sur « Réseaux privés ».
 - **Tester sans dépenser de crédits** : mets `KIE_MOCK=1` dans `.env.local`, puis relance `npm run phone`.
-- **Erreur `better-sqlite3` à l'installation** : utilise une version LTS de Node.js (20 ou 22), puis relance `npm install`.
+- **« Node.js … est trop ancien »** : installe Node.js 24 LTS depuis nodejs.org, ferme et rouvre le terminal, puis `npm install`.
 - **Aucun mot de passe** : n'ouvre l'app que sur un Wi-Fi de confiance, n'importe qui sur le réseau pourrait lancer des générations avec tes crédits.
 
 Pendant le développement : `npm run dev`. Pour tester l'interface sans dépenser de crédits : `npm run dev:mock` (faux client kie, une vidéo d'exemple au bout de 6 s, un prompt contenant `[fail]` simule un échec).

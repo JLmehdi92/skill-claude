@@ -41,7 +41,7 @@ const spent = (r: CostRow) => (isPending(r.status) ? 0 : (r.cost_eur ?? 0));
 
 /** Spent this month plus what pending generations are expected to cost. Used for the budget guard. */
 export function monthCommittedEur(now = new Date()): number {
-  const rows = db().prepare("SELECT * FROM generations WHERE created_at >= ?").all(startOfMonth(now)) as CostRow[];
+  const rows = db().prepare("SELECT * FROM generations WHERE created_at >= ?").all(startOfMonth(now)) as unknown as CostRow[];
   return round(rows.reduce((acc, r) => acc + (isPending(r.status) ? creditsToEur(r.estimated_credits, r.usd_eur_rate) : spent(r)), 0));
 }
 
@@ -95,7 +95,7 @@ export function computeStats(rows: CostRow[], now = new Date(), days = 30): Omit
 }
 
 export async function getStats(): Promise<Stats> {
-  const rows = db().prepare("SELECT model, model_label, category, status, cost_eur, estimated_credits, usd_eur_rate, created_at FROM generations").all() as CostRow[];
+  const rows = db().prepare("SELECT model, model_label, category, status, cost_eur, estimated_credits, usd_eur_rate, created_at FROM generations").all() as unknown as CostRow[];
   const { rate, source } = await getUsdEurRate();
   const budget = Number(getSetting("monthly_budget_eur"));
   return { ...computeStats(rows), monthlyBudgetEur: budget > 0 ? budget : null, usdEurRate: rate, rateSource: source };

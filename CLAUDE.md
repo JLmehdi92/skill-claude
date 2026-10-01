@@ -1,6 +1,6 @@
 # Higgsfield local
 
-Next.js 16 (App Router) + SQLite (better-sqlite3), app locale branchée sur kie.ai. UI en français.
+Next.js 16 (App Router) + SQLite intégré à Node (`node:sqlite`, Node >= 22.13 ; pas de better-sqlite3, il plante sous Windows), app locale branchée sur kie.ai. UI en français.
 
 - Modèles : un fichier par modèle dans `lib/models/`, inscrit dans `lib/models/registry.ts`. Le type `ModelDefinition` (`lib/models/types.ts`) pilote l'UI, la validation (partagée client/serveur) et le devis.
 - Serveur : `lib/server/*` (`server-only`). Client kie réel `lib/kie/client.ts`, mock `lib/kie/mock.ts` (`KIE_MOCK=1`).

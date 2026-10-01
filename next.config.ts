@@ -6,7 +6,6 @@ import type { NextConfig } from "next";
 const root = path.dirname(fileURLToPath(import.meta.url));
 
 const nextConfig: NextConfig = {
-  serverExternalPackages: ["better-sqlite3"],
   turbopack: { root },
 };
 

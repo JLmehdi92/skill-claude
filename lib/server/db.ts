@@ -1,5 +1,6 @@
 import "server-only";
-import Database from "better-sqlite3";
+// Built into Node (>= 22.13): no native module to compile, so nothing can crash on install (better-sqlite3 did on Windows).
+import type { DatabaseSync } from "node:sqlite";
 import fs from "node:fs";
 import path from "node:path";
 import { config } from "./config";
@@ -69,15 +70,15 @@ CREATE TABLE IF NOT EXISTS settings (
 );
 `;
 
-const globalForDb = globalThis as unknown as { __hfDb?: Database.Database; __hfDbPath?: string };
+const globalForDb = globalThis as unknown as { __hfDb?: DatabaseSync; __hfDbPath?: string };
 
-export function db(): Database.Database {
+export function db(): DatabaseSync {
   const file = path.join(config.storageDir, "higgsfield-local.sqlite");
   if (globalForDb.__hfDb && globalForDb.__hfDbPath === file) return globalForDb.__hfDb;
   fs.mkdirSync(config.storageDir, { recursive: true });
-  const conn = new Database(file);
-  conn.pragma("journal_mode = WAL");
-  conn.pragma("busy_timeout = 5000");
+  const { DatabaseSync } = loadSqlite();
+  const conn = new DatabaseSync(file);
+  conn.exec("PRAGMA journal_mode = WAL; PRAGMA busy_timeout = 5000;");
   conn.exec(SCHEMA);
   migrate(conn);
   globalForDb.__hfDb = conn;
@@ -85,14 +86,30 @@ export function db(): Database.Database {
   return conn;
 }
 
+/** Loads node:sqlite without its one-time "experimental feature" warning, which reads like an error in the terminal. */
+function loadSqlite(): typeof import("node:sqlite") {
+  const emit = process.emitWarning;
+  process.emitWarning = ((warning: string | Error, ...rest: unknown[]) => {
+    if (String(warning).includes("SQLite is an experimental feature")) return;
+    (emit as (...a: unknown[]) => void).call(process, warning, ...rest);
+  }) as typeof process.emitWarning;
+  try {
+    const mod = process.getBuiltinModule("node:sqlite") as typeof import("node:sqlite") | undefined;
+    if (!mod) throw new Error("SQLite intégré introuvable : installe Node.js 24 LTS (ou 22.13 minimum) depuis https://nodejs.org.");
+    return mod;
+  } finally {
+    process.emitWarning = emit;
+  }
+}
+
 /** Additive migrations for databases created by earlier versions. */
-function migrate(conn: Database.Database) {
-  const cols = new Set((conn.prepare("PRAGMA table_info(generations)").all() as { name: string }[]).map((c) => c.name));
+function migrate(conn: DatabaseSync) {
+  const cols = new Set((conn.prepare("PRAGMA table_info(generations)").all() as unknown as { name: string }[]).map((c) => c.name));
   if (!cols.has("deleted_at")) conn.exec("ALTER TABLE generations ADD COLUMN deleted_at INTEGER");
 }
 
 export function getSetting(key: string): string | null {
-  const row = db().prepare("SELECT value FROM settings WHERE key = ?").get(key) as { value: string } | undefined;
+  const row = db().prepare("SELECT value FROM settings WHERE key = ?").get(key) as unknown as { value: string } | undefined;
   return row?.value ?? null;
 }
 

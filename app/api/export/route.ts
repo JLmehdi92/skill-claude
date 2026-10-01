@@ -12,7 +12,7 @@ const num = (v: number | null) => (v === null ? "" : String(v).replace(".", ",")
 
 /** GET /api/export?format=json (full history backup) or format=csv (spending ledger, Excel FR friendly). */
 export function GET(req: NextRequest) {
-  const rows = db().prepare("SELECT * FROM generations ORDER BY created_at DESC").all() as GenerationRow[];
+  const rows = db().prepare("SELECT * FROM generations ORDER BY created_at DESC").all() as unknown as GenerationRow[];
   const stamp = new Date().toISOString().slice(0, 10);
 
   if (req.nextUrl.searchParams.get("format") === "csv") {
