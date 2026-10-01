@@ -8,6 +8,7 @@
     "dev:mock": "KIE_MOCK=1 next dev",
     "build": "next build",
     "start": "next start",
+    "phone": "node scripts/lan-urls.mjs && next start -H 0.0.0.0",
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",

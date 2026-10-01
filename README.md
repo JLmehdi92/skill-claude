@@ -7,15 +7,38 @@ Premier modèle : **Wan 3.0** (`wan/3-0-video`), filtre NSFW désactivé par dé
 - **Historique** : chaque génération (réussie, en cours ou échouée) est enregistrée dans SQLite. Les vidéos et les références sont copiées dans `storage/`, donc tout reste consultable même après expiration des liens kie.ai. Recherche, filtres, favoris, Remix, Relancer, téléchargement, import d'une tâche kie par son `taskId`, sauvegarde JSON.
 - **Dépenses** : coût réel de chaque génération (crédits kie → $ → €, au taux BCE figé le jour même), totaux du jour, de la semaine, du mois et depuis le début, graphique sur 30 jours, répartition par modèle et par type, solde kie.ai, export CSV, budget mensuel avec confirmation avant dépassement. Supprimer une génération efface ses fichiers mais garde son coût dans le suivi.
 
-## Installation
+## Lancer sur ton PC
 
-Prérequis : Node.js 20+ et, conseillé, `ffmpeg` (miniatures et mesure exacte des durées).
+Prérequis :
+- [Node.js](https://nodejs.org) 20 ou 22 (version LTS) ;
+- [Git](https://git-scm.com) ;
+- conseillé : `ffmpeg` pour les miniatures et la mesure exacte des durées (`winget install ffmpeg` sur Windows, `brew install ffmpeg` sur macOS).
 
 ```bash
+git clone -b feature/higgsfield-local https://github.com/JLmehdi92/skill-claude.git higgsfield-local
+cd higgsfield-local
 npm install
-cp .env.example .env.local   # puis colle ta clé : KIE_API_KEY=...
-npm run build && npm start   # http://localhost:3000
+cp .env.example .env.local      # Windows (cmd) : copy .env.example .env.local
 ```
+
+Ouvre `.env.local` dans un éditeur et colle ta clé sur la ligne `KIE_API_KEY=` (clé disponible sur [kie.ai/api-key](https://kie.ai/api-key)). Puis :
+
+```bash
+npm run build
+npm run phone
+```
+
+`npm run phone` affiche deux adresses :
+- `http://localhost:3000` pour ce PC ;
+- `http://192.168.x.x:3000` pour ton téléphone, s'il est connecté au même Wi-Fi.
+
+Si tu n'en as pas besoin sur téléphone, `npm start` suffit.
+
+En cas de souci :
+- **Le téléphone ne charge pas** : vérifie qu'il est sur le même Wi-Fi que le PC. Sur Windows, accepte la demande du pare-feu pour Node.js sur « Réseaux privés ».
+- **Tester sans dépenser de crédits** : mets `KIE_MOCK=1` dans `.env.local`, puis relance `npm run phone`.
+- **Erreur `better-sqlite3` à l'installation** : utilise une version LTS de Node.js (20 ou 22), puis relance `npm install`.
+- **Aucun mot de passe** : n'ouvre l'app que sur un Wi-Fi de confiance, n'importe qui sur le réseau pourrait lancer des générations avec tes crédits.
 
 Pendant le développement : `npm run dev`. Pour tester l'interface sans dépenser de crédits : `npm run dev:mock` (faux client kie, une vidéo d'exemple au bout de 6 s, un prompt contenant `[fail]` simule un échec).
 
