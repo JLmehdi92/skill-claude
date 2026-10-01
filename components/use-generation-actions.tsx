@@ -14,19 +14,21 @@ export function useGenerationActions(opts: {
   setSelected: (g: Generation | null) => void;
 }) {
   const { upsert, removeLocal, setSelected } = opts;
-  const [conflict, setConflict] = useState<{ gen: Generation; budget: BudgetConflict } | null>(null);
+  const [conflict, setConflict] = useState<{ gen: Generation; budget: BudgetConflict; newSeed: boolean } | null>(null);
 
+  /** Same parameters again; `newSeed` draws another seed for a different take ("Variante"). */
   const retry = useCallback(
-    async (gen: Generation, confirmOverBudget = false) => {
+    async (gen: Generation, opts: { confirmOverBudget?: boolean; newSeed?: boolean } = {}) => {
+      const newSeed = opts.newSeed === true;
       try {
-        const fresh = await api.retry(gen.id, confirmOverBudget);
+        const fresh = await api.retry(gen.id, { confirmOverBudget: opts.confirmOverBudget, newSeed });
         upsert(fresh);
         setConflict(null);
         setSelected(null);
         notifyStatsChanged();
-        toast.success("Génération relancée");
+        toast.success(newSeed ? "Variante lancée" : "Génération relancée");
       } catch (err) {
-        if (err instanceof ApiError && err.status === 409) setConflict({ gen, budget: (err.body as { budget: BudgetConflict }).budget });
+        if (err instanceof ApiError && err.status === 409) setConflict({ gen, budget: (err.body as { budget: BudgetConflict }).budget, newSeed });
         else toast.error((err as Error).message);
       }
     },
@@ -65,7 +67,7 @@ export function useGenerationActions(opts: {
             <Button variant="ghost" onClick={() => setConflict(null)}>
               Annuler
             </Button>
-            <Button variant="primary" onClick={() => void retry(conflict.gen, true)}>
+            <Button variant="primary" onClick={() => void retry(conflict.gen, { confirmOverBudget: true, newSeed: conflict.newSeed })}>
               Relancer quand même
             </Button>
           </div>

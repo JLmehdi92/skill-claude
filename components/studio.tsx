@@ -38,18 +38,19 @@ export function Studio() {
 
   // /?remix=<id> loads a generation from the history into the composer.
   const remixId = search.get("remix");
+  const remixKeepSeed = search.get("seed") === "1" ? true : undefined;
   useEffect(() => {
     if (!remixId || !cfg) return;
     api
       .get(remixId)
-      .then((g) => composer.current?.loadFrom(g))
+      .then((g) => composer.current?.loadFrom(g, { keepSeed: remixKeepSeed }))
       .catch(() => toast.error("Génération introuvable."))
       .finally(() => router.replace("/", { scroll: false }));
-  }, [remixId, cfg, router]);
+  }, [remixId, remixKeepSeed, cfg, router]);
 
-  const remix = useCallback((g: Generation) => {
+  const remix = useCallback((g: Generation, keepSeed?: boolean) => {
     setSelected(null);
-    void composer.current?.loadFrom(g);
+    void composer.current?.loadFrom(g, { keepSeed });
   }, []);
 
   // Keep the open drawer in sync with polling updates.
@@ -114,6 +115,7 @@ export function Studio() {
         onClose={() => setSelected(null)}
         onRemix={remix}
         onRetry={(g) => void actions.retry(g)}
+        onVariant={(g) => void actions.retry(g, { newSeed: true })}
         onFavorite={(g) => void actions.favorite(g)}
         onDelete={(g) => void actions.remove(g)}
       />

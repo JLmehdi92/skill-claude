@@ -144,8 +144,9 @@ export function Library() {
       <GenerationDrawer
         gen={live}
         onClose={() => setSelected(null)}
-        onRemix={(g) => router.push(`/?remix=${g.id}`)}
+        onRemix={(g, keepSeed) => router.push(`/?remix=${g.id}${keepSeed ? "&seed=1" : ""}`)}
         onRetry={(g) => void actions.retry(g)}
+        onVariant={(g) => void actions.retry(g, { newSeed: true })}
         onFavorite={(g) => void actions.favorite(g)}
         onDelete={(g) => void actions.remove(g)}
       />

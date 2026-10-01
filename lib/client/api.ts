@@ -37,11 +37,11 @@ export const api = {
   },
   get: (id: string) => request<Generation>(`/api/generations/${id}`),
   generate: (form: FormData) => request<Generation>("/api/generate", { method: "POST", body: form }),
-  retry: (id: string, confirmOverBudget = false) =>
+  retry: (id: string, opts: { confirmOverBudget?: boolean; newSeed?: boolean } = {}) =>
     request<Generation>(`/api/generations/${id}/retry`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ confirmOverBudget }),
+      body: JSON.stringify(opts),
     }),
   favorite: (id: string, favorite: boolean) =>
     request<Generation>(`/api/generations/${id}`, {

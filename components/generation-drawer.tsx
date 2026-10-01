@@ -3,7 +3,7 @@
 import { useRef } from "react";
 import { Drawer } from "vaul";
 import { toast } from "sonner";
-import { ArrowClockwise, Copy, DownloadSimple, Heart, MagicWand, Trash, X } from "@phosphor-icons/react";
+import { ArrowClockwise, Copy, DownloadSimple, Heart, LockSimple, MagicWand, Shuffle, Trash, X } from "@phosphor-icons/react";
 import { useMediaQuery } from "@/lib/client/use-media-query";
 import { formatCredits, formatEur } from "@/lib/costs";
 import { getModel } from "@/lib/models/registry";
@@ -33,13 +33,17 @@ export function GenerationDrawer({
   onClose,
   onRemix,
   onRetry,
+  onVariant,
   onFavorite,
   onDelete,
 }: {
   gen: Generation | null;
   onClose: () => void;
-  onRemix: (g: Generation) => void;
+  /** keepSeed: reload with the same seed (retouch the prompt, keep the take). */
+  onRemix: (g: Generation, keepSeed?: boolean) => void;
   onRetry: (g: Generation) => void;
+  /** Same parameters, new random seed. */
+  onVariant: (g: Generation) => void;
   onFavorite: (g: Generation) => void;
   onDelete: (g: Generation) => void;
 }) {
@@ -58,7 +62,7 @@ export function GenerationDrawer({
           aria-describedby={undefined}
         >
           {!desktop && <div aria-hidden className="mx-auto mt-2 h-1 w-10 shrink-0 rounded-full bg-line-strong" />}
-          {gen && <DrawerBody gen={gen} onClose={onClose} onRemix={onRemix} onRetry={onRetry} onFavorite={onFavorite} onDelete={onDelete} />}
+          {gen && <DrawerBody gen={gen} onClose={onClose} onRemix={onRemix} onRetry={onRetry} onVariant={onVariant} onFavorite={onFavorite} onDelete={onDelete} />}
         </Drawer.Content>
       </Drawer.Portal>
     </Drawer.Root>
@@ -70,13 +74,17 @@ function DrawerBody({
   onClose,
   onRemix,
   onRetry,
+  onVariant,
   onFavorite,
   onDelete,
 }: {
   gen: Generation;
   onClose: () => void;
-  onRemix: (g: Generation) => void;
+  /** keepSeed: reload with the same seed (retouch the prompt, keep the take). */
+  onRemix: (g: Generation, keepSeed?: boolean) => void;
   onRetry: (g: Generation) => void;
+  /** Same parameters, new random seed. */
+  onVariant: (g: Generation) => void;
   onFavorite: (g: Generation) => void;
   onDelete: (g: Generation) => void;
 }) {
@@ -85,13 +93,17 @@ function DrawerBody({
   const holdTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
   const copy = (text: string, what: string) => navigator.clipboard.writeText(text).then(() => toast.success(`${what} copié`));
 
+  const seed = typeof gen.params.seed === "number" ? gen.params.seed : null;
+  const seedAuto = gen.params.seed_auto === true;
   const rows: [string, string][] = model
-    ? model.fields.map((f) => [
+    ? model.fields
+        .filter((f) => f.type !== "seed")
+        .map((f) => [
         f.label,
         f.type === "select" ? (f.options.find((o) => o.value === gen.params[f.key])?.label ?? formatValue(f.key, gen.params[f.key])) : formatValue(f.key, gen.params[f.key]),
       ])
     : Object.entries(gen.params)
-        .filter(([k]) => k !== "prompt")
+        .filter(([k]) => k !== "prompt" && k !== "seed" && k !== "seed_auto")
         .map(([k, v]) => [k, formatValue(k, v)]);
 
   return (
@@ -125,11 +137,21 @@ function DrawerBody({
         </div>
 
         <div className="flex flex-wrap gap-2 border-b border-line px-4 py-3">
-          <Button variant="primary" size="sm" onClick={() => onRemix(gen)}>
+          <Button variant="primary" size="sm" onClick={() => onRemix(gen)} title="Recharge le prompt, les réglages et les références">
             <MagicWand size={14} />
             Remix
           </Button>
-          <Button size="sm" onClick={() => onRetry(gen)}>
+          {seed !== null && (
+            <Button size="sm" onClick={() => onRemix(gen, true)} title="Recharge tout avec ce seed fixé : retouche le prompt en gardant la même prise">
+              <LockSimple size={14} />
+              Même seed
+            </Button>
+          )}
+          <Button size="sm" onClick={() => onVariant(gen)} title="Relance avec les mêmes réglages et un nouveau seed">
+            <Shuffle size={14} />
+            Variante
+          </Button>
+          <Button size="sm" variant="ghost" onClick={() => onRetry(gen)} title="Relance à l'identique, même seed">
             <ArrowClockwise size={14} />
             Relancer
           </Button>
@@ -182,6 +204,20 @@ function DrawerBody({
           {rows.map(([label, value]) => (
             <Detail key={label} label={label} value={value} />
           ))}
+          {seed !== null && (
+            <div className="min-w-0">
+              <p className="text-[12px] text-faint">Seed{seedAuto ? " (auto)" : ""}</p>
+              <button
+                type="button"
+                onClick={() => copy(String(seed), "Seed")}
+                title="Copier le seed"
+                className="mt-0.5 flex max-w-full items-center gap-1.5 text-muted tabular-nums hover:text-fg"
+              >
+                <span className="truncate">{seed}</span>
+                <Copy size={12} className="shrink-0" />
+              </button>
+            </div>
+          )}
           <Detail label="Créée le" value={dateFmt.format(gen.createdAt)} />
           {gen.completedAt && <Detail label="Terminée le" value={dateFmt.format(gen.completedAt)} />}
           <Detail label="Taux USD/EUR" value={gen.usdEurRate.toFixed(4)} />

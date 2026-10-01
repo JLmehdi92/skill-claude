@@ -35,7 +35,8 @@ interface Attachment {
 }
 
 export interface ComposerHandle {
-  loadFrom(gen: Generation): Promise<void>;
+  /** keepSeed: reuse the generation's seed; otherwise an automatic seed goes back to random. */
+  loadFrom(gen: Generation, opts?: { keepSeed?: boolean }): Promise<void>;
   setPrompt(prompt: string): void;
 }
 
@@ -256,10 +257,12 @@ export const Composer = forwardRef<
   }, [addFiles]);
 
   useImperativeHandle(ref, () => ({
-    async loadFrom(gen) {
+    async loadFrom(gen, opts = {}) {
       const def = MODELS.find((m) => m.id === gen.model) ?? model;
       setModel(def);
-      setParams({ ...def.defaults, ...gen.params });
+      const { seed_auto: seedAuto, ...saved } = gen.params;
+      const keepSeed = opts.keepSeed ?? seedAuto !== true;
+      setParams({ ...def.defaults, ...saved, ...(keepSeed ? {} : { seed: null }) } as Params);
       attachments.forEach((a) => URL.revokeObjectURL(a.url));
       const restored: Attachment[] = [];
       for (const input of gen.inputs) {
@@ -691,8 +694,17 @@ function AdvancedMenu({ fields, params, onChange }: { fields: Field[]; params: P
                     <Chip onClick={() => onChange(f.key, Math.floor(Math.random() * 2_147_483_647))} aria-label="Seed au hasard">
                       <DiceFive size={14} />
                     </Chip>
+                    {seed !== null && (
+                      <Chip onClick={() => onChange(f.key, null)} aria-label="Revenir à un seed aléatoire">
+                        <X size={14} />
+                      </Chip>
+                    )}
                   </div>
-                  <p className="text-[11px] text-faint">Même seed et mêmes réglages : résultat reproductible.</p>
+                  <p className={cx("text-[11px] leading-snug", seed !== null ? "text-warn" : "text-faint")}>
+                    {seed !== null
+                      ? "Seed fixé : toutes tes générations l'utiliseront. Efface-le pour retrouver de la variété."
+                      : "Vide : un seed aléatoire est tiré et enregistré dans l'historique pour chaque vidéo."}
+                  </p>
                 </div>
               );
             }

@@ -1,7 +1,7 @@
 import "server-only";
 import fs from "node:fs/promises";
 import path from "node:path";
-import { randomUUID } from "node:crypto";
+import { randomInt, randomUUID } from "node:crypto";
 import { creditsToEur, creditsToUsd } from "@/lib/costs";
 import { kie, KieError } from "@/lib/kie";
 import { getModel, validateRequest, type FileMeta } from "@/lib/models/registry";
@@ -36,6 +36,29 @@ interface StoredOutput {
   kind: Category;
 }
 
+export interface SubmitOptions {
+  confirmOverBudget?: boolean;
+  /** Draw a fresh random seed even if the params carry one (used by "Variante"). */
+  newSeed?: boolean;
+}
+
+/** Largest seed accepted by the models (int32). */
+const MAX_SEED = 2_147_483_647;
+
+/**
+ * kie.ai does not report the seed it picks when none is sent, so a great result could never be
+ * reproduced. We always choose the seed ourselves and remember whether it was automatic.
+ */
+function resolveSeed(model: NonNullable<ReturnType<typeof getModel>>, rawParams: unknown, newSeed: boolean) {
+  const raw = { ...(rawParams as Record<string, unknown>) };
+  if (!model.fields.some((f) => f.type === "seed")) return { raw, seedAuto: undefined };
+  if (newSeed || raw.seed === null || raw.seed === undefined) {
+    raw.seed = randomInt(0, MAX_SEED + 1);
+    return { raw, seedAuto: true };
+  }
+  return { raw, seedAuto: raw.seed_auto === true };
+}
+
 export type SubmitResult =
   | { ok: true; generation: Generation }
   | { ok: false; status: 404 | 422; errors: string[] }
@@ -50,16 +73,17 @@ export async function submitGeneration(
   modelId: string,
   rawParams: unknown,
   files: IncomingFile[],
-  opts: { confirmOverBudget?: boolean } = {},
+  opts: SubmitOptions = {},
 ): Promise<SubmitResult> {
   const model = getModel(modelId);
   if (!model) return { ok: false, status: 404, errors: [`Modèle inconnu : ${modelId}.`] };
+  const { raw, seedAuto } = resolveSeed(model, rawParams, opts.newSeed === true);
 
   const id = randomUUID();
   const inputs = await storeInputs(id, model.mediaSlots, files);
   const metas: FileMeta[] = inputs.map((i, n) => ({ slot: i.slot, size: files[n].data.length, duration: i.duration }));
 
-  const check = validateRequest(model, rawParams, metas);
+  const check = validateRequest(model, raw, metas);
   if (!check.ok) {
     await removeDir(path.join("inputs", id));
     return { ok: false, status: 422, errors: check.errors };
@@ -84,7 +108,18 @@ export async function submitGeneration(
         estimated_credits, usd_eur_rate, created_at)
        VALUES (?, ?, ?, ?, 'uploading', ?, ?, ?, ?, ?, ?)`,
     )
-    .run(id, model.id, model.label, model.category, check.params.prompt, JSON.stringify(check.params), JSON.stringify(inputs), estimate.credits, rate, Date.now());
+    .run(
+      id,
+      model.id,
+      model.label,
+      model.category,
+      check.params.prompt,
+      JSON.stringify(seedAuto === undefined ? check.params : { ...check.params, seed_auto: seedAuto }),
+      JSON.stringify(inputs),
+      estimate.credits,
+      rate,
+      Date.now(),
+    );
 
   inflight.add(id);
   void startTask(id).finally(() => inflight.delete(id));
@@ -92,7 +127,7 @@ export async function submitGeneration(
 }
 
 /** Re-runs a generation with the same parameters and the locally stored reference files. */
-export async function retryGeneration(id: string, opts: { confirmOverBudget?: boolean } = {}): Promise<SubmitResult> {
+export async function retryGeneration(id: string, opts: SubmitOptions = {}): Promise<SubmitResult> {
   const row = getRow(id);
   if (!row) return { ok: false, status: 404, errors: ["Génération introuvable."] };
   const inputs = JSON.parse(row.inputs_json) as StoredInput[];

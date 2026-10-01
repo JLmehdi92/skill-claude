@@ -32,10 +32,31 @@ test("generate, follow progress, open details and remix", async ({ page }) => {
   await expect(drawer.getByText("Terminée", { exact: true })).toBeVisible();
   await expect(drawer.getByText("8 s", { exact: true })).toBeVisible();
 
+  // Every generation has a known seed, even when the field was left empty.
+  await expect(drawer.getByText("Seed (auto)")).toBeVisible();
+  const seed = (await drawer.getByTitle("Copier le seed").innerText()).trim();
+  expect(seed).toMatch(/^\d+$/);
+
+  await drawer.getByRole("button", { name: "Même seed" }).click();
+  await page.getByRole("button", { name: "Réglages avancés" }).click();
+  await expect(page.locator("#seed")).toHaveValue(seed);
+  await page.keyboard.press("Escape");
+
+  await page.locator("article button").first().click();
   await page.locator("#prompt").fill("");
   await drawer.getByRole("button", { name: "Remix" }).click();
   await expect(page.locator("#prompt")).toHaveValue(/Tokyo/);
   await expect(page.getByRole("button", { name: /Insérer @Image1/ })).toBeVisible();
+  // Remix of an automatic seed goes back to random.
+  await page.getByRole("button", { name: "Réglages avancés" }).click();
+  await expect(page.locator("#seed")).toHaveValue("");
+  await page.keyboard.press("Escape");
+
+  const cards = await page.locator("article").count();
+  await page.locator("article button").first().click();
+  await drawer.getByRole("button", { name: "Variante" }).click();
+  await expect(page.getByText("Variante lancée")).toBeVisible();
+  await expect(page.locator("article")).toHaveCount(cards + 1);
 });
 
 test("failed generations stay in history and cost nothing", async ({ page }) => {
@@ -58,7 +79,8 @@ test("spending page tracks euros and enforces the monthly budget", async ({ page
   await expect(page.getByText("0,58 €").first()).toBeVisible();
 
   await page.getByRole("button", { name: "Définir un budget" }).click();
-  await page.getByLabel("Budget mensuel (€)").fill("0,6");
+  // Spent so far: the first video and its variant, 0,58 € each.
+  await page.getByLabel("Budget mensuel (€)").fill("1,4");
   await page.getByRole("button", { name: "Enregistrer" }).click();
   await expect(page.getByText("Plus de 80 % du budget")).toBeVisible();
 

@@ -49,6 +49,34 @@ describe("generation service (mock kie)", () => {
     expect(JSON.parse(row.kie_input_json!).nsfw_checker).toBe(false);
   });
 
+  it("always picks, stores and sends a seed, and keeps or redraws it on retry", async () => {
+    const res = await svc.submitGeneration("wan-3-0-video", params({ seed: null }), []);
+    if (!res.ok) throw new Error("submit failed");
+    const seed = res.generation.params.seed as number;
+    expect(Number.isInteger(seed)).toBe(true);
+    expect(res.generation.params.seed_auto).toBe(true);
+    await waitDone(res.generation.id);
+    expect(JSON.parse(svc.getRow(res.generation.id)!.kie_input_json!).seed).toBe(seed);
+
+    const same = await svc.retryGeneration(res.generation.id);
+    if (!same.ok) throw new Error("retry failed");
+    expect(same.generation.params.seed).toBe(seed);
+    expect(same.generation.params.seed_auto).toBe(true);
+
+    const variant = await svc.retryGeneration(res.generation.id, { newSeed: true });
+    if (!variant.ok) throw new Error("variant failed");
+    expect(variant.generation.params.seed).not.toBe(seed);
+    await Promise.all([waitDone(same.generation.id), waitDone(variant.generation.id)]);
+  });
+
+  it("keeps a seed chosen by the user and marks it as manual", async () => {
+    const res = await svc.submitGeneration("wan-3-0-video", params({ seed: 42 }), []);
+    if (!res.ok) throw new Error("submit failed");
+    expect(res.generation.params.seed).toBe(42);
+    expect(res.generation.params.seed_auto).toBe(false);
+    await waitDone(res.generation.id);
+  });
+
   it("records failures at zero cost", async () => {
     const res = await svc.submitGeneration("wan-3-0-video", params({ prompt: "boom [fail]" }), []);
     if (!res.ok) throw new Error("submit failed");
