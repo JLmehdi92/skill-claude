@@ -25,6 +25,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           mobileOffset={{ top: 64 }}
           toastOptions={{
             style: { background: "var(--color-raised)", border: "1px solid var(--color-line-strong)", color: "var(--color-fg)" },
+            actionButtonStyle: { background: "var(--color-accent)", color: "var(--color-on-accent)", borderRadius: 999, fontWeight: 500 },
           }}
         />
       </body>

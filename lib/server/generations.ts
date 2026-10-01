@@ -81,7 +81,7 @@ export async function submitGeneration(
 
   const id = randomUUID();
   const inputs = await storeInputs(id, model.mediaSlots, files);
-  const metas: FileMeta[] = inputs.map((i, n) => ({ slot: i.slot, size: files[n].data.length, duration: i.duration }));
+  const metas: FileMeta[] = inputs.map((i, n) => ({ slot: i.slot, size: files[n].data.length, duration: i.duration, mime: i.mime, name: i.name }));
 
   const check = validateRequest(model, raw, metas);
   if (!check.ok) {

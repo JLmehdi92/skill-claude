@@ -19,6 +19,8 @@ const paramsSchema = z.object({
   seed: z.number().int().min(0).max(2_147_483_647).nullable(),
   nsfw_checker: z.boolean(),
   reference_link_urls: z.array(z.string().url("Lien invalide.")).max(1),
+  /** UI mode, optional so API callers without modes keep working. Checked in validateRequest. */
+  mode: z.enum(["text", "reference", "keyframes"]).optional(),
 });
 
 type WanParams = z.infer<typeof paramsSchema>;
@@ -78,9 +80,36 @@ export const wan30Video: ModelDefinition = {
       advanced: true,
     },
   ],
+  modes: [
+    {
+      id: "text",
+      label: "Texte",
+      hint: "Le prompt seul décrit toute la vidéo.",
+      slots: [],
+      hiddenFields: ["reference_link_urls"],
+      placeholder: "Décris ta scène : sujet, action, décor, lumière, mouvements de caméra...",
+    },
+    {
+      id: "reference",
+      label: "Référence",
+      hint: "Images, vidéos, audio, document ou page web, cités dans le prompt avec @Image1, @Video1...",
+      slots: ["reference_image", "reference_video", "reference_audio", "reference_file"],
+      placeholder: "Décris la scène en citant tes références : la femme de @Image1 tient le flacon de @Image2...",
+    },
+    {
+      id: "keyframes",
+      label: "Images clés",
+      hint: "La vidéo part de l'image de début et peut finir sur l'image de fin.",
+      slots: ["first_frame", "last_frame"],
+      hiddenFields: ["reference_link_urls"],
+      requiredSlot: "first_frame",
+      placeholder: "Décris ce qui se passe entre l'image de début et l'image de fin...",
+    },
+  ],
   mediaSlots: [
     {
       key: "first_frame",
+      shortLabel: "Début",
       kieField: "first_frame_url",
       label: "Image de début",
       kind: "image",
@@ -91,6 +120,7 @@ export const wan30Video: ModelDefinition = {
     },
     {
       key: "last_frame",
+      shortLabel: "Fin",
       kieField: "last_frame_url",
       label: "Image de fin",
       kind: "image",
@@ -136,6 +166,7 @@ export const wan30Video: ModelDefinition = {
     },
     {
       key: "reference_file",
+      shortLabel: "Doc",
       kieField: "reference_file_urls",
       label: "Document",
       kind: "document",

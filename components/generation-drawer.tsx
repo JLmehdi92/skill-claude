@@ -6,7 +6,7 @@ import { toast } from "sonner";
 import { ArrowClockwise, Copy, DownloadSimple, Heart, LockSimple, MagicWand, Shuffle, Trash, X } from "@phosphor-icons/react";
 import { useMediaQuery } from "@/lib/client/use-media-query";
 import { formatCredits, formatEur } from "@/lib/costs";
-import { getModel } from "@/lib/models/registry";
+import { getModel, inferMode } from "@/lib/models/registry";
 import { isPending, type Generation } from "@/lib/types";
 import { Button } from "./ui";
 
@@ -95,16 +95,20 @@ function DrawerBody({
 
   const seed = typeof gen.params.seed === "number" ? gen.params.seed : null;
   const seedAuto = gen.params.seed_auto === true;
-  const rows: [string, string][] = model
+  const mode = model ? inferMode(model, gen.params, gen.inputs.map((i) => i.slot)) : undefined;
+  const fieldRows: [string, string][] = model
     ? model.fields
-        .filter((f) => f.type !== "seed")
-        .map((f) => [
-        f.label,
-        f.type === "select" ? (f.options.find((o) => o.value === gen.params[f.key])?.label ?? formatValue(f.key, gen.params[f.key])) : formatValue(f.key, gen.params[f.key]),
-      ])
+        .filter((f) => f.type !== "seed" && !(mode?.hiddenFields ?? []).includes(f.key))
+        .map((f): [string, string] => [
+          f.label,
+          f.type === "select"
+            ? (f.options.find((o) => o.value === gen.params[f.key])?.label ?? formatValue(f.key, gen.params[f.key]))
+            : formatValue(f.key, gen.params[f.key]),
+        ])
     : Object.entries(gen.params)
-        .filter(([k]) => k !== "prompt" && k !== "seed" && k !== "seed_auto")
-        .map(([k, v]) => [k, formatValue(k, v)]);
+        .filter(([k]) => !["prompt", "seed", "seed_auto", "mode"].includes(k))
+        .map(([k, v]): [string, string] => [k, formatValue(k, v)]);
+  const rows: [string, string][] = mode ? [["Mode", mode.label], ...fieldRows] : fieldRows;
 
   return (
     <>

@@ -14,6 +14,8 @@ export interface MediaSlot {
   maxBytes: number;
   /** Kie expects an array of URLs (true) or a single URL string (false). */
   array: boolean;
+  /** Short label for small tiles (e.g. "Début"). */
+  shortLabel?: string;
   /** Prefix used for prompt mentions, e.g. "Image" gives @Image1. */
   tagPrefix?: string;
   hint?: string;
@@ -30,6 +32,23 @@ export type Field =
   | { key: string; label: string; type: "toggle"; hint?: string; advanced?: boolean }
   | { key: string; label: string; type: "seed"; advanced?: boolean }
   | { key: string; label: string; type: "links"; max: number; hint?: string; advanced?: boolean };
+
+/**
+ * A way of using a model (e.g. text only, keyframes, references). Each mode allows a subset
+ * of the media slots; the UI only shows those and the server rejects anything else.
+ */
+export interface ModelMode {
+  id: string;
+  label: string;
+  hint: string;
+  /** Media slot keys usable in this mode. */
+  slots: string[];
+  /** Field keys that must stay empty in this mode (hidden in the UI). */
+  hiddenFields?: string[];
+  /** Slot that must hold at least one file in this mode. */
+  requiredSlot?: string;
+  placeholder: string;
+}
 
 /** What the validator needs to know about attached files, without the files themselves. */
 export type MediaSummary = Record<string, { count: number; durations: number[] }>;
@@ -52,6 +71,8 @@ export interface ModelDefinition {
   promptMaxLength: number;
   fields: Field[];
   mediaSlots: MediaSlot[];
+  /** Optional modes, in display order. The first one is the default. */
+  modes?: ModelMode[];
   defaults: Params;
   paramsSchema: z.ZodType<Params>;
   /** Cross-field rules. Returns user-facing (French) error messages. */

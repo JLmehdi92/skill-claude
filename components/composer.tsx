@@ -20,8 +20,9 @@ import {
 } from "@phosphor-icons/react";
 import { api, ApiError, notifyStatsChanged, type BudgetConflict } from "@/lib/client/api";
 import { creditsToEur, formatCredits, formatEur } from "@/lib/costs";
-import { MODELS, summarizeMedia, validateRequest } from "@/lib/models/registry";
-import type { Field, MediaKind, MediaSlot, ModelDefinition, Params } from "@/lib/models/types";
+import { kindOfFile } from "@/lib/models/media";
+import { getMode, inferMode, MODELS, summarizeMedia, validateRequest } from "@/lib/models/registry";
+import type { Field, MediaKind, MediaSlot, ModelDefinition, ModelMode, Params } from "@/lib/models/types";
 import type { Generation } from "@/lib/types";
 import { Button, Chip, cx, Kbd, MenuItem, Modal, Popover, Switch } from "./ui";
 
@@ -59,11 +60,30 @@ function measureDuration(file: File, kind: MediaKind): Promise<number | undefine
   });
 }
 
-function kindOf(file: File): MediaKind {
-  if (file.type.startsWith("image/")) return "image";
-  if (file.type.startsWith("video/")) return "video";
-  if (file.type.startsWith("audio/")) return "audio";
-  return "document";
+const MODE_KEY = "hf:composer-mode";
+
+function savedMode(model: ModelDefinition): string | undefined {
+  if (!model.modes?.length) return undefined;
+  try {
+    const id = window.localStorage.getItem(MODE_KEY);
+    if (id && getMode(model, id)) return id;
+  } catch {
+    // storage unavailable (private mode): fall back to the default mode
+  }
+  return model.modes[0].id;
+}
+
+function rememberMode(id: string | undefined) {
+  if (!id) return;
+  try {
+    window.localStorage.setItem(MODE_KEY, id);
+  } catch {
+    // ignore
+  }
+}
+
+function filled(value: unknown): boolean {
+  return Array.isArray(value) ? value.length > 0 : value !== null && value !== undefined && value !== "";
 }
 
 export const Composer = forwardRef<
@@ -71,8 +91,14 @@ export const Composer = forwardRef<
   { usdEurRate: number; nsfwDefault: boolean; onSubmitted: (g: Generation) => void }
 >(function Composer({ usdEurRate, nsfwDefault, onSubmitted }, ref) {
   const [model, setModel] = useState<ModelDefinition>(MODELS[0]);
-  const [params, setParams] = useState<Params>({ ...MODELS[0].defaults, nsfw_checker: nsfwDefault });
+  const [params, setParams] = useState<Params>(() => ({ ...MODELS[0].defaults, nsfw_checker: nsfwDefault, mode: savedMode(MODELS[0]) }));
   const [attachments, setAttachments] = useState<Attachment[]>([]);
+  // Source of truth for async adds: two quick drops must not both pass the per-slot limit.
+  const attachmentsRef = useRef<Attachment[]>([]);
+  const commitAttachments = useCallback((next: Attachment[]) => {
+    attachmentsRef.current = next;
+    setAttachments(next);
+  }, []);
   const [submitting, setSubmitting] = useState(false);
   const [triedSubmit, setTriedSubmit] = useState(false);
   const [serverErrors, setServerErrors] = useState<string[]>([]);
@@ -104,53 +130,110 @@ export const Composer = forwardRef<
   const visibleErrors = useMemo(() => {
     if (serverErrors.length) return serverErrors;
     if (check.ok) return [];
-    return triedSubmit ? check.errors : check.errors.filter((e) => e !== "Écris un prompt.");
+    // "Missing something" messages wait for a submit attempt; conflicts show right away.
+    return triedSubmit ? check.errors : check.errors.filter((e) => e !== "Écris un prompt." && !e.startsWith("Ajoute "));
   }, [check, serverErrors, triedSubmit]);
 
-  const addFiles = useCallback(
-    async (files: File[], forcedSlot?: MediaSlot) => {
-      const next: Attachment[] = [];
-      for (const file of files) {
-        const kind = kindOf(file);
-        const slot =
-          forcedSlot ??
-          model.mediaSlots.find((s) => {
-            if (s.kind !== kind) return false;
-            if (s.key === "first_frame" || s.key === "last_frame") return false; // frames only via the menu
-            return true;
-          });
-        if (!slot) {
-          toast.error(`Type de fichier non pris en charge : ${file.name}`);
-          continue;
-        }
-        const used = attachments.filter((a) => a.slot === slot.key).length + next.filter((a) => a.slot === slot.key).length;
-        if (used >= slot.max) {
-          toast.error(`${slot.label} : ${slot.max} maximum.`);
-          continue;
-        }
-        next.push({
-          id: crypto.randomUUID(),
-          slot: slot.key,
-          file,
-          url: URL.createObjectURL(file),
-          kind: slot.kind,
-          duration: await measureDuration(file, slot.kind),
-        });
-      }
-      if (next.length) {
-        setAttachments((prev) => [...prev, ...next]);
-        setServerErrors([]);
-      }
-    },
-    [attachments, model.mediaSlots],
-  );
+  const mode = getMode(model, params.mode);
+  const slotByKey = useCallback((key: string) => model.mediaSlots.find((s) => s.key === key), [model.mediaSlots]);
+  const modeOfSlot = (key: string) => model.modes?.find((m) => m.slots.includes(key));
 
-  const removeAttachment = (id: string) =>
-    setAttachments((prev) => {
-      const gone = prev.find((a) => a.id === id);
-      if (gone) URL.revokeObjectURL(gone.url);
-      return prev.filter((a) => a.id !== id);
-    });
+  /**
+   * Switches mode. Files and fields the new mode does not accept are taken out, with an
+   * "Annuler" toast that puts everything back.
+   */
+  const switchMode = (id: string): ModelMode | undefined => {
+    const next = getMode(model, id);
+    if (!next || next.id === params.mode) return next;
+    const prevMode = params.mode;
+    const before = attachmentsRef.current;
+    const removed = before.filter((a) => !next.slots.includes(a.slot));
+    const cleared: Record<string, unknown> = {};
+    for (const key of next.hiddenFields ?? []) if (filled(params[key])) cleared[key] = params[key];
+
+    commitAttachments(before.filter((a) => next.slots.includes(a.slot)));
+    setParams((p) => ({ ...p, mode: id, ...Object.fromEntries(Object.keys(cleared).map((k) => [k, model.defaults[k]])) }));
+    rememberMode(id);
+    setServerErrors([]);
+
+    const lost = removed.length + Object.keys(cleared).length;
+    if (lost > 0) {
+      let restored = false;
+      const parts = [
+        removed.length ? `${removed.length} fichier${removed.length > 1 ? "s" : ""}` : "",
+        Object.keys(cleared).length ? "le lien web" : "",
+      ].filter(Boolean);
+      toast(`Mode ${next.label}`, {
+        description: `${parts.join(" et ")} retiré${lost > 1 ? "s" : ""} : pas disponible${lost > 1 ? "s" : ""} dans ce mode.`,
+        action: {
+          label: "Annuler",
+          onClick: () => {
+            restored = true;
+            const added = attachmentsRef.current.filter((a) => !before.includes(a));
+            commitAttachments([...before, ...added]);
+            setParams((p) => ({ ...p, mode: prevMode, ...cleared }));
+            rememberMode(prevMode as string | undefined);
+          },
+        },
+        onDismiss: () => !restored && removed.forEach((a) => URL.revokeObjectURL(a.url)),
+        onAutoClose: () => !restored && removed.forEach((a) => URL.revokeObjectURL(a.url)),
+      });
+    }
+    return next;
+  };
+
+  const addFiles = async (files: File[], forcedSlot?: MediaSlot) => {
+    if (!files.length) return;
+    let target = mode;
+    // Text mode takes no files: dropping some switches to the first mode that accepts them.
+    if (!forcedSlot && target && target.slots.length === 0) {
+      const fit = model.modes?.find((m) => files.some((f) => m.slots.some((k) => slotByKey(k)?.kind === kindOfFile(f.type, f.name))));
+      if (fit) target = switchMode(fit.id);
+    }
+    const measured = await Promise.all(
+      files.map(async (file) => {
+        const kind = kindOfFile(file.type, file.name);
+        return { file, kind, duration: await measureDuration(file, kind) };
+      }),
+    );
+
+    const accepted: Attachment[] = [];
+    for (const { file, kind, duration } of measured) {
+      const candidates = forcedSlot
+        ? [forcedSlot]
+        : (target ? target.slots.map((k) => slotByKey(k)!) : model.mediaSlots).filter((s) => s.kind === kind);
+      if (!candidates.length) {
+        toast.error(`« ${file.name} » n'est pas accepté${target ? ` en mode ${target.label}` : ""}.`);
+        continue;
+      }
+      if (forcedSlot && forcedSlot.kind !== kind) {
+        toast.error(`${forcedSlot.label} : « ${file.name} » n'est pas du bon type.`);
+        continue;
+      }
+      const all = [...attachmentsRef.current, ...accepted];
+      const slot = candidates.find((s) => all.filter((a) => a.slot === s.key).length < s.max);
+      if (!slot) {
+        toast.error(`${candidates[0].label} : ${candidates[0].max} maximum.`);
+        continue;
+      }
+      if (file.size > slot.maxBytes) {
+        toast.error(`${slot.label} : « ${file.name} » dépasse ${Math.round(slot.maxBytes / 1024 / 1024)} Mo.`);
+        continue;
+      }
+      accepted.push({ id: crypto.randomUUID(), slot: slot.key, file, url: URL.createObjectURL(file), kind, duration });
+    }
+    if (accepted.length) {
+      commitAttachments([...attachmentsRef.current, ...accepted]);
+      setServerErrors([]);
+    }
+  };
+
+  const removeAttachment = (id: string) => {
+    const gone = attachmentsRef.current.find((a) => a.id === id);
+    if (gone) URL.revokeObjectURL(gone.url);
+    commitAttachments(attachmentsRef.current.filter((a) => a.id !== id));
+    setServerErrors([]);
+  };
 
   const tagFor = (a: Attachment) => {
     const slot = model.mediaSlots.find((s) => s.key === a.slot);
@@ -223,7 +306,11 @@ export const Composer = forwardRef<
     return () => window.removeEventListener("keydown", onKey);
   }, [submit]);
 
-  // Drop files anywhere on the page.
+  // Drop files anywhere on the page. Listeners are bound once and call the latest addFiles.
+  const addFilesRef = useRef(addFiles);
+  useEffect(() => {
+    addFilesRef.current = addFiles;
+  });
   useEffect(() => {
     let depth = 0;
     const hasFiles = (e: DragEvent) => e.dataTransfer?.types.includes("Files");
@@ -242,7 +329,7 @@ export const Composer = forwardRef<
       e.preventDefault();
       depth = 0;
       setDragging(false);
-      void addFiles([...(e.dataTransfer?.files ?? [])]);
+      void addFilesRef.current([...(e.dataTransfer?.files ?? [])]);
     };
     window.addEventListener("dragenter", onEnter);
     window.addEventListener("dragleave", onLeave);
@@ -254,7 +341,7 @@ export const Composer = forwardRef<
       window.removeEventListener("dragover", onOver);
       window.removeEventListener("drop", onDrop);
     };
-  }, [addFiles]);
+  }, []);
 
   useImperativeHandle(ref, () => ({
     async loadFrom(gen, opts = {}) {
@@ -262,19 +349,23 @@ export const Composer = forwardRef<
       setModel(def);
       const { seed_auto: seedAuto, ...saved } = gen.params;
       const keepSeed = opts.keepSeed ?? seedAuto !== true;
-      setParams({ ...def.defaults, ...saved, ...(keepSeed ? {} : { seed: null }) } as Params);
-      attachments.forEach((a) => URL.revokeObjectURL(a.url));
+      const restoredMode = inferMode(def, saved as Params, gen.inputs.map((i) => i.slot));
+      setParams({ ...def.defaults, ...saved, mode: restoredMode?.id, ...(keepSeed ? {} : { seed: null }) } as Params);
+      rememberMode(restoredMode?.id);
+      attachmentsRef.current.forEach((a) => URL.revokeObjectURL(a.url));
+      commitAttachments([]);
       const restored: Attachment[] = [];
       for (const input of gen.inputs) {
         try {
-          const blob = await fetch(input.url).then((r) => r.blob());
-          const file = new File([blob], input.name, { type: input.mime });
+          const res = await fetch(input.url);
+          if (!res.ok) throw new Error(String(res.status));
+          const file = new File([await res.blob()], input.name, { type: input.mime });
           restored.push({ id: crypto.randomUUID(), slot: input.slot, file, url: URL.createObjectURL(file), kind: input.kind, duration: input.duration });
         } catch {
           toast.error(`Référence introuvable : ${input.name}`);
         }
       }
-      setAttachments(restored);
+      commitAttachments(restored);
       setServerErrors([]);
       setTriedSubmit(false);
       requestAnimationFrame(() => textareaRef.current?.focus());
@@ -293,8 +384,17 @@ export const Composer = forwardRef<
     input.click();
   };
 
-  const mainFields = model.fields.filter((f) => !f.advanced);
-  const advancedFields = model.fields.filter((f) => f.advanced);
+  /** Opens the file picker for a slot, switching to the mode that owns it first. */
+  const pickSlot = (slot: MediaSlot) => {
+    const owner = modeOfSlot(slot.key);
+    if (owner && owner.id !== params.mode) switchMode(owner.id);
+    openPicker(slot);
+  };
+
+  const hidden = new Set(mode?.hiddenFields ?? []);
+  const mainFields = model.fields.filter((f) => !f.advanced && !hidden.has(f.key));
+  const advancedFields = model.fields.filter((f) => f.advanced && !hidden.has(f.key));
+  const frameSlots = mode?.id === "keyframes" ? mode.slots.map((k) => slotByKey(k)!).filter(Boolean) : [];
   const promptLength = String(params.prompt).length;
 
   return (
@@ -316,13 +416,59 @@ export const Composer = forwardRef<
           }}
           className="pointer-events-auto mx-auto max-w-[880px] rounded-[var(--radius-surface)] border border-line-strong bg-surface/95 transition-[border-color] duration-200 focus-within:border-white/25 shadow-[0_24px_60px_-20px_rgb(0_0_0/0.7)] backdrop-blur-xl"
         >
-          {attachments.length > 0 && (
+          {model.modes && mode && (
+            <div className="flex items-center gap-3 px-2.5 pt-2.5">
+              <ModeTabs modes={model.modes} value={mode.id} onChange={(id) => switchMode(id)} />
+              <p className="hidden min-w-0 truncate text-xs text-faint sm:block" title={mode.hint}>
+                {mode.hint}
+              </p>
+            </div>
+          )}
+
+          {frameSlots.length > 0 && (
+            <ul className="flex gap-2 px-3 pt-3 pb-1" aria-label="Images clés">
+              {frameSlots.map((slot) => {
+                const a = attachments.find((x) => x.slot === slot.key);
+                const needsFirst = slot.key !== frameSlots[0].key && !attachments.some((x) => x.slot === frameSlots[0].key);
+                return a ? (
+                  <AttachmentThumb
+                    key={a.id}
+                    attachment={a}
+                    label={slot.shortLabel ?? slot.label}
+                    isTag={false}
+                    onInsert={() => {}}
+                    onRemove={() => removeAttachment(a.id)}
+                  />
+                ) : (
+                  <li key={slot.key}>
+                    <button
+                      type="button"
+                      onClick={() => pickSlot(slot)}
+                      disabled={needsFirst}
+                      aria-label={`Ajouter l'${slot.label.toLowerCase()}`}
+                      className="pressable flex w-[66px] flex-col items-center overflow-hidden rounded-[var(--radius-tile)] border border-dashed border-line-strong text-muted hover:border-accent/60 hover:text-fg disabled:cursor-not-allowed disabled:opacity-40"
+                    >
+                      <span className="flex size-16 items-center justify-center">
+                        <Plus size={16} />
+                      </span>
+                      <span className="w-full border-t border-dashed border-line-strong px-1 py-1 text-center text-[11px]">
+                        {slot.shortLabel ?? slot.label}
+                        {slot.key !== frameSlots[0].key && <span className="text-faint"> (option)</span>}
+                      </span>
+                    </button>
+                  </li>
+                );
+              })}
+            </ul>
+          )}
+
+          {frameSlots.length === 0 && attachments.length > 0 && (
             <ul className="scrollbar-none flex gap-2 overflow-x-auto px-3 pt-3.5 pb-1" aria-label="Références jointes">
               {attachments.map((a) => (
                 <AttachmentThumb
                   key={a.id}
                   attachment={a}
-                  label={tagFor(a) ?? model.mediaSlots.find((s) => s.key === a.slot)?.label ?? a.slot}
+                  label={tagFor(a) ?? slotByKey(a.slot)?.shortLabel ?? slotByKey(a.slot)?.label ?? a.slot}
                   isTag={tagFor(a) !== null}
                   onInsert={() => {
                     const tag = tagFor(a);
@@ -344,7 +490,7 @@ export const Composer = forwardRef<
             onChange={(e) => set("prompt", e.target.value)}
             rows={2}
             maxLength={model.promptMaxLength}
-            placeholder="Décris ta scène. Cite tes références avec @Image1, @Video1..."
+            placeholder={mode?.placeholder ?? "Décris ta scène. Cite tes références avec @Image1, @Video1..."}
             className="block max-h-[28vh] min-h-[60px] w-full resize-none bg-transparent px-4 pt-3.5 pb-2 text-base leading-relaxed text-fg placeholder:text-faint focus:outline-none sm:max-h-[32vh] sm:text-[15px]"
           />
 
@@ -359,7 +505,7 @@ export const Composer = forwardRef<
           {/* Mobile: settings wrap on their own rows so none hide off-screen, actions get a full row. */}
           <div className="flex flex-col gap-2.5 border-t border-line px-2.5 py-2.5 sm:flex-row sm:items-center sm:gap-2">
             <div className="flex flex-wrap items-center gap-1.5 sm:scrollbar-none sm:-my-1 sm:min-w-0 sm:flex-1 sm:flex-nowrap sm:overflow-x-auto sm:px-0.5 sm:py-1">
-              <AddMenu model={model} attachments={attachments} params={params} onPick={openPicker} />
+              {(!mode || mode.id !== "keyframes") && <AddMenu model={model} mode={mode} attachments={attachments} params={params} onPick={pickSlot} />}
               <ModelMenu model={model} />
               {mainFields.map((f) => (
                 <FieldControl key={f.key} field={f} value={params[f.key]} onChange={(v) => set(f.key, v)} />
@@ -476,27 +622,84 @@ function AttachmentThumb({
   );
 }
 
+function ModeTabs({ modes, value, onChange }: { modes: ModelMode[]; value: string; onChange: (id: string) => void }) {
+  const refs = useRef<(HTMLButtonElement | null)[]>([]);
+  const index = modes.findIndex((m) => m.id === value);
+  const move = (delta: number) => {
+    const next = (index + delta + modes.length) % modes.length;
+    onChange(modes[next].id);
+    refs.current[next]?.focus();
+  };
+  return (
+    <div
+      role="radiogroup"
+      aria-label="Mode de génération"
+      className="flex h-9 shrink-0 items-center rounded-full border border-line bg-raised p-0.5 max-sm:w-full sm:h-8"
+      onKeyDown={(e) => {
+        if (e.key === "ArrowRight" || e.key === "ArrowDown") {
+          e.preventDefault();
+          move(1);
+        } else if (e.key === "ArrowLeft" || e.key === "ArrowUp") {
+          e.preventDefault();
+          move(-1);
+        }
+      }}
+    >
+      {modes.map((m, i) => (
+        <button
+          key={m.id}
+          ref={(el) => {
+            refs.current[i] = el;
+          }}
+          type="button"
+          role="radio"
+          aria-checked={m.id === value}
+          tabIndex={m.id === value ? 0 : -1}
+          title={m.hint}
+          onClick={() => onChange(m.id)}
+          className={cx(
+            "h-full rounded-full px-3 text-[13px] whitespace-nowrap transition-colors duration-150 max-sm:flex-1",
+            m.id === value ? "bg-hover text-fg" : "text-muted hover:text-fg",
+          )}
+        >
+          {m.label}
+        </button>
+      ))}
+    </div>
+  );
+}
+
 function AddMenu({
   model,
+  mode,
   attachments,
   params,
   onPick,
 }: {
   model: ModelDefinition;
+  mode: ModelMode | undefined;
   attachments: Attachment[];
   params: Params;
   onPick: (slot: MediaSlot) => void;
 }) {
   const count = (key: string) => attachments.filter((a) => a.slot === key).length;
-  const usesFrames = count("first_frame") + count("last_frame") > 0;
-  const usesRefs = count("reference_image") > 0 || count("reference_file") > 0 || (params.reference_link_urls as string[] | undefined)?.length;
+  const hasLink = ((params.reference_link_urls as string[] | undefined) ?? []).length > 0;
   const blocked = (slot: MediaSlot): string | null => {
     if (count(slot.key) >= slot.max) return "complet";
-    if ((slot.key === "first_frame" || slot.key === "last_frame") && usesRefs) return "incompatible";
-    if ((slot.key === "reference_image" || slot.key === "reference_file") && usesFrames) return "incompatible";
-    if (slot.key === "last_frame" && !count("first_frame")) return "début d'abord";
+    if (slot.key === "reference_file" && hasLink) return "lien web déjà choisi";
     return null;
   };
+  // Current mode first; other modes' slots switch mode when picked. Without modes: every slot.
+  const groups: { title?: string; switchTo?: string; slots: MediaSlot[] }[] = model.modes
+    ? [...model.modes]
+        .sort((a, b) => (a.id === mode?.id ? -1 : b.id === mode?.id ? 1 : 0))
+        .filter((m) => m.slots.length > 0)
+        .map((m) => ({
+          title: m.id === mode?.id ? m.label : `${m.label} (change de mode)`,
+          switchTo: m.id === mode?.id ? undefined : m.label,
+          slots: m.slots.map((k) => model.mediaSlots.find((s) => s.key === k)!).filter(Boolean),
+        }))
+    : [{ slots: model.mediaSlots }];
   return (
     <Popover
       trigger={({ open, toggle, id }) => (
@@ -507,25 +710,30 @@ function AddMenu({
     >
       {(close) => (
         <div className="w-full sm:w-64">
-          {model.mediaSlots.map((slot) => {
-            const Icon = SLOT_ICONS[slot.kind];
-            const reason = blocked(slot);
-            return (
-              <MenuItem
-                key={slot.key}
-                disabled={reason !== null}
-                onClick={() => {
-                  close();
-                  onPick(slot);
-                }}
-                hint={reason ?? `${count(slot.key)}/${slot.max}`}
-                title={slot.hint}
-              >
-                <Icon size={16} />
-                {slot.label}
-              </MenuItem>
-            );
-          })}
+          {groups.map((g) => (
+            <div key={g.title ?? "all"} className="pb-1 last:pb-0">
+              {g.title && <p className="px-2.5 pt-1.5 pb-1 text-[11px] text-faint">{g.title}</p>}
+              {g.slots.map((slot) => {
+                const Icon = SLOT_ICONS[slot.kind];
+                const reason = g.switchTo ? null : blocked(slot);
+                return (
+                  <MenuItem
+                    key={slot.key}
+                    disabled={reason !== null}
+                    onClick={() => {
+                      close();
+                      onPick(slot);
+                    }}
+                    hint={reason ?? (g.switchTo ? undefined : `${count(slot.key)}/${slot.max}`)}
+                    title={slot.hint}
+                  >
+                    <Icon size={16} />
+                    {slot.label}
+                  </MenuItem>
+                );
+              })}
+            </div>
+          ))}
         </div>
       )}
     </Popover>

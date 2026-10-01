@@ -77,6 +77,25 @@ describe("generation service (mock kie)", () => {
     await waitDone(res.generation.id);
   });
 
+  it("refuses files outside the chosen mode without keeping anything", async () => {
+    const png = fs.readFileSync(path.join(process.cwd(), "app/icon.svg"));
+    const before = svc.listGenerations().items.length;
+    const res = await svc.submitGeneration("wan-3-0-video", params({ mode: "text" }), [{ slot: "reference_image", name: "ref.png", mime: "image/png", data: png }]);
+    expect(res.ok).toBe(false);
+    if (!res.ok && res.status !== 409) expect(res.errors.join(" ")).toMatch(/pas disponible en mode Texte/);
+    expect(svc.listGenerations().items.length).toBe(before);
+    const leftovers = fs.existsSync(path.join(dir, "inputs")) ? fs.readdirSync(path.join(dir, "inputs")) : [];
+    const kept = svc.listGenerations({ limit: 200 }).items.map((g) => g.id);
+    expect(leftovers.filter((d) => !kept.includes(d))).toEqual([]);
+  });
+
+  it("stores the mode with the generation", async () => {
+    const res = await svc.submitGeneration("wan-3-0-video", params({ mode: "text" }), []);
+    if (!res.ok) throw new Error("submit failed");
+    expect(res.generation.params.mode).toBe("text");
+    await waitDone(res.generation.id);
+  });
+
   it("records failures at zero cost", async () => {
     const res = await svc.submitGeneration("wan-3-0-video", params({ prompt: "boom [fail]" }), []);
     if (!res.ok) throw new Error("submit failed");

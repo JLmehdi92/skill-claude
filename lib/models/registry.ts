@@ -1,4 +1,5 @@
-import type { MediaSummary, ModelDefinition, Params } from "./types";
+import { kindOfFile } from "./media";
+import type { MediaSummary, ModelDefinition, ModelMode, Params } from "./types";
 import { wan30Video } from "./wan-3-0-video";
 
 /** Every model the studio can run. Adding a model = adding a definition file here. */
@@ -12,6 +13,29 @@ export interface FileMeta {
   slot: string;
   size: number;
   duration?: number;
+  /** When known, checked against the slot kind (image, video, audio, document). */
+  mime?: string;
+  name?: string;
+}
+
+export function getMode(model: ModelDefinition, id: unknown): ModelMode | undefined {
+  return model.modes?.find((m) => m.id === id);
+}
+
+function filled(value: unknown): boolean {
+  return Array.isArray(value) ? value.length > 0 : value !== null && value !== undefined && value !== "";
+}
+
+/** Best mode for existing params and files (generations made before modes, imported kie tasks). */
+export function inferMode(model: ModelDefinition, params: Params, slots: string[]): ModelMode | undefined {
+  if (!model.modes?.length) return undefined;
+  const saved = getMode(model, params.mode);
+  if (saved) return saved;
+  const used = new Set(slots);
+  const fits = (m: ModelMode) =>
+    [...used].every((s) => m.slots.includes(s)) && !(m.hiddenFields ?? []).some((f) => filled(params[f])) && (!m.requiredSlot || used.has(m.requiredSlot));
+  // Prefer the narrowest mode that fits: text, then whichever matches the files.
+  return model.modes.find((m) => fits(m) && (used.size > 0 ? m.slots.length > 0 : true)) ?? model.modes.find(fits) ?? model.modes[0];
 }
 
 export function summarizeMedia(files: FileMeta[]): MediaSummary {
@@ -36,7 +60,31 @@ export function validateRequest(model: ModelDefinition, rawParams: unknown, file
   }
   const errors: string[] = [];
   for (const f of files) {
-    if (!model.mediaSlots.some((s) => s.key === f.slot)) errors.push(`Type de fichier inattendu : ${f.slot}.`);
+    const slot = model.mediaSlots.find((s) => s.key === f.slot);
+    if (!slot) errors.push(`Type de fichier inattendu : ${f.slot}.`);
+    else if ((f.mime !== undefined || f.name !== undefined) && kindOfFile(f.mime, f.name ?? "") !== slot.kind) {
+      errors.push(`${slot.label} : « ${f.name ?? "fichier"} » n'est pas du bon type.`);
+    }
+  }
+
+  const mode = model.modes && parsed.data.mode !== undefined ? getMode(model, parsed.data.mode) : undefined;
+  if (model.modes && parsed.data.mode !== undefined && !mode) errors.push("Mode inconnu.");
+  if (mode) {
+    const outside = [...new Set(files.map((f) => f.slot).filter((s) => !mode.slots.includes(s)))];
+    for (const key of outside) {
+      const label = model.mediaSlots.find((s) => s.key === key)?.label ?? key;
+      errors.push(`${label} : pas disponible en mode ${mode.label}.`);
+    }
+    for (const key of mode.hiddenFields ?? []) {
+      if (filled(parsed.data[key])) {
+        const label = model.fields.find((f) => f.key === key)?.label ?? key;
+        errors.push(`${label} : pas disponible en mode ${mode.label}.`);
+      }
+    }
+    if (mode.requiredSlot && !files.some((f) => f.slot === mode.requiredSlot)) {
+      const label = model.mediaSlots.find((s) => s.key === mode.requiredSlot)?.label ?? mode.requiredSlot;
+      errors.push(`Ajoute une ${label.toLowerCase()}.`);
+    }
   }
   for (const slot of model.mediaSlots) {
     const mine = files.filter((f) => f.slot === slot.key);
