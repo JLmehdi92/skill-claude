@@ -35,6 +35,7 @@ npm run phone
 Si tu n'en as pas besoin sur téléphone, `npm start` suffit.
 
 En cas de souci :
+- **« Ce site est inaccessible » (ERR_CONNECTION_REFUSED)** : `npm run build` ne fait que compiler. Lance ensuite `npm run phone` (ou `npm start`) et garde ce terminal ouvert tant que tu utilises le site.
 - **Le téléphone ne charge pas** : vérifie qu'il est sur le même Wi-Fi que le PC. Sur Windows, accepte la demande du pare-feu pour Node.js sur « Réseaux privés ».
 - **Tester sans dépenser de crédits** : mets `KIE_MOCK=1` dans `.env.local`, puis relance `npm run phone`.
 - **Erreur `better-sqlite3` à l'installation** : utilise une version LTS de Node.js (20 ou 22), puis relance `npm install`.
