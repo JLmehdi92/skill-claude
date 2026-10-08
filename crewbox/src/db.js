@@ -106,6 +106,10 @@ export function openDb() {
   db = new DatabaseSync(paths.db);
   db.exec('PRAGMA journal_mode = WAL; PRAGMA foreign_keys = ON; PRAGMA busy_timeout = 5000;');
   db.exec(SCHEMA);
+  // Additive migrations for databases created by earlier versions.
+  for (const sql of ['ALTER TABLE sessions ADD COLUMN engine_session TEXT']) {
+    try { db.exec(sql); } catch { /* already applied */ }
+  }
   return db;
 }
 

@@ -15,27 +15,30 @@ import { safeJoin, token, now } from './util.js';
 const BUILTIN_DIR = path.join(path.dirname(fileURLToPath(import.meta.url)), '..', 'templates');
 const USER_DIR = () => path.join(paths.home, 'templates');
 
-function readDir(dir, source) {
+function readDir(dir, origin) {
   if (!fs.existsSync(dir)) return [];
   return fs.readdirSync(dir).filter((f) => f.endsWith('.json')).map((f) => {
-    try { return { ...JSON.parse(fs.readFileSync(path.join(dir, f), 'utf8')), source }; } catch { return null; }
+    try { return { ...JSON.parse(fs.readFileSync(path.join(dir, f), 'utf8')), origin }; } catch { return null; }
   }).filter(Boolean);
 }
 
+const allTemplates = () => [...readDir(BUILTIN_DIR, 'builtin'), ...readDir(path.join(BUILTIN_DIR, 'rerun'), 'rerun'), ...readDir(USER_DIR(), 'local')];
+
 export function listTemplates() {
-  return [...readDir(BUILTIN_DIR, 'builtin'), ...readDir(USER_DIR(), 'local')].map((t) => ({
-    slug: t.slug, name: t.name, description: t.description, category: t.category || 'Other', source: t.source,
-    agents: t.agents.map((a) => ({ name: a.name, description: a.description, connectors: a.connectors || [], schedules: (a.schedules || []).length, skills: (a.skills || []).length })),
+  return allTemplates().map((t) => ({
+    slug: t.slug, name: t.name, description: t.description, category: t.category || 'other', tags: t.tags || [], setupMinutes: t.setupMinutes ?? null,
+    origin: t.origin === 'builtin' ? 'crewbox' : t.origin, from: t.source?.site ? t.source : null,
+    agents: t.agents.map((a) => ({ name: a.name, description: a.description, connectors: a.connectors || [], apps: a.apps || a.connectors || [], schedules: (a.schedules || []).length, skills: (a.skills || []).length, setup: !!a.setup?.required })),
   }));
 }
 
 export function getTemplate(slug) {
-  const t = [...readDir(BUILTIN_DIR, 'builtin'), ...readDir(USER_DIR(), 'local')].find((x) => x.slug === slug);
+  const t = allTemplates().find((x) => x.slug === slug);
   if (!t) throw new Error(`Template not found: ${slug}`);
   return t;
 }
 
-export function installTemplate(tpl, { spaceId } = {}) {
+export function installTemplate(tpl, { spaceId, startSetup } = {}) {
   if (typeof tpl === 'string') tpl = getTemplate(tpl);
   const space = spaceId || (listSpaces().length === 1 ? listSpaces()[0].id : null);
   if (!space) throw new Error('Pick the Box to install into (spaceId).');
@@ -55,7 +58,17 @@ export function installTemplate(tpl, { spaceId } = {}) {
     // Schedules arrive disabled until the user has checked the coworker works.
     for (const s of a.schedules || []) upsertSchedule(agent.id, { ...s, enabled: s.enabled ?? false });
     for (const t of a.triggers || []) upsertTrigger(agent.id, t);
-    created.push({ agentId: agent.id, name: agent.name, handle: agent.handle, connectors });
+    created.push({ agentId: agent.id, name: agent.name, handle: agent.handle, connectors, setup: !!a.setup?.required });
+  }
+  // Guided setup: coworkers that need it start by interviewing the owner in their own conversation.
+  if (startSetup) {
+    for (const c of created.filter((x) => x.setup)) {
+      const a = agentConfig(c.agentId);
+      try {
+        const h = startSetup({ agentId: a.id, input: a.setup.prompt, trigger: 'chat', sessionKind: 'chat', sessionTitle: 'Guided setup' });
+        c.setupSessionId = h.sessionId;
+      } catch { /* no AI provider yet: the owner can start it from the chat */ }
+    }
   }
   return { template: tpl.slug, installed: created };
 }

@@ -1,3 +1,4 @@
+import { t } from './i18n.js';
 export const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 
 /** Minimal markdown → HTML. Escapes first, so the output is safe for dangerouslySetInnerHTML. */
@@ -26,9 +27,9 @@ export function md(src) {
 export function ago(iso) {
   if (!iso) return '—';
   const s = (Date.now() - Date.parse(iso)) / 1000;
-  if (s < 60) return 'just now';
-  if (s < 3600) return `${Math.floor(s / 60)} min ago`;
-  if (s < 86400) return `${Math.floor(s / 3600)} h ago`;
+  if (s < 60) return t('just now');
+  if (s < 3600) return t('{n} min ago', { n: Math.floor(s / 60) });
+  if (s < 86400) return t('{n} h ago', { n: Math.floor(s / 3600) });
   return new Date(iso).toLocaleDateString();
 }
 

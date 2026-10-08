@@ -10,10 +10,15 @@ import { emit } from '../bus.js';
 import { builtinTools, validateInput, resultText } from './tools.js';
 import { buildSystemPrompt, subSystemPrompt } from './prompt.js';
 import { reviewMemories } from './review.js';
+import { runClaudeCode } from './claude-code.js';
+import { paths } from '../config.js';
 
 const MAX_STEPS = 60;
 const controllers = new Map(); // runId -> AbortController
 const sessionQueues = new Map(); // sessionId -> Promise (one run at a time per session)
+const runDone = new Map(); // runId -> Promise of the finished run
+const waiters = new Map(); // pauseId -> { resolve, reject } for runs that wait in-process (subscription engine)
+const pauseChains = new Map(); // runId -> Promise, so one run shows one card at a time
 
 /* ---------- sessions ---------- */
 
@@ -50,7 +55,8 @@ export function startRun({ agentId, input, sessionId, trigger = 'chat', sessionK
   const prev = sessionQueues.get(sid) || Promise.resolve();
   const done = prev.catch(() => {}).then(() => executeRun({ runId, agentId: agent.id, sessionId: sid, input, trigger, connectionId, model, depth }));
   sessionQueues.set(sid, done);
-  done.finally(() => { if (sessionQueues.get(sid) === done) sessionQueues.delete(sid); });
+  runDone.set(runId, done);
+  done.finally(() => { if (sessionQueues.get(sid) === done) sessionQueues.delete(sid); runDone.delete(runId); pauseChains.delete(runId); });
   return { runId, sessionId: sid, done };
 }
 
@@ -94,11 +100,20 @@ async function executeRun({ runId, agentId, sessionId, input, trigger, connectio
     const tools = [...defs, ...mcp.tools];
     const system = buildSystemPrompt(agent, { trigger, mcpErrors: mcp.errors, depth });
 
+    if (provider === 'claude-subscription') {
+      const r = await executeClaudeCode({ runId, agent, runsOn, sessionId, input, system, defs, handlers, mcp, ctl, trigger, depth });
+      if (r.error) throw new Error(r.error);
+      Object.assign(usage, r.usage);
+      const out = finishRun(runId, { status: 'done', output: r.output, usage, provider, model: runModel, steps: r.steps });
+      afterRun(agent, sessionId, trigger, runsOn);
+      return out;
+    }
+
     for (;;) {
       if (ctl.signal.aborted) throw new CancelledError();
       if (steps >= MAX_STEPS) throw new Error(`Stopped after ${MAX_STEPS} steps without finishing.`);
       const resp = await chat(runsOn.connection, {
-        model: runModel, system, messages, tools, signal: ctl.signal,
+        model: runModel, system, messages: messages.map(({ role, content }) => ({ role, content })), tools, signal: ctl.signal,
         onText: (text) => emit('delta', { runId, sessionId, agentId, text }),
       });
       steps++;
@@ -250,6 +265,102 @@ async function runOne(tu, { handlers, routes, agent, ctx }) {
   return { type: 'tool_result', tool_use_id: tu.id, content, ...(isError ? { is_error: true } : {}) };
 }
 
+/* ---------- subscription engine (Claude Code) ---------- */
+
+function flattenTranscript(messages, max = 24) {
+  return messages.slice(-max).map((m) => {
+    const t = typeof m.content === 'string' ? m.content
+      : m.content.map((b) => (b.type === 'text' ? b.text : b.type === 'tool_use' ? `[used ${b.name}]` : '')).filter(Boolean).join(' ');
+    return `${m.role}: ${t.slice(0, 1500)}`;
+  }).join('\n');
+}
+
+async function executeClaudeCode({ runId, agent, runsOn, sessionId, input, system, defs, handlers, mcp, ctl, trigger, depth }) {
+  const ses = loadSession(sessionId);
+  let prompt = typeof input === 'string' ? input : input == null ? 'Continue.' : JSON.stringify(input);
+  // A conversation that started on another engine: give Claude Code the gist of it once.
+  if (!ses.engine_session && ses.messages.length > 1) prompt = `Earlier in this conversation:\n${flattenTranscript(ses.messages.slice(0, -1))}\n\nNow:\n${prompt}`;
+  const ctx = { agent, runId, sessionId, step: 0, depth, signal: ctl.signal, trigger };
+  const wrap = (d) => ({ name: d.name, description: d.description, schema: d.input_schema, run: (inp) => sdkTool({ name: d.name, input: inp }, { handlers, routes: mcp.routes, agent, ctx }) });
+  const append = (fn) => {
+    const s = loadSession(sessionId);
+    fn(s.messages);
+    saveMessages(sessionId, s.messages);
+    emit('message', { sessionId, agentId: agent.id, runId, message: s.messages.at(-1) });
+  };
+  return runClaudeCode({
+    connection: runsOn.connection, model: runsOn.model, system, prompt, resume: ses.engine_session || undefined,
+    toolset: [...defs, ...mcp.tools].map(wrap), cwd: paths.agentWorkspace(agent.id), signal: ctl.signal, maxTurns: MAX_STEPS,
+    onInit: (sid) => update('sessions', { id: sessionId }, { engine_session: sid }),
+    onDelta: (text) => emit('delta', { runId, sessionId, agentId: agent.id, text }),
+    onAssistant: ({ id, content }) => append((msgs) => {
+      const last = msgs.at(-1);
+      if (last?.role === 'assistant' && last._id === id) last.content.push(...content);
+      else {
+        msgs.push({ role: 'assistant', _id: id, content: [...content] });
+        ctx.step++;
+        update('runs', { id: runId }, { steps: ctx.step });
+      }
+    }),
+    onToolResults: (results) => append((msgs) => msgs.push({ role: 'user', content: results })),
+  });
+}
+
+/** One tool call from the subscription engine: same approvals and cards as the API engine. */
+async function sdkTool(tu, { handlers, routes, agent, ctx }) {
+  const h = handlers.get(tu.name);
+  const route = routes.get(tu.name);
+  if (!h && !route) return { content: `Unknown tool ${tu.name}.`, isError: true };
+  const session = loadSession(ctx.sessionId);
+  if (h?.pause) {
+    try { h.validate?.(tu.input || {}); } catch (e) { return { content: e.message, isError: true }; }
+    const item = { toolUseId: uid('sdk_'), tool: tu.name, kind: h.pause, input: tu.input || {} };
+    const answers = await awaitAnswer(agent, ctx, item);
+    const a = answers.freeText != null ? { freeText: answers.freeText } : answers[item.toolUseId] || {};
+    const res = await resolveItem(item, a, agent, session, ctx, () => null);
+    return { content: res.content, isError: !!res.is_error };
+  }
+  const needsGate = h ? h.gate?.(tu.input) : agent.approvals.appWrites && !route.readOnly;
+  if (needsGate && !isAllowed(agent.id, session, tu.name)) {
+    const item = { toolUseId: uid('sdk_'), tool: tu.name, kind: 'gate', input: tu.input || {}, app: route ? route.row.name : null };
+    const answers = await awaitAnswer(agent, ctx, item);
+    if (answers.freeText != null) return { content: `The user did not approve ${tu.name} and wrote instead: ${answers.freeText}`, isError: true };
+    const d = answers[item.toolUseId]?.decision || 'deny';
+    if (d === 'deny') return { content: `The user denied ${tu.name}. Do not retry it; continue without it or ask what to do instead.`, isError: true };
+    if (d === 'session') { const s = loadSession(ctx.sessionId); s.allowed_tools.push(tu.name); update('sessions', { id: s.id }, { allowed_tools: s.allowed_tools }); }
+    if (d === 'always') q.run("INSERT OR REPLACE INTO permissions(agent_id, tool, decision) VALUES(?, ?, 'always')", agent.id, tu.name);
+  }
+  const r = await runOne({ id: uid('call_'), name: tu.name, input: tu.input }, { handlers, routes, agent, ctx });
+  return { content: r.content, isError: !!r.is_error };
+}
+
+/** Show a card and wait (in-process) for the answer. Cards of one run are shown one at a time. */
+function awaitAnswer(agent, ctx, item) {
+  const prev = pauseChains.get(ctx.runId) || Promise.resolve();
+  const p = prev.then(async () => {
+    if (ctx.signal.aborted) throw new CancelledError();
+    const pause = createPause(agent, ctx, [item]);
+    update('sessions', { id: ctx.sessionId }, { state: { pending: { pauseId: pause.id, engine: 'sdk', results: [], items: [item] } } });
+    update('runs', { id: ctx.runId }, { status: 'waiting', output: pause.summary });
+    emit('run', { id: ctx.runId, agentId: agent.id, sessionId: ctx.sessionId, status: 'waiting' });
+    emit('agents', { id: agent.id });
+    try {
+      return await new Promise((resolve, reject) => {
+        waiters.set(pause.id, { resolve, reject });
+        ctx.signal.addEventListener('abort', () => reject(new CancelledError()), { once: true });
+      });
+    } finally {
+      waiters.delete(pause.id);
+      if (!ctx.signal.aborted) {
+        update('runs', { id: ctx.runId }, { status: 'running' });
+        emit('run', { id: ctx.runId, agentId: agent.id, sessionId: ctx.sessionId, status: 'running' });
+      }
+    }
+  });
+  pauseChains.set(ctx.runId, p.catch(() => {}));
+  return p;
+}
+
 /* ---------- pauses (human in the loop) ---------- */
 
 const PAUSE_TITLES = { question: 'has a question', approval: 'needs your approval', connector: 'needs an app connected', secret: 'needs a credential', gate: 'needs your approval' };
@@ -306,6 +417,24 @@ export async function answerPause(pauseId, answers = {}) {
 
   const ctx = { agent, runId: p.run_id, sessionId: p.session_id, step: 0, depth: 0, signal: new AbortController().signal, trigger: 'resume' };
   const run = q.get('SELECT trigger FROM runs WHERE id = ?', p.run_id);
+
+  if (pending.engine === 'sdk') {
+    update('pauses', { id: pauseId }, { status: 'answered', answer: redactAnswer(answers), answered_at: now() });
+    q.run('UPDATE notifications SET read = 1 WHERE pause_id = ?', pauseId);
+    update('sessions', { id: p.session_id }, { state: null });
+    emit('pause', { id: pauseId, answered: true, agentId: agent.id });
+    const w = waiters.get(pauseId);
+    if (w) { w.resolve(answers); return { runId: p.run_id, sessionId: p.session_id, done: runDone.get(p.run_id) || Promise.resolve() }; }
+    // The app restarted while the card was open: close the old run and carry the answer into a new one.
+    const notes = [];
+    for (const it of pending.items) {
+      const a = answers.freeText != null ? { freeText: answers.freeText } : answers[it.toolUseId] || {};
+      if (it.kind === 'gate') notes.push(`${it.tool}: ${a.freeText ?? a.decision ?? 'deny'} (not run yet)`);
+      else notes.push((await resolveItem(it, a, agent, session, ctx, () => null)).content);
+    }
+    finishRun(p.run_id, { status: 'done', output: 'Answered after a restart; continued in a new run.' });
+    return startRun({ agentId: agent.id, sessionId: p.session_id, input: `Your earlier card was answered while the app was restarting:\n${notes.join('\n')}`, trigger: run?.trigger || 'chat' });
+  }
   const newResults = [];
   let rt = null;
   for (const it of pending.items) {
@@ -391,7 +520,8 @@ function closePauseWith(pauseId, answers) {
   const pending = session.state?.pending;
   update('pauses', { id: pauseId }, { status: 'answered', answer: answers, answered_at: now() });
   q.run('UPDATE notifications SET read = 1 WHERE pause_id = ?', pauseId);
-  if (pending?.pauseId === pauseId) {
+  if (pending?.pauseId === pauseId && pending.engine === 'sdk') update('sessions', { id: p.session_id }, { state: null });
+  else if (pending?.pauseId === pauseId) {
     const results = [...pending.results, ...pending.items.map((it) => ({ type: 'tool_result', tool_use_id: it.toolUseId, content: 'Cancelled by the user.', is_error: true }))];
     session.messages.push({ role: 'user', content: results });
     saveMessages(p.session_id, session.messages, { state: null });
@@ -430,6 +560,7 @@ function runtimeHooks(agent, runsOn, usage) {
       if (!target) throw new ToolError(`No coworker @${handle}. Use list_coworkers.`);
       if (!target.enabled) throw new ToolError(`@${handle} is switched off and refuses calls.`);
       if (ctx.depth >= 3) throw new ToolError('Call chain too deep.');
+      emit('beam', { from: agent.id, to: target.id, agentId: agent.id });
       const h = startRun({ agentId: target.id, input: `Message from @${agent.handle} (${agent.name}):\n\n${message}`, trigger: `agent:${agent.handle}`, sessionKind: 'agent', sessionTitle: `from @${agent.handle}`, depth: ctx.depth + 1 });
       const finished = await waitForRun(h, 600);
       const r = q.get('SELECT status, output, error FROM runs WHERE id = ?', h.runId);
@@ -440,6 +571,19 @@ function runtimeHooks(agent, runsOn, usage) {
     },
 
     runSubtasks: async (tasks, ctx) => {
+      if (runsOn.provider === 'claude-subscription') {
+        const subAgent = { ...agent, tools: { ...agent.tools, askUser: false, requestApproval: false, suggestService: false, requestSecret: false, delegate: false, callAgent: false, schedule: false, trigger: false, skills: false, hub: false }, selfImprovement: { ...agent.selfImprovement, enabled: false } };
+        return Promise.all(tasks.map(async (t) => {
+          const { defs, handlers } = builtinTools(subAgent, runtimeHooks(subAgent, runsOn, usage));
+          const toolset = defs.filter((d) => !handlers.get(d.name).gate?.({})).map((d) => ({
+            name: d.name, description: d.description, schema: d.input_schema,
+            run: async (inp) => { const r = await runOne({ id: uid('call_'), name: d.name, input: inp }, { handlers, routes: new Map(), agent: subAgent, ctx: { ...ctx, depth: ctx.depth + 1 } }); return { content: r.content, isError: !!r.is_error }; },
+          }));
+          const r = await runClaudeCode({ connection: runsOn.connection, model: runsOn.model, system: subSystemPrompt(agent, t.role), prompt: t.instruction, toolset, cwd: paths.agentWorkspace(agent.id), signal: ctx.signal, maxTurns: 25 });
+          addUsage(usage, r.usage);
+          return r.error ? `Failed: ${r.error}` : r.output || '(no answer)';
+        }));
+      }
       const subAgent = { ...agent, tools: { ...agent.tools, askUser: false, requestApproval: false, suggestService: false, requestSecret: false, delegate: false, callAgent: false, schedule: false, trigger: false, skills: false, hub: false }, selfImprovement: { ...agent.selfImprovement, enabled: false } };
       return Promise.all(tasks.map(async (t) => {
         const { defs, handlers } = builtinTools(subAgent, runtimeHooks(subAgent, runsOn, usage));

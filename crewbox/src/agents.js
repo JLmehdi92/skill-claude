@@ -1,5 +1,5 @@
 import fs from 'node:fs';
-import { q, insert, update, tx } from './db.js';
+import { q, insert, update, tx, getSetting } from './db.js';
 import { paths, ensureAgentDirs } from './config.js';
 import { uid, now, json, slugify } from './util.js';
 import { resolveRunsOn, getConnection, listConnections } from './providers/index.js';
@@ -46,7 +46,7 @@ export function deleteSpace(id) {
 }
 
 export function ensureDefaultSpace() {
-  if (!q.get('SELECT id FROM spaces LIMIT 1')) createSpace({ name: 'Main Box' });
+  if (!q.get('SELECT id FROM spaces LIMIT 1')) createSpace({ name: getSetting('language', 'fr') === 'en' ? 'Main Box' : 'Box principale' });
 }
 
 /* ---------- coworkers ---------- */
@@ -70,7 +70,12 @@ export function agentConfig(id) {
 }
 
 export function summary(r) {
-  return { id: r.id, name: r.name, handle: r.handle, description: r.description, status: agentStatus(r.id), enabled: !!r.enabled, space_id: r.space_id, avatar: r.avatar, created_at: r.created_at };
+  return {
+    id: r.id, name: r.name, handle: r.handle, description: r.description, status: agentStatus(r.id), enabled: !!r.enabled, space_id: r.space_id, avatar: r.avatar, created_at: r.created_at,
+    schedules: q.get('SELECT COUNT(*) AS n FROM schedules WHERE agent_id = ? AND enabled = 1', r.id).n,
+    triggers: q.get('SELECT COUNT(*) AS n FROM triggers WHERE agent_id = ? AND enabled = 1', r.id).n,
+    apps: q.get('SELECT COUNT(*) AS n FROM mcp_servers WHERE agent_id = ? AND enabled = 1', r.id).n,
+  };
 }
 
 export function agentStatus(id) {

@@ -3,6 +3,9 @@ import { promptMemories } from '../memory.js';
 import { listAgents } from '../agents.js';
 import { listAgentConnectors } from '../catalog.js';
 import { listSecretNames } from '../secrets.js';
+import { getSetting } from '../db.js';
+
+const LANGS = { fr: 'French', en: 'English' };
 
 const VERBOSITY = {
   minimal: 'Answer the user in as few words as possible: the result, nothing else.',
@@ -21,8 +24,10 @@ export function buildSystemPrompt(agent, { trigger = 'chat', mcpErrors = [], dep
   parts.push(`You are ${agent.name} (@${agent.handle}), an AI coworker in a Crewbox workspace running on the user's own machine.${agent.description ? ` Your job: ${agent.description}` : ''}`);
   parts.push(`<soul>\n${agent.soul?.trim() || 'No soul written yet. Work out what the user needs, do it well, and suggest writing down who you are once your job is clear.'}\n</soul>`);
 
+  const lang = LANGS[getSetting('language', 'fr')];
   const rules = [
     'Do the work with your tools rather than describing what you would do. Finish the task end to end, then report what you did in plain words.',
+    `Talk to the owner in ${lang} unless they write to you in another language; keep data, code and messages to third parties in the language they need.`,
     VERBOSITY[agent.verbosity] || VERBOSITY.normal,
   ];
   if (T.filesystem) rules.push('Your private workspace folder holds deliverables and scratch (reports, pages, exports). It is also the working directory of shell commands.');

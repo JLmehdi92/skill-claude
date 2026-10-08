@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { Button, Field, Input, Textarea } from '../ui/kit.jsx';
+import { t } from '../lib/i18n.js';
 
 function PromptBody({ label, value = '', placeholder, multiline, onDone, confirmLabel = 'OK' }) {
   const [v, setV] = useState(value);
@@ -10,7 +11,7 @@ function PromptBody({ label, value = '', placeholder, multiline, onDone, confirm
       <Field label={label}>
         {multiline ? <Textarea ref={ref} value={v} onChange={(e) => setV(e.target.value)} placeholder={placeholder} rows={6} /> : <Input ref={ref} value={v} onChange={(e) => setV(e.target.value)} placeholder={placeholder} />}
       </Field>
-      <div className="row end"><Button type="button" onClick={() => onDone(null)}>Cancel</Button><Button variant="primary" type="submit">{confirmLabel}</Button></div>
+      <div className="row end"><Button type="button" onClick={() => onDone(null)}>{t('Cancel')}</Button><Button variant="primary" type="submit">{confirmLabel}</Button></div>
     </form>
   );
 }
@@ -27,10 +28,10 @@ function ConfirmBody({ text, typeToConfirm, danger, confirmLabel, onDone }) {
   return (
     <div>
       <p className="muted">{text}</p>
-      {typeToConfirm ? <Field label={`Type ${typeToConfirm} to confirm`}><Input value={typed} onChange={(e) => setTyped(e.target.value)} autoFocus /></Field> : null}
+      {typeToConfirm ? <Field label={t('Type {word} to confirm', { word: typeToConfirm })}><Input value={typed} onChange={(e) => setTyped(e.target.value)} autoFocus /></Field> : null}
       <div className="row end">
-        <Button onClick={() => onDone(false)}>Cancel</Button>
-        <Button variant={danger ? 'danger solid' : 'primary'} disabled={typeToConfirm && typed !== typeToConfirm} onClick={() => onDone(true)}>{confirmLabel || 'Confirm'}</Button>
+        <Button onClick={() => onDone(false)}>{t('Cancel')}</Button>
+        <Button variant={danger ? 'danger solid' : 'primary'} disabled={typeToConfirm && typed !== typeToConfirm} onClick={() => onDone(true)}>{confirmLabel || t('Confirm')}</Button>
       </div>
     </div>
   );

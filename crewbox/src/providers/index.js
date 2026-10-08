@@ -4,13 +4,15 @@ import { getSecret, setSecret } from '../secrets.js';
 import { uid, now, json } from '../util.js';
 import { mockChat } from './mock.js';
 import { openaiChat } from './openai.js';
+import { sdkChat } from '../runtime/claude-code.js';
 
 // Every coworker runs on an AI connection: a provider + credentials + the models it serves.
 // The canonical transcript format is the Anthropic Messages shape (content blocks), so Claude
 // sessions replay their blocks unchanged; other providers get a converted copy.
 
 export const PROVIDERS = {
-  anthropic: { label: 'Anthropic (Claude)', needsKey: true, defaultBase: null },
+  'claude-subscription': { label: 'Claude subscription (Pro / Max)', needsKey: false, defaultBase: null, keyLabel: 'Token from `claude setup-token` (optional if Claude Code is logged in on this machine)' },
+  anthropic: { label: 'Anthropic API key', needsKey: true, defaultBase: null },
   openai: { label: 'OpenAI', needsKey: true, defaultBase: 'https://api.openai.com/v1' },
   openrouter: { label: 'OpenRouter', needsKey: true, defaultBase: 'https://openrouter.ai/api/v1' },
   google: { label: 'Google Gemini (OpenAI-compatible)', needsKey: true, defaultBase: 'https://generativelanguage.googleapis.com/v1beta/openai' },
@@ -27,6 +29,7 @@ export const ANTHROPIC_MODELS = [
 
 const DEFAULT_MODELS = {
   anthropic: ANTHROPIC_MODELS.map((m) => m.id),
+  'claude-subscription': ['claude-opus-5-5', 'claude-sonnet-5-5', 'claude-haiku-5-5'],
   openai: ['gpt-5', 'gpt-5-mini'],
   openrouter: ['anthropic/claude-sonnet-5.5', 'openai/gpt-5-mini'],
   google: ['gemini-2.5-pro', 'gemini-2.5-flash'],
@@ -40,6 +43,7 @@ export function priceFor(provider, model) {
 }
 
 export function costUsd(provider, model, usage) {
+  if (provider === 'claude-subscription') return 0; // included in the plan
   const p = priceFor(provider, model);
   if (!p) return provider === 'mock' || provider === 'ollama' ? 0 : null;
   const cached = usage.cacheRead || 0, written = usage.cacheWrite || 0;
@@ -131,6 +135,9 @@ export async function chat(connection, { model, system, messages, tools, onText,
   switch (connection.provider) {
     case 'mock':
       return mockChat({ model, system, messages, tools, onText });
+    case 'claude-subscription':
+      if (tools?.length) throw new Error('The subscription engine runs tool loops through runClaudeCode.');
+      return sdkChat(connection, { model, system, messages });
     case 'anthropic':
       if (!apiKey) throw new Error(`The connection "${connection.name}" has no API key. Add it under AI providers.`);
       return anthropicChat({ apiKey, baseURL: connection.base_url || undefined, model, system, messages, tools, onText, signal, effort, maxTokens });

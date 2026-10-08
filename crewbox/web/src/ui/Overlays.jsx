@@ -2,6 +2,7 @@ import { useEffect, useLayoutEffect, useRef } from 'react';
 import { useApp } from '../lib/store.jsx';
 import { gsap, lockScroll } from '../lib/smooth.js';
 import Icon from './icons.jsx';
+import { t } from '../lib/i18n.js';
 
 function Modal({ m, top }) {
   const { closeModal } = useApp();
@@ -27,7 +28,7 @@ function Modal({ m, top }) {
       <div className={`modal ${m.wide ? 'wide' : ''}`} ref={card} role="dialog" aria-label={m.title} data-lenis-prevent>
         <header className="modal-head">
           <h2>{m.title}</h2>
-          <button className="icon-btn" onClick={close} aria-label="Close"><Icon name="close" /></button>
+          <button className="icon-btn" onClick={close} aria-label={t('Close')}><Icon name="close" /></button>
         </header>
         <div className="modal-body">{m.render(close)}</div>
       </div>

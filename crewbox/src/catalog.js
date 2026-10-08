@@ -86,6 +86,13 @@ export const CATALOG = [
     skill: 'Inspect the schema before querying. Always add a LIMIT.',
   },
   {
+    slug: 'apify', name: 'Apify', category: 'Research', auth: 'apiKey',
+    description: 'Run ready-made scrapers (Actors) for Google Maps, Instagram, Amazon, LinkedIn and thousands of sites.',
+    secrets: [{ name: 'APIFY_TOKEN', label: 'API token', help: 'console.apify.com/settings/integrations' }],
+    mcp: { ...npx('@apify/actors-mcp-server'), env: { APIFY_TOKEN: '${APIFY_TOKEN}' } },
+    skill: 'Search for an Actor that fits the site, check its input schema, run it with a small limit first, and store the rows in the database.',
+  },
+  {
     slug: 'browser', name: 'Headless browser', category: 'Research', auth: 'none',
     description: 'Navigate JavaScript-heavy pages, click, fill forms and take screenshots (Puppeteer).',
     secrets: [],

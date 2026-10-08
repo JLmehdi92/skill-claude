@@ -4,6 +4,7 @@ import { useApp } from '../lib/store.jsx';
 import { Button, Field, Input, Textarea, Select, Segmented } from '../ui/kit.jsx';
 import StarBorder from '../reactbits/StarBorder.jsx';
 import Icon from '../ui/icons.jsx';
+import { t } from '../lib/i18n.js';
 
 function NewAgentBody({ spaceId, close }) {
   const { overview, refresh, openAgent, toast, safe } = useApp();
@@ -28,26 +29,26 @@ function NewAgentBody({ spaceId, close }) {
 
   return (
     <div className="stack">
-      <Segmented value={mode} onChange={setMode} options={[['describe', 'Describe the job'], ['blank', 'Start blank']]} />
+      <Segmented value={mode} onChange={setMode} options={[['describe', t('Describe the job')], ['blank', t('Start blank')]]} />
       {mode === 'describe' ? (
         <>
-          <Field label="What is the job?" hint="in your own words — it writes its own prompt, skills and schedule">
-            <Textarea autoFocus rows={5} value={job} onChange={(e) => setJob(e.target.value)} placeholder="Every morning, find 20 SaaS companies in France that just started hiring salespeople and add them to my leads table." />
+          <Field label={t('What is the job?')} hint={t('in your own words — it writes its own prompt, skills and schedule')}>
+            <Textarea autoFocus rows={5} value={job} onChange={(e) => setJob(e.target.value)} placeholder={t('Every morning, find 20 SaaS companies in France that just started hiring salespeople and add them to my leads table.')} />
           </Field>
-          <Field label="Box"><Select value={space} onChange={(e) => setSpace(e.target.value)}>{overview?.spaces.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}</Select></Field>
+          <Field label={t('Box')}><Select value={space} onChange={(e) => setSpace(e.target.value)}>{overview?.spaces.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}</Select></Field>
           <div className="row end">
             <StarBorder as="button" className="cta sm" color="#67e8f9" speed="4s" onClick={build} disabled={busy || !job.trim()}>
-              <Icon name="sparkles" size={15} /> {busy ? 'Setting itself up…' : 'Create coworker'}
+              <Icon name="sparkles" size={15} /> {busy ? t('Setting itself up…') : t('Create coworker')}
             </StarBorder>
           </div>
         </>
       ) : (
         <>
-          <Field label="Name"><Input autoFocus value={f.name} onChange={(e) => setF({ ...f, name: e.target.value })} placeholder="Margo · Invoice Chasing" /></Field>
-          <Field label="Description"><Input value={f.description} onChange={(e) => setF({ ...f, description: e.target.value })} placeholder="One line on what it is for" /></Field>
-          <Field label="Soul" hint="the system prompt, in markdown"><Textarea code rows={10} value={f.soul} onChange={(e) => setF({ ...f, soul: e.target.value })} placeholder={'# Who you are\n…\n# How you work\n…\n# Rules\n…'} /></Field>
-          <Field label="Box"><Select value={space} onChange={(e) => setSpace(e.target.value)}>{overview?.spaces.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}</Select></Field>
-          <div className="row end"><Button variant="primary" onClick={blank} disabled={!f.name.trim()}>Create</Button></div>
+          <Field label={t('Name')}><Input autoFocus value={f.name} onChange={(e) => setF({ ...f, name: e.target.value })} placeholder={t('Margo · Invoice Chasing')} /></Field>
+          <Field label={t('Description')}><Input value={f.description} onChange={(e) => setF({ ...f, description: e.target.value })} placeholder={t('One line on what it is for')} /></Field>
+          <Field label={t('Soul')} hint={t('the system prompt, in markdown')}><Textarea code rows={10} value={f.soul} onChange={(e) => setF({ ...f, soul: e.target.value })} placeholder={'# Who you are\n…\n# How you work\n…\n# Rules\n…'} /></Field>
+          <Field label={t('Box')}><Select value={space} onChange={(e) => setSpace(e.target.value)}>{overview?.spaces.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}</Select></Field>
+          <div className="row end"><Button variant="primary" onClick={blank} disabled={!f.name.trim()}>{t('Create')}</Button></div>
         </>
       )}
     </div>
@@ -55,5 +56,5 @@ function NewAgentBody({ spaceId, close }) {
 }
 
 export function openNewAgent(ctx, spaceId) {
-  ctx.openModal({ title: 'New coworker', render: (close) => <NewAgentBody spaceId={spaceId} close={close} /> });
+  ctx.openModal({ title: t('New coworker'), render: (close) => <NewAgentBody spaceId={spaceId} close={close} /> });
 }

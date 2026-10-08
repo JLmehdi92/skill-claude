@@ -14,7 +14,8 @@ export function boot() {
   openDb();
   ensureDefaultSpace();
   if (!listConnections().length) {
-    if (process.env.ANTHROPIC_API_KEY) createConnection({ name: 'Claude', provider: 'anthropic', apiKey: process.env.ANTHROPIC_API_KEY });
+    if (process.env.CLAUDE_CODE_OAUTH_TOKEN) createConnection({ name: 'My Claude plan', provider: 'claude-subscription', apiKey: process.env.CLAUDE_CODE_OAUTH_TOKEN });
+    else if (process.env.ANTHROPIC_API_KEY) createConnection({ name: 'Claude', provider: 'anthropic', apiKey: process.env.ANTHROPIC_API_KEY });
     else createConnection({ name: 'Offline demo', provider: 'mock' });
   }
   recoverRuns();

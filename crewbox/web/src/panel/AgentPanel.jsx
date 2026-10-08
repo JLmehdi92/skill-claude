@@ -7,10 +7,11 @@ import Icon from '../ui/icons.jsx';
 import DecryptedText from '../reactbits/DecryptedText.jsx';
 import ChatTab from './ChatTab.jsx';
 import { HandleTab, SkillsTab, AutomationsTab, AppsTab, MemoryTab, DataTab, FilesTab, RunsTab, SettingsTab } from './tabs.jsx';
+import { t } from '../lib/i18n.js';
 
-const TABS = [
-  ['chat', 'Chat', 'chat'], ['handle', 'To handle', 'inbox'], ['skills', 'Skills', 'book'], ['automations', 'Automations', 'clock'],
-  ['apps', 'Apps', 'plug'], ['memory', 'Memory', 'brain'], ['data', 'Database', 'db'], ['files', 'Files', 'folder'], ['runs', 'Runs', 'pulse'], ['settings', 'Settings', 'sliders'],
+const TABS = () => [
+  ['chat', t('Chat'), 'chat'], ['handle', t('To handle'), 'inbox'], ['skills', t('Skills'), 'book'], ['automations', t('Automations'), 'clock'],
+  ['apps', t('Apps'), 'plug'], ['memory', t('Memory'), 'brain'], ['data', t('Database'), 'db'], ['files', t('Files'), 'folder'], ['runs', t('Runs'), 'pulse'], ['settings', t('Settings'), 'sliders'],
 ];
 
 export default function AgentPanel() {
@@ -68,7 +69,7 @@ export default function AgentPanel() {
   return (
     <div className="panel-layer">
       <div className="panel-back" ref={back} onClick={close} />
-      <aside className="panel" ref={drawer} aria-label="Coworker" data-lenis-prevent>
+      <aside className="panel" data-testid="agent-panel" ref={drawer} aria-label={t('Coworker')} data-lenis-prevent>
         {agent ? (
           <>
             <header className="panel-head">
@@ -82,11 +83,11 @@ export default function AgentPanel() {
                   {!agent.enabled ? <span className="chip-sm warn">switched off</span> : null}
                 </div>
               </div>
-              <button className="icon-btn lg" onClick={close} aria-label="Close"><Icon name="close" /></button>
+              <button className="icon-btn lg" onClick={close} aria-label={t('Close')}><Icon name="close" /></button>
             </header>
             <nav className="tabs" ref={tabsRef} role="tablist">
               <span className="tab-ink" ref={ink} />
-              {TABS.map(([k, label, icon]) => (
+              {TABS().map(([k, label, icon]) => (
                 <button key={k} data-tab={k} role="tab" aria-selected={tab === k} className={tab === k ? 'active' : ''} onClick={() => setTab(k)}>
                   <Icon name={icon} size={15} />{label}{k === 'handle' && pending ? <span className="badge">{pending}</span> : null}
                 </button>

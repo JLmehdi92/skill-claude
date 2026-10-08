@@ -10,3 +10,5 @@ playwright-report/
 next-env.d.ts
 *.tsbuildinfo
 crewbox/web/dist/
+e2e-report/
+e2e-results/

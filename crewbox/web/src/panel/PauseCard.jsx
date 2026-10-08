@@ -4,13 +4,14 @@ import { useApp } from '../lib/store.jsx';
 import BorderGlow from '../reactbits/BorderGlow.jsx';
 import { Button, AsyncButton, Input, Field, Toggle } from '../ui/kit.jsx';
 import Icon from '../ui/icons.jsx';
+import { t } from '../lib/i18n.js';
 
-const KIND = {
-  question: ['question', 'A question for you'],
-  approval: ['hand', 'Approval required'],
-  connector: ['plug', 'Connect an app'],
-  secret: ['key', 'A credential is needed'],
-};
+const KIND = () => ({
+  question: ['question', t('A question for you')],
+  approval: ['hand', t('Approval required')],
+  connector: ['plug', t('Connect an app')],
+  secret: ['key', t('A credential is needed')],
+});
 
 function QuestionItem({ item, value, set }) {
   return (item.input.questions || []).map((q, qi) => {
@@ -32,7 +33,7 @@ function QuestionItem({ item, value, set }) {
             })}
           </div>
         ) : null}
-        <Input placeholder="Something else…" value={typeof cur === 'string' && !q.options?.includes(cur) ? cur : ''} onChange={(e) => { const answers = [...(value.answers || [])]; answers[qi] = e.target.value; set({ ...value, answers }); }} />
+        <Input placeholder={t('Something else…')} value={typeof cur === 'string' && !q.options?.includes(cur) ? cur : ''} onChange={(e) => { const answers = [...(value.answers || [])]; answers[qi] = e.target.value; set({ ...value, answers }); }} />
       </div>
     );
   });
@@ -47,7 +48,7 @@ function ApprovalItem({ item, value, set }) {
       <div className="options">
         {['decline', 'approve'].map((d) => (
           <button key={d} className={`option ${decisions[i] === d ? (d === 'approve' ? 'on ok' : 'on bad') : ''}`} onClick={() => { const n = [...decisions]; n[i] = d; set({ ...value, decisions: n }); }}>
-            {d === 'approve' ? 'Approve' : 'Decline'}
+            {d === 'approve' ? t('Approve') : t('Decline')}
           </button>
         ))}
       </div>
@@ -59,10 +60,10 @@ function GateItem({ item, value, set }) {
   const d = value.decision || 'deny';
   return (
     <div className="pause-q">
-      <strong>Run <code>{item.tool}</code>{item.app ? <span className="muted"> · {item.app}</span> : null}</strong>
+      <strong>{t('Run')} <code>{item.tool}</code>{item.app ? <span className="muted"> · {item.app}</span> : null}</strong>
       <pre className="detail">{JSON.stringify(item.input, null, 2)}</pre>
       <div className="options">
-        {[['once', 'Allow once'], ['session', 'This session'], ['always', 'Always'], ['deny', 'Deny']].map(([k, l]) => (
+        {[['once', t('Allow once')], ['session', t('This session')], ['always', t('Always')], ['deny', t('Deny')]].map(([k, l]) => (
           <button key={k} className={`option ${d === k ? (k === 'deny' ? 'on bad' : 'on ok') : ''}`} onClick={() => set({ decision: k })}>{l}</button>
         ))}
       </div>
@@ -76,7 +77,7 @@ function SecretItem({ item, value, set }) {
       <Field label={item.input.label || item.input.name} hint={item.input.reason}>
         <Input type="password" autoComplete="off" placeholder={item.input.name} value={value.value || ''} onChange={(e) => set({ value: e.target.value })} />
       </Field>
-      <p className="fine">Stored on this machine as <code>{item.input.name}</code>. The coworker never sees the value.</p>
+      <p className="fine">{t('Stored on this machine as')} <code>{item.input.name}</code>. The coworker never sees the value.</p>
     </div>
   );
 }
@@ -92,7 +93,7 @@ function ConnectorItem({ item, value, set }) {
           <Input type="password" autoComplete="off" value={value.values?.[s.name] || ''} onChange={(e) => set({ ...value, values: { ...(value.values || {}), [s.name]: e.target.value } })} />
         </Field>
       ))}
-      <Toggle checked={!!value.skip} onChange={(v) => set({ ...value, skip: v })} label="Skip for now" />
+      <Toggle checked={!!value.skip} onChange={(v) => set({ ...value, skip: v })} label={t('Skip for now')} />
     </div>
   );
 }
@@ -102,14 +103,15 @@ const ITEMS = { question: QuestionItem, approval: ApprovalItem, gate: GateItem, 
 export default function PauseCard({ pause, onAnswered }) {
   const { safe, refreshSoon } = useApp();
   const [answers, setAnswers] = useState({});
-  const [icon, title] = KIND[pause.kind] || KIND.question;
+  const kinds = KIND();
+  const [icon, title] = kinds[pause.kind] || kinds.question;
   const send = safe(async () => {
     const r = await api('answer_pause', { pauseId: pause.id, answers });
     refreshSoon();
     onAnswered?.(r);
   });
   return (
-    <BorderGlow className="pause-card" backgroundColor="#140f1f" borderRadius={22} glowRadius={36} animated colors={['#fbbf24', '#f472b6', '#a78bfa']} glowColor="45 95 70">
+    <div data-testid="pause-card"><BorderGlow className="pause-card" backgroundColor="#140f1f" borderRadius={22} glowRadius={36} animated colors={['#fbbf24', '#f472b6', '#a78bfa']} glowColor="45 95 70">
       <div className="pause-inner">
         <header className="pause-head"><span className="pause-icon"><Icon name={icon} size={18} /></span><h4>{title}</h4></header>
         {pause.payload.items.map((it) => {
@@ -117,10 +119,10 @@ export default function PauseCard({ pause, onAnswered }) {
           return C ? <div className="pause-item" key={it.toolUseId}><C item={it} value={answers[it.toolUseId] || {}} set={(v) => setAnswers((a) => ({ ...a, [it.toolUseId]: v }))} /></div> : null;
         })}
         <div className="row end">
-          <Button size="sm" onClick={safe(async () => { await api('cancel_run', { runId: pause.run_id }); refreshSoon(); onAnswered?.(null); })}>Cancel run</Button>
-          <AsyncButton variant="primary" icon="send" onClick={send}>Send answer</AsyncButton>
+          <Button size="sm" onClick={safe(async () => { await api('cancel_run', { runId: pause.run_id }); refreshSoon(); onAnswered?.(null); })}>{t('Cancel run')}</Button>
+          <AsyncButton variant="primary" icon="send" onClick={send}>{t('Send answer')}</AsyncButton>
         </div>
       </div>
-    </BorderGlow>
+    </BorderGlow></div>
   );
 }

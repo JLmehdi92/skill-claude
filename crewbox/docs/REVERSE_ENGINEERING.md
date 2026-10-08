@@ -34,7 +34,7 @@ Pourquoi REA n'a pas « tout » révélé : le front public est un site marketin
 | 20 familles de capacités | 19 implémentées (`browser` passe par l'app « Headless browser » MCP) | ✅ / ⚠️ |
 | Skills (SKILL.md + références, index seul en contexte, lecture paginée, écriture atomique, skills d'app en lecture seule) | Identique, mêmes limites | ✅ |
 | Mémoire qui s'efface, rappel qui prolonge, `autoMemory` | Identique (rappel par mots-clés, pas d'embeddings) | ✅ |
-| Apps (catalogue 200+, OAuth géré) | 13 apps MCP + n'importe quel serveur MCP stdio/HTTP/SSE ; authentification par clé | ⚠️ pas d'OAuth géré |
+| Apps (catalogue 200+, OAuth géré) | 14 apps MCP + n'importe quel serveur MCP stdio/HTTP/SSE ; authentification par clé | ⚠️ pas d'OAuth géré |
 | Statuts `active` / `needs_auth` / `needs_config` | `active` / `needs_config` | ✅ |
 | Tâches planifiées (cron + fuseau, one-off, modèle propre, Run now) | Identique (croner) | ✅ |
 | Triggers webhook (contrat HTTP complet) | Identique, testé | ✅ |
@@ -44,9 +44,9 @@ Pourquoi REA n'a pas « tout » révélé : le front public est un site marketin
 | Fichiers privés + dossier partagé + publication `/p/<slug>` | Identique (CSP sandbox) | ✅ |
 | Délégation (4 sous-coworkers) et `@handle` | Identique | ✅ |
 | Créer un coworker en décrivant le job | « Describe the job » : un appel au modèle rédige soul, skills, planning et apps | ✅ |
-| Templates, export, liens de partage | Identique (marketplace locale, sans paiement) | ✅ |
+| Templates, export, liens de partage | Identique (marketplace locale, sans paiement) ; les 94 templates publics de rerun.build importés, corps des skills reconstitués depuis les descriptions publiques | ✅ |
 | API MCP (50 outils) | 39 outils publics aux mêmes noms et formes (+ outils locaux pour l'UI) | ✅ hors outils d'auteur de templates |
-| Modèles : Rerun hébergé, abonnement Claude/ChatGPT, clés API, OpenRouter | Clés API (Anthropic, OpenAI, OpenRouter, Gemini) + modèles locaux | ⚠️ pas de connexion par abonnement |
+| Modèles : Rerun hébergé, abonnement Claude/ChatGPT, clés API, OpenRouter | Abonnement Claude (jeton `claude setup-token`, Claude Agent SDK) + clés API (Anthropic, OpenAI, OpenRouter, Gemini) + modèles locaux | ✅ hors abonnement ChatGPT |
 
 ## Non reproduit (volontairement ou faute d'information publique)
 
@@ -54,5 +54,4 @@ Pourquoi REA n'a pas « tout » révélé : le front public est un site marketin
 - Comptes multiples, sièges, rôles, facturation, crédits de modèle, marketplace payante, programme d'experts.
 - Notifications par e-mail (tout arrive dans l'application).
 - OAuth géré et proxy d'appels pour les apps.
-- Le champ `setup` des templates est stocké et exporté mais le parcours de configuration guidée n'est pas exécuté à l'installation.
-- Le board isométrique : remplacé par une grille plus simple.
+- Le board isométrique : remplacé volontairement par un QG en 3D différent (îles flottantes, robots animés selon leur état, faisceaux entre coworkers), plus une vue liste.

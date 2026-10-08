@@ -7,9 +7,10 @@ import { Select, Button } from '../ui/kit.jsx';
 import Icon from '../ui/icons.jsx';
 import PauseCard from './PauseCard.jsx';
 import BlurText from '../reactbits/BlurText.jsx';
+import { t } from '../lib/i18n.js';
 
 const KIND_ICON = { chat: 'chat', schedule: 'clock', trigger: 'bolt', agent: 'link', api: 'plug' };
-const SUGGESTIONS = ['What can you do for me?', 'Set up your first scheduled task', 'Show me what you remember'];
+const SUGGESTIONS = () => [t('What can you do for me?'), t('Set up your first scheduled task'), t('Show me what you remember')];
 
 function summarize(input) {
   const v = input && (input.path || input.url || input.query || input.command || input.sql || input.handle || input.name || input.title || input.slug || input.city);
@@ -35,8 +36,8 @@ function Messages({ session, streaming, running }) {
         <details key={j} className={`tool ${r ? (r.is_error ? 'err' : 'ok') : 'pending'}`}>
           <summary><span className="tool-state" /> <code>{b.name}</code><span className="muted">{summarize(b.input)}</span></summary>
           <div className="tool-io">
-            <span className="muted">Input</span><pre>{JSON.stringify(b.input, null, 2)}</pre>
-            <span className="muted">Result</span><pre>{r ? text : 'waiting…'}</pre>
+            <span className="muted">{t('Input')}</span><pre>{JSON.stringify(b.input, null, 2)}</pre>
+            <span className="muted">{t('Result')}</span><pre>{r ? text : 'waiting…'}</pre>
           </div>
         </details>
       );
@@ -120,20 +121,20 @@ export default function ChatTab({ agent, initialSession }) {
   const setModel = safe(async (v) => {
     const [connectionId, m] = v ? v.split('|') : [];
     await api('update_agent', v ? { agentId: agent.id, connectionId, model: m } : { agentId: agent.id, model: null });
-    toast('Model updated');
+    toast(t('Model updated'));
   });
 
   return (
     <div className="chat">
       <div className="chat-bar">
         {sessions.length ? (
-          <Select value={sid || ''} onChange={(e) => setSid(e.target.value)} aria-label="Conversation">
+          <Select value={sid || ''} onChange={(e) => setSid(e.target.value)} aria-label={t('Conversation')}>
             {sessions.map((s) => <option key={s.id} value={s.id}>{`${s.title || 'Conversation'} · ${s.kind} · ${ago(s.updated_at)}`}</option>)}
           </Select>
-        ) : <span className="muted grow">No conversation yet</span>}
-        <Button size="sm" icon="plus" onClick={safe(async () => { const r = await api('new_session', { agentId: agent.id }); loadSessions(r.sessionId); setSid(r.sessionId); })}>New</Button>
-        <Select value={model} onChange={(e) => setModel(e.target.value)} aria-label="Model" className="model-select">
-          <option value="">Default ({agent.runsOn.followsDefault ? agent.runsOn.model : 'workspace'})</option>
+        ) : <span className="muted grow">{t('No conversation yet')}</span>}
+        <Button size="sm" icon="plus" onClick={safe(async () => { const r = await api('new_session', { agentId: agent.id }); loadSessions(r.sessionId); setSid(r.sessionId); })}>{t('New')}</Button>
+        <Select value={model} onChange={(e) => setModel(e.target.value)} aria-label={t('Model')} className="model-select">
+          <option value="">{t('Default ({model})', { model: agent.runsOn.followsDefault ? agent.runsOn.model : t('workspace') })}</option>
           {overview?.connections.flatMap((c) => c.models.map((m) => <option key={`${c.id}|${m}`} value={`${c.id}|${m}`}>{c.name} — {m}</option>))}
         </Select>
       </div>
@@ -141,8 +142,8 @@ export default function ChatTab({ agent, initialSession }) {
       <div className="messages" ref={scroller} data-lenis-prevent>
         {session && session.messages.length ? <Messages session={session} streaming={streaming} running={running} /> : (
           <div className="chat-empty">
-            <BlurText text={`Give ${agent.name} a job.`} className="chat-empty-title" delay={60} animateBy="words" />
-            <div className="suggestions">{SUGGESTIONS.map((s) => <button key={s} className="example" onClick={() => send(s)}>{s}</button>)}</div>
+            <BlurText text={t('Give {name} a job.', { name: agent.name })} className="chat-empty-title" delay={60} animateBy="words" />
+            <div className="suggestions">{SUGGESTIONS().map((s) => <button key={s} className="example" onClick={() => send(s)}>{s}</button>)}</div>
           </div>
         )}
         {pause ? <PauseCard pause={pause} onAnswered={() => loadSession()} /> : null}
@@ -150,15 +151,16 @@ export default function ChatTab({ agent, initialSession }) {
 
       <div className="composer">
         <textarea
+          data-testid="composer"
           value={draft}
           onChange={(e) => setDraft(e.target.value)}
           onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send(); } }}
-          placeholder={pause ? 'Answer the card, or type your reply here…' : `Message ${agent.name}…`}
+          placeholder={pause ? t('Answer the card, or type your reply here…') : t('Message {name}…', { name: agent.name })}
           rows={1}
-          aria-label="Message"
+          aria-label={t('Message')}
         />
-        {running ? <button className="send stop" onClick={safe(() => api('cancel_run', { runId: last.runId }))} aria-label="Stop"><Icon name="stop" /></button>
-          : <button className="send" onClick={() => send()} aria-label="Send" disabled={!draft.trim()}><Icon name="send" /></button>}
+        {running ? <button className="send stop" onClick={safe(() => api('cancel_run', { runId: last.runId }))} aria-label={t('Stop')}><Icon name="stop" /></button>
+          : <button className="send" onClick={() => send()} aria-label={t('Send')} disabled={!draft.trim()}><Icon name="send" /></button>}
       </div>
       {last ? (
         <div className="run-meta">

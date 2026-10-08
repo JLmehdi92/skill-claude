@@ -1,12 +1,13 @@
 import { forwardRef, useState } from 'react';
 import Icon from './icons.jsx';
+import { t } from '../lib/i18n.js';
 import { hueOf, initials, STATUS } from '../lib/format.js';
 
 export function Button({ variant = '', size = '', icon, children, className = '', busy, ...rest }) {
   return (
     <button className={`btn ${variant} ${size} ${className}`} disabled={busy || rest.disabled} {...rest}>
       {icon ? <Icon name={icon} size={size === 'sm' ? 14 : 16} /> : null}
-      {children != null ? <span>{busy ? 'Working…' : children}</span> : null}
+      {children != null ? <span>{busy ? t('Working…') : children}</span> : null}
     </button>
   );
 }
@@ -27,7 +28,7 @@ export function Avatar({ agent, size = 44, ring }) {
 }
 
 export const StatusBadge = ({ status }) => (
-  <span className={`status status-${status}`}><i />{STATUS[status] || status}</span>
+  <span className={`status status-${status}`}><i />{t(STATUS[status] || status)}</span>
 );
 
 export const Pill = ({ tone = '', children, ...rest }) => <span className={`pill ${tone}`} {...rest}>{children}</span>;

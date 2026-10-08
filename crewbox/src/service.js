@@ -1,6 +1,6 @@
 import fs from 'node:fs';
 import path from 'node:path';
-import { q, insert } from './db.js';
+import { q, insert, getSetting, setSetting } from './db.js';
 import { paths } from './config.js';
 import { uid, now, json, safeJoin, sha256, token } from './util.js';
 import * as agents from './agents.js';
@@ -270,8 +270,11 @@ def('browse_table', {
 });
 
 def('list_templates', { description: 'Templates available to install.', run: () => ({ templates: tpl.listTemplates() }) });
-def('install_template', { description: 'Install a template into a Box.', input: { slug: 'string', template: 'object', spaceId: 'string' }, run: (a) => tpl.installTemplate(a.template || a.slug, a) });
+def('install_template', { description: 'Install a template into a Box; coworkers that need a guided setup start it at once.', input: { slug: 'string', template: 'object', spaceId: 'string', setup: 'boolean' }, run: (a) => tpl.installTemplate(a.template || a.slug, { spaceId: a.spaceId, startSetup: a.setup === false ? null : startRun }) });
 def('export_template', { description: 'Capture coworkers as a template (no memories, no secrets).', input: { agentIds: 'string[]!', name: 'string', description: 'string', category: 'string', save: 'boolean' }, run: (a) => { const t = tpl.exportTemplate(a.agentIds, a); if (a.save) tpl.saveTemplate(t); return t; } });
+
+def('get_preferences', { description: 'Workspace preferences (UI and coworker language).', run: () => ({ language: getSetting('language', 'fr') }) });
+def('set_language', { description: 'Language the UI and the coworkers use with the owner.', input: { language: 'string!' }, run: (a) => { if (!['fr', 'en'].includes(a.language)) throw new Error('fr or en'); setSetting('language', a.language); return { language: a.language }; } });
 
 def('list_api_keys', { description: 'API keys for the account MCP endpoint.', run: () => ({ keys: q.all('SELECT id, name, prefix, created_at, last_used_at FROM api_keys ORDER BY created_at DESC') }) });
 def('create_api_key', {
