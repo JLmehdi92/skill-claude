@@ -1,0 +1,24 @@
+{
+  "name": "crewbox",
+  "version": "0.1.0",
+  "description": "Local, self-hosted AI coworkers: souls, skills, memory, apps (MCP), schedules, webhook triggers and human-in-the-loop approvals.",
+  "type": "module",
+  "private": true,
+  "license": "MIT",
+  "engines": {
+    "node": ">=22.13"
+  },
+  "bin": {
+    "crewbox": "src/cli.js"
+  },
+  "scripts": {
+    "start": "node --disable-warning=ExperimentalWarning src/cli.js start",
+    "dev": "node --disable-warning=ExperimentalWarning --watch src/cli.js start",
+    "test": "node --disable-warning=ExperimentalWarning --test test/*.test.js"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.132.1",
+    "@modelcontextprotocol/sdk": "^1.32.1",
+    "croner": "^10.0.1"
+  }
+}
