@@ -2,7 +2,7 @@
 
 Crewbox est un clone local et auto-hébergé de [Rerun](https://rerun.build) : des **coworkers IA** qui font votre travail récurrent (relances de factures, prospection, tri du support, rapports…), sur un **cron** ou un **webhook**, avec leurs **skills**, leur **mémoire**, leurs **bases SQLite**, leurs **apps (MCP)**, et qui **s'arrêtent pour vous demander** avant toute action risquée.
 
-Tout tourne sur votre machine : une seule commande Node, aucune base externe, aucun build front, données dans `~/.crewbox`.
+Tout tourne sur votre machine : une seule commande Node, aucune base externe, données dans `~/.crewbox`. L'interface est animée avec **GSAP**, **Lenis** et des composants **React Bits** (voir [Design](#design)).
 
 > Comment ce clone a été obtenu (REA + documentation publique), et ce qui diffère de l'original : voir [`docs/REVERSE_ENGINEERING.md`](docs/REVERSE_ENGINEERING.md).
 
@@ -13,7 +13,14 @@ Prérequis : **Node.js ≥ 22.13** (SQLite est intégré à Node, pas de dépend
 ```bash
 cd crewbox
 npm install
-npm start                 # → http://127.0.0.1:4747
+npm start                 # construit l'interface si besoin, puis → http://127.0.0.1:4747
+```
+
+Développement de l'interface avec rechargement à chaud :
+
+```bash
+npm run dev:api           # API sur :4747 (jeton UI fixe « dev »)
+npm run dev:ui            # Vite sur http://127.0.0.1:5173, proxy vers l'API
 ```
 
 Au premier lancement :
@@ -85,6 +92,18 @@ claude mcp add --transport http crewbox http://127.0.0.1:4747/api/mcp/account \
 
 Puis, dans Claude Code : « Crée un coworker qui surveille les pages de prix de mes concurrents chaque matin et me prévient s'il y a un changement. »
 
+## Design
+
+L'interface (`web/`) est une app React 19 construite avec Vite, pensée comme un site primé plutôt qu'un tableau de bord générique : thème sombre, verre dépoli, typographie Bricolage Grotesque, et surtout du **mouvement**.
+
+| Outil | Rôle dans Crewbox |
+| - | - |
+| [GSAP](https://github.com/greensock/GSAP) + ScrollTrigger + SplitText | Titres qui se dévoilent lettre par lettre, parallaxe du hero, cartes révélées en cascade au scroll, section « How it works » épinglée et pilotée par le scroll, tiroir du coworker, indicateur d'onglet glissant, entrée des messages et des dialogues. |
+| [Lenis](https://github.com/darkroomengineering/lenis) | Scroll fluide de la page, synchronisé sur le ticker GSAP pour que ScrollTrigger reste exact ; mis en pause quand un tiroir ou un dialogue est ouvert. |
+| [React Bits](https://github.com/DavidHDev/react-bits) | Aurora (fond WebGL du hero), SplitText, RotatingText, ShinyText, GradientText, BlurText, CountUp, DecryptedText, SpotlightCard (coworkers, skills, apps), GlareHover (templates), BorderGlow (cartes d'approbation), StarBorder + Magnet (bouton principal), Dock (navigation), ClickSpark, AnimatedContent. |
+
+Les animations respectent `prefers-reduced-motion`. Les composants React Bits sont copiés dans `web/src/reactbits/` sous leur licence (MIT + Commons Clause, voir `web/src/reactbits/LICENSE.md`) : utilisables dans une application, pas revendables seuls.
+
 ## Architecture
 
 ```
@@ -104,7 +123,8 @@ src/
   mcp.js            clients MCP par coworker (stdio / HTTP / SSE), pool et timeouts
   catalog.js        bibliothèque d'apps
   skills.js memory.js sqlite-tools.js secrets.js templates.js builder.js notifications.js
-public/             interface (HTML/CSS/JS sans build)
+web/                interface React + Vite (sections, panneau, dialogues, composants React Bits)
+scripts/ensure-ui.js  construit l'interface au démarrage si elle manque ou a changé
 templates/          templates fournis
 test/               tests de bout en bout (node:test)
 ```

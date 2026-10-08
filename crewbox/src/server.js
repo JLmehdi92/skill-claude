@@ -11,7 +11,7 @@ import { fireTrigger, isPassiveVisit, BODY_MAX } from './automations.js';
 import { getShare } from './templates.js';
 import { agentConfig } from './agents.js';
 
-const PUBLIC_DIR = path.join(path.dirname(fileURLToPath(import.meta.url)), '..', 'public');
+const PUBLIC_DIR = path.join(path.dirname(fileURLToPath(import.meta.url)), '..', 'web', 'dist');
 // The UI token proves a request comes from the page this server rendered (blocks CSRF and
 // other local pages); it is regenerated on every start.
 export const UI_TOKEN = process.env.CREWBOX_UI_TOKEN || token(18);
@@ -47,13 +47,14 @@ export function createServer() {
     const p = url.pathname;
     try {
       if (p === '/' || p === '/index.html') {
+        if (!fs.existsSync(path.join(PUBLIC_DIR, 'index.html'))) return send(res, 503, 'The web UI is not built yet: run `npm run build` (npm start does it for you).', { 'content-type': 'text/plain' });
         const html = fs.readFileSync(path.join(PUBLIC_DIR, 'index.html'), 'utf8').replace('__CREWBOX_TOKEN__', UI_TOKEN);
         return send(res, 200, html, { 'content-type': MIME['.html'], 'cache-control': 'no-store' });
       }
       if (p.startsWith('/assets/')) {
-        const f = safeJoin(PUBLIC_DIR, p.slice('/assets/'.length));
+        const f = safeJoin(PUBLIC_DIR, p.slice(1));
         if (!fs.existsSync(f)) return send(res, 404, 'Not found');
-        return send(res, 200, fs.readFileSync(f), { 'content-type': mime(f), 'cache-control': 'no-cache' });
+        return send(res, 200, fs.readFileSync(f), { 'content-type': mime(f), 'cache-control': 'public, max-age=31536000, immutable' });
       }
       if (p.startsWith('/api/t/')) return handleTrigger(req, res, p);
       if (p === '/api/mcp/account') return handleMcp(req, res);
