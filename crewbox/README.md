@@ -50,8 +50,8 @@ Ou collez le jeton dans **Réglages → Fournisseurs d'IA → Abonnement Claude*
 
 ### Tests
 
-- `npm test` : 25 tests de bout en bout du serveur (`node:test`, sans réseau ni clé, l'abonnement est testé contre une fausse API).
-- `npm run test:e2e` : 21 scénarios **Playwright** dans un vrai Chromium (desktop + mobile) contre un serveur jetable : français par défaut et bascule EN, création d'un coworker, plateau (un plateau par Box, un bloc par coworker, états prêt / endormi / t'attend / éteint, menu des Box, recherche, zoom et recentrage, couleur d'un coworker, plein écran et HUD sur téléphone), vue liste, chat en streaming, carte de question, approbation shell, tous les onglets, bibliothèque rerun.build et installation avec configuration guidée, connexion par abonnement, clé API, et **accessibilité** (axe-core WCAG 2.2 AA en FR et EN, panneau, parcours au clavier avec focus visible partout). Écrits selon les pratiques d'[everything-claude-code](https://github.com/affaan-m/everything-claude-code) (agent `e2e-runner`, skills `e2e-testing` et `browser-qa` dans `../.claude/`) : Page Object Model, sélecteurs `data-testid`, et une fixture qui **fait échouer le test à la moindre erreur console ou exception de page**. Rapport HTML dans `e2e-report/`.
+- `npm test` : 34 tests de bout en bout du serveur (`node:test`, sans réseau ni clé : l'abonnement, Resend, le jeton OAuth Google et Anthropic sont testés contre de fausses API locales).
+- `npm run test:e2e` : 28 scénarios **Playwright** dans un vrai Chromium (desktop + mobile) contre un serveur jetable : français par défaut et bascule EN, **Foreman de bout en bout** (il lit un faux site d'entreprise, remplit le Cerveau, propose une équipe « leads + prospection » avec Resend, la construit ; on connecte Resend avec une clé dans l'onglet Apps, le coworker envoie un e-mail après approbation et la fausse API Resend reçoit exactement le bon e-mail avec la bonne clé), bibliothèque des 207 apps, Cerveau (proposition acceptée), pilote auto, onboarding sur téléphone, création d'un coworker, plateau (un plateau par Box, un bloc par coworker, humeurs t'attend / éteint / apps à connecter, menu des Box, recherche, zoom et recentrage, couleur d'un coworker, plein écran et HUD sur téléphone), vue liste, chat en streaming, carte de question, approbation shell, tous les onglets, bibliothèque rerun.build et installation avec configuration guidée, connexion par abonnement, clé API, et **accessibilité** (axe-core WCAG 2.2 AA en FR et EN, panneau, parcours au clavier avec focus visible partout). Écrits selon les pratiques d'[everything-claude-code](https://github.com/affaan-m/everything-claude-code) (agent `e2e-runner`, skills `e2e-testing` et `browser-qa` dans `../.claude/`) : Page Object Model, sélecteurs `data-testid`, et une fixture qui **fait échouer le test à la moindre erreur console ou exception de page**. Rapport HTML dans `e2e-report/`.
 
 ## Fournisseurs d'IA
 
@@ -73,7 +73,10 @@ Chaque coworker suit le modèle par défaut de l'espace de travail, ou épingle 
 | **Coworker** | Nom, `@handle` stable, **soul** (prompt système markdown), modèle, verbosité, familles de capacités, flags d'auto-amélioration, règles d'approbation. |
 | **Skill** | Dossier `SKILL.md` + fichiers de référence, chargé à la demande (seul l'index est dans le contexte). Les skills installés par une app sont en lecture seule. |
 | **Mémoire** | Faits durables qui s'effacent s'ils ne servent pas ; chaque rappel prolonge leur vie. Revue automatique après chaque conversation (`autoMemory`). |
-| **App** | Serveur MCP + skill d'usage. 14 apps au catalogue (GitHub, Notion, Slack, Stripe, HubSpot, Airtable, Linear, Brave Search, Firecrawl, Apify, Google Maps, Postgres, navigateur headless, serveur de démo) + **n'importe quel serveur MCP** (stdio, HTTP, SSE). |
+| **App** | Serveur MCP (ou API REST) + skill d'usage. **Les 207 apps de Rerun** (voir « Apps ») + **n'importe quel serveur MCP** (stdio, HTTP, SSE). |
+| **Cerveau (Brain)** | Les pages de l'entreprise (offre, clients, ton, marché…) que chaque coworker lit avant de travailler. Les coworkers proposent des modifications, vous acceptez ou refusez. |
+| **Foreman** | L'assistant derrière l'orbe : il lit votre site, comprend votre business, conçoit et construit une équipe, et peut tout piloter dans l'espace de travail. |
+| **Pilote auto** | Des règles en phrases simples qui répondent aux cartes des coworkers à votre place quand une règle les couvre clairement ; le reste (et tout identifiant) vous attend. |
 | **Run / Session** | Chaque exécution enregistre ses étapes, appels d'outils, tokens et coût. Les runs planifiés / webhooks ouvrent leur propre session. |
 | **Scheduled task** | Cron 5 champs + fuseau IANA, ou date unique (se désactive après). « Run now » ne touche pas au planning. |
 | **Trigger** | URL publique `/api/t/{agentId}/{slug}/{token}` ; le payload est ajouté dans un bloc `<trigger_payload>` échappé (anti-injection). |
@@ -95,7 +98,25 @@ Un coworker **met son run en pause** et affiche une seule carte (toutes ses dema
 
 En plus, certaines actions sont **bloquées jusqu'à votre accord** (réglable par coworker) : outils d'apps qui ne sont pas en lecture seule, shell, publication. Choix : *Allow once*, *This session*, *Always*, *Deny*. Les runs planifiés à 3 h du matin s'arrêtent aussi : rien n'est sauté parce que personne ne regarde.
 
-## La bibliothèque rerun.build
+## Foreman : de votre site à une équipe qui travaille
+
+Comme sur Rerun, au premier lancement Crewbox vous demande votre site :
+
+1. **Lecture du site** : Foreman parcourt jusqu'à 18 pages (accueil, tarifs, à propos, fonctionnalités, clients, blog limité, sitemap compris ; pages légales ignorées), en direct à l'écran, et repère les outils que le site utilise vraiment (scripts et liens externes : Stripe, HubSpot, Intercom, Calendly, LinkedIn…).
+2. **Le Cerveau** : il en tire les pages *Entreprise*, *Offre et tarifs*, *Clients cibles*, *Ton et marque*, *Marché*, *Croissance*, *Outils*. Avec un modèle connecté, c'est le modèle qui rédige le profil ; sans modèle, un profil heuristique (tarifs extraits, cible repérée dans les titres « Pour les… »).
+3. **Votre objectif** en une phrase (« Trouver des leads et leur envoyer des emails de prospection »).
+4. **Le plan** : une carte par coworker (rôle, apps, sa journée, sa première semaine, les questions qu'il vous posera) ; « Changer quelque chose » le refait selon vos remarques.
+5. **Construction** : coworkers, skills, plannings en pause, apps branchées, puis chaque coworker démarre sa **configuration guidée** et vous demande ce qui lui manque (clé Resend, ICP, signature…).
+
+Exemple « leads + prospection » : **Lina** (Apollo, Google Maps, Firecrawl) trouve et qualifie les leads dans la table partagée `leads` ; **Oscar** écrit les e-mails personnalisés et les envoie avec **Resend** (chaque envoi passe par votre approbation, ou par une règle du pilote auto). Ensuite l'orbe ouvre Foreman, qui garde la main sur tout : vue d'ensemble, nouveaux coworkers, templates, apps, Cerveau.
+
+## Apps : les 207 connecteurs de Rerun
+
+`data/connectors-research.json` recense les 207 services du catalogue Rerun, avec pour chacun la meilleure façon de s'y connecter, vérifiée : serveur MCP distant officiel (connexion **OAuth** dans une fenêtre, enregistrement dynamique du client, jetons rangés sur votre machine), **clé API** (serveur MCP officiel ou API REST décrite opération par opération + un outil `request` générique), **commande locale** (`npx` du serveur MCP officiel), ou **votre propre app OAuth** (Google Analytics, Search Console, Tasks, Meet, Photos, YouTube, Microsoft, Outlook, LinkedIn, Reddit). Statuts : *connecté*, *à connecter*, *à configurer*. Six services n'ont aucune intégration publique (Autodesk, CrowdStrike, Expedia, Moonbundle, Replit, Vocci) : l'app l'indique et propose un serveur MCP personnalisé.
+
+**Resend** est entièrement pilotable par les coworkers (24 outils) : envoyer un e-mail ou un lot de 100, programmer / reprogrammer / annuler, suivre la délivrance, domaines et DNS, e-mails reçus (réponses des prospects), contacts, segments, broadcasts. La clé est saisie dans un champ masqué et n'atteint jamais le modèle.
+
+
 
 `templates/rerun/` contient les 94 templates publics de [rerun.build/templates](https://rerun.build/templates) (ventes, e-commerce, agences, immobilier, créateurs, juridique, recrutement, SaaS, finance…), récupérés depuis les pages publiques : nom, catégorie, description, créateur, coworkers, leurs skills, leurs plannings, les apps requises, les étapes de configuration guidée et la FAQ. Chaque fichier garde sa source (`from.url`, `from.creator`) et la carte affiche un badge « rerun.build ».
 
@@ -126,13 +147,13 @@ La section « QG » reprend le plateau de l'app Rerun (`web/src/board/`, SVG pur
 - **Chaque Box est un plateau** de 8 × 8 cases au bord clair, avec son nom écrit en italique le long du bord. Les Box se placent autour de la première, et en ajouter une ne déplace jamais les autres. Clic sur le nom pour la renommer ; au survol, une place en pointillés propose d'ajouter un coworker.
 - **Chaque coworker est un bloc** arrondi dans sa couleur (choisie ou automatique), avec son nom sur le dessus et ses yeux sur la face avant. Son état se lit d'un coup d'œil :
   - **prêt** : yeux ouverts, il cligne ;
-  - **endormi** (il attend sa prochaine tâche planifiée) : yeux fermés qui luisent, il entrouvre un œil de temps en temps ;
-  - **au travail** : il sautille, ses pupilles bougent, un anneau tourne au sol et une bulle affiche l'outil qu'il utilise (« web_search ») ;
-  - **t'attend** : une bulle « ! » ambrée au-dessus de lui et un anneau qui pulse ;
-  - **erreur** : bloc entièrement rouge, yeux en croix et bouche triste, avec un petit tremblement ;
-  - **éteint** : bloc fantôme translucide avec un cadenas.
+  - **au travail** (ambre, comme sur Rerun) : il sautille, ses pupilles bougent, un anneau ambré tourne au sol, une bulle affiche l'outil qu'il utilise et « au travail » s'écrit sous son nom ;
+  - **t'attend** (cyan) : une bulle « ? » cyan, un anneau qui pulse, il lève les yeux vers vous, « t'attend · 2 » sous son nom ;
+  - **erreur** : bloc entièrement rouge, yeux en croix et bouche triste, avec un petit tremblement, « en erreur » ;
+  - **éteint** : il dort, yeux fermés qui luisent ;
+  - **apps à connecter** : bloc fantôme translucide avec un cadenas tant qu'une de ses apps attend une clé ou une connexion.
 - Chaque appel d'outil fait **flasher** le bloc et envoie une **onde** au sol ; quand un coworker en appelle un autre, un **arc** relie les deux blocs. À l'arrivée, les blocs tombent sur le plateau un par un.
-- **Le HUD**, comme dans l'app : en haut à gauche, le menu de l'espace de travail (liste des Box pour y voler, nouvelle Box, vue liste) et le bouton clair « Templates » ; à droite, le zoom (+, −, recentrer) ; en bas, la cloche des notifications, la pastille « au travail / total » (son anneau tourne quand quelqu'un bosse, et un point ambré signale ce qui t'attend), « + » pour un nouveau coworker, la loupe pour en chercher un, et l'orbe violet pour décrire un job.
+- **Le HUD**, comme dans l'app : en haut à gauche, le menu de l'espace de travail (liste des Box pour y voler, nouvelle Box, vue liste) et le bouton clair « Templates » ; à droite, le zoom (+, −, recentrer) ; en bas, la cloche des notifications, la pastille « au travail / total » (son anneau tourne quand quelqu'un bosse, et un point ambré signale ce qui t'attend), « + » pour un nouveau coworker, la loupe pour en chercher un, et l'orbe : **Foreman**, votre assistant. Le menu de l'espace de travail ouvre aussi le Cerveau, le pilote auto et « Monter une équipe avec Foreman ».
 - **Gestes** : glisser pour déplacer, pincer (ou Ctrl/⌘ + molette) pour zoomer, toucher un bloc pour l'ouvrir (la caméra s'en approche d'abord). Sur téléphone le plateau prend tout l'écran et le dock du site s'efface tant qu'il est affiché ; un doigt à la verticale continue de faire défiler la page.
 - Tout est accessible au clavier (blocs, noms de Box, HUD) et `prefers-reduced-motion` coupe les animations. Une **vue liste** reste disponible.
 

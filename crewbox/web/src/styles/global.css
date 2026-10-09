@@ -106,7 +106,9 @@ select.input { appearance: none; background-image: linear-gradient(45deg, transp
 .option.on.ok { background: rgba(52, 211, 153, 0.15); border-color: var(--green); }
 .option.on.bad { background: rgba(248, 113, 113, 0.14); border-color: var(--red); }
 .toggle { display: flex; align-items: center; gap: 10px; cursor: pointer; font-size: 13px; color: var(--text-2); padding: 8px 10px; border-radius: 12px; border: 1px solid var(--line); background: var(--surface); user-select: none; }
-.toggle input { display: none; }
+.toggle { position: relative; }
+.toggle input { position: absolute; opacity: 0; width: 1px; height: 1px; margin: 0; pointer-events: none; }
+.toggle:has(input:focus-visible) { outline: 2px solid var(--violet-2); outline-offset: 2px; }
 .toggle .knob { width: 32px; height: 18px; border-radius: 99px; background: rgba(255, 255, 255, 0.12); position: relative; transition: background 0.25s; flex: none; }
 .toggle .knob::after { content: ''; position: absolute; top: 2px; left: 2px; width: 14px; height: 14px; border-radius: 50%; background: #fff; transition: transform 0.3s var(--ease); }
 .toggle.on { color: var(--text); border-color: rgba(167, 139, 250, 0.35); }
@@ -561,3 +563,47 @@ table.data tr:hover td { background: rgba(255, 255, 255, 0.025); }
 .swatch.on { border-color: #fff; box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.15); }
 .swatch.auto { width: auto; height: 28px; transform: none; padding: 0 12px; border-radius: 999px; background: var(--surface-2); color: var(--text-2); border-color: var(--line-2); font: 600 12.5px var(--body); }
 .swatch.auto.on { border-color: var(--violet); color: var(--text); }
+
+/* ============ apps library & connect ============ */
+.app-icon { border-radius: 6px; flex: none; background: rgba(255, 255, 255, 0.06); object-fit: contain; }
+.app-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 10px; }
+.app-card { display: flex; flex-direction: column; gap: 8px; padding: 12px; border-radius: 16px; background: var(--surface); border: 1px solid var(--line); transition: border-color 0.2s, transform 0.2s; }
+.app-card:hover { border-color: var(--line-2); transform: translateY(-1px); }
+.app-card strong { display: block; font-size: 14px; }
+.app-card .grow > span { display: block; }
+.clamp-2 { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; min-height: 2.6em; }
+.auth-badges { display: flex; flex-wrap: wrap; gap: 4px; }
+.auth-badge { font-style: normal; font-size: 10.5px; font-weight: 600; padding: 2px 7px; border-radius: 999px; background: var(--surface-2); color: var(--text-2); }
+.auth-badge.a-oauth, .auth-badge.a-oauthApp { background: rgba(124, 108, 255, 0.16); color: #c4b8ff; }
+.auth-badge.a-apiKey { background: rgba(251, 191, 36, 0.12); color: #fcd877; }
+.auth-badge.a-none { background: rgba(52, 211, 153, 0.12); color: #6ee7b7; }
+.cat-chips.small .cat-chip { padding: 5px 11px; font-size: 12.5px; }
+.app-row .row { gap: 10px; }
+.connect-app { display: flex; flex-direction: column; gap: 12px; }
+.connect-head { display: flex; gap: 12px; align-items: center; }
+.connect-head p { margin: 2px 0 0; }
+.method-pick { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 8px; }
+.method { display: flex; flex-direction: column; gap: 2px; text-align: left; padding: 10px 12px; border-radius: 14px; border: 1.5px solid var(--line-2); background: var(--surface); color: var(--text); cursor: pointer; font: inherit; }
+.method b { font-size: 13.5px; }
+.method span { font-size: 11.5px; color: var(--muted); }
+.method.on { border-color: var(--violet); background: rgba(124, 108, 255, 0.12); }
+.error { color: var(--red); }
+.loader.sm { width: 14px; height: 14px; border-width: 2px; }
+
+/* ============ Brain ============ */
+.brain-grid { display: grid; grid-template-columns: 220px 1fr; gap: 16px; min-height: 360px; }
+.brain-list { display: flex; flex-direction: column; gap: 4px; }
+.brain-list button { text-align: left; padding: 9px 12px; border-radius: 12px; border: 1px solid transparent; background: none; color: var(--text-2); cursor: pointer; font: 500 14px var(--body); }
+.brain-list button.on { background: var(--surface-2); color: var(--text); border-color: var(--line-2); }
+.brain-list small { display: block; font-size: 11px; color: var(--muted); }
+.brain-proposal { padding: 12px; border-radius: 14px; border: 1px solid rgba(124, 108, 255, 0.35); background: rgba(124, 108, 255, 0.08); display: flex; flex-direction: column; gap: 8px; }
+.brain-proposal pre { white-space: pre-wrap; font: 13px/1.5 var(--body); margin: 0; max-height: 200px; overflow: auto; color: var(--text-2); }
+@media (max-width: 720px) { .brain-grid { grid-template-columns: 1fr; } }
+
+/* ============ Autopilot ============ */
+.ap-rules { display: flex; flex-direction: column; gap: 8px; }
+.ap-rule { display: flex; gap: 8px; align-items: center; }
+.ap-rule .input { flex: 1; }
+.ap-log { display: flex; flex-direction: column; gap: 6px; }
+.ap-entry { display: grid; grid-template-columns: auto 1fr auto; gap: 10px; align-items: start; padding: 10px 12px; border-radius: 12px; background: var(--surface); border: 1px solid var(--line); font-size: 13px; }
+.ap-entry .pill { white-space: nowrap; }

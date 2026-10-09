@@ -13,7 +13,12 @@ import * as mem from './memory.js';
 import * as sql from './sqlite-tools.js';
 import * as tpl from './templates.js';
 import * as notif from './notifications.js';
-import { setSecret, deleteSecret, listSecretNames } from './secrets.js';
+import * as brain from './brain.js';
+import * as foreman from './foreman/index.js';
+import { ensureForeman } from './foreman/assistant.js';
+import * as autopilot from './autopilot.js';
+import { setSecret, deleteSecret, listSecretNames, secretVars as secretVarsOf } from './secrets.js';
+import { startSignIn, startAppSignIn, forget as forgetSignIn, REDIRECT as oauthRedirect } from './connectors/oauth.js';
 import { sendMessage, startRun, waitForRun, cancelRun, answerPause, listPauses, createSession } from './runtime/runner.js';
 import { buildFromDescription } from './builder.js';
 
@@ -159,10 +164,28 @@ def('drop_rows', {
 
 /* ================= Apps ================= */
 
-def('search_connectors', { api: true, description: 'Searches the app library.', input: { query: 'string' }, run: (a) => ({ connectors: catalog.searchConnectors(a.query) }) });
-def('list_connectors', { api: true, description: 'Lists every app in the library.', run: () => ({ connectors: catalog.searchConnectors('') }) });
+def('search_connectors', { api: true, description: 'Semantic-ish search over the app library. Describe the capability, e.g. "send emails" or "read a CRM".', input: { query: 'string', category: 'string' }, run: (a) => ({ connectors: catalog.searchConnectors(a.query, { category: a.category }).slice(0, a.query ? 20 : 400) }) });
+def('list_connectors', { api: true, description: 'Walks the whole app library page by page, in a stable order.', input: { category: 'string', limit: 'integer', offset: 'integer' }, run: (a) => catalog.listConnectorsPage(a) });
+def('get_connector', { description: 'One app with every way to connect it.', input: { slug: 'string!' }, run: (a) => catalog.appDetails(a.slug) });
+def('connect_app', {
+  description: 'Starts the sign-in of an app installed on a coworker (OAuth): returns the page to open.',
+  input: { agentId: 'string!', slug: 'string!', method: 'any' },
+  run: async (a) => {
+    const id = agentIdOf(a);
+    const st = catalog.attachConnector(id, a.slug, { method: a.method });
+    const server = mcp.getServer(id, a.slug.replace(/-/g, '_'));
+    if (server.auth === 'oauthApp') {
+      if (server.missingSecrets.length) return { ...st, needs: server.missingSecrets };
+      return { ...st, ...startAppSignIn(id, server.slug, server.spec.oauth, secretVarsOf(id)) };
+    }
+    if (server.auth === 'oauth') return { ...st, ...(await startSignIn(id, server.slug, server.name, server.url)) };
+    return st;
+  },
+});
+def('disconnect_app', { description: 'Forgets the sign-in of an app on a coworker.', input: { agentId: 'string!', slug: 'string!' }, run: (a) => { forgetSignIn(agentIdOf(a), a.slug.replace(/-/g, '_')); return { ok: true }; } });
+def('oauth_redirect_uri', { description: 'The redirect URI to register in a developer app.', run: () => ({ redirectUri: oauthRedirect() }) });
 def('list_agent_connectors', { api: true, description: 'Apps installed on a coworker with their status.', input: { agentId: 'string!' }, run: (a) => ({ connectors: catalog.listAgentConnectors(agentIdOf(a)) }) });
-def('attach_connector', { api: true, description: 'Declares an app on a coworker. Credentials are filled in the app, never through the API.', input: { agentId: 'string!', slug: 'string!' }, run: (a) => catalog.attachConnector(agentIdOf(a), a.slug) });
+def('attach_connector', { api: true, description: 'Declares an app on a coworker. Credentials are filled in the app, never through the API.', input: { agentId: 'string!', slug: 'string!', method: 'any' }, run: (a) => catalog.attachConnector(agentIdOf(a), a.slug, { method: a.method }) });
 def('detach_connector', { api: true, confirm: true, description: 'Removes an app and its skill from a coworker.', input: { agentId: 'string!', slug: 'string!', confirm: 'boolean!' }, run: (a) => catalog.detachConnector(agentIdOf(a), a.slug) });
 
 /* ================= Share links ================= */
@@ -206,6 +229,27 @@ def('chat', {
 def('cancel_run', { description: 'Cancel a running or waiting run.', input: { runId: 'string!' }, run: (a) => cancelRun(a.runId) });
 def('list_pauses', { description: 'Cards waiting for you.', input: { agentId: 'string' }, run: (a) => ({ pauses: listPauses({ agentId: a.agentId && agentIdOf(a) }) }) });
 def('answer_pause', { description: 'Answer a card and resume the coworker.', input: { pauseId: 'string!', answers: 'object!' }, run: async (a) => { const h = await answerPause(a.pauseId, a.answers); return { runId: h.runId, sessionId: h.sessionId }; } });
+/* ================= Foreman (onboarding) ================= */
+
+def('onboarding_state', { description: 'Where the onboarding is: site, goal, plan, done.', run: () => ({ ...foreman.state(), hasAgents: agents.listAgents().length > 0, modelReady: !!(() => { const r = providers.resolveRunsOn(); return r.connection && r.provider !== 'mock'; })() }) });
+def('onboarding_analyze', { description: 'Reads the website and writes the Brain.', input: { url: 'string!' }, run: (a) => foreman.analyzeWebsite(a) });
+def('onboarding_plan', { description: 'Designs a team for a goal.', input: { goal: 'string!', feedback: 'string', previous: 'object' }, run: (a) => foreman.makePlan(a) });
+def('onboarding_build', { description: 'Builds the planned team and starts their guided setups.', input: { plan: 'object' }, run: (a) => foreman.buildTeam({ plan: a.plan || foreman.state().plan, startSetup: startRun }) });
+def('onboarding_skip', { description: 'Skips the onboarding.', run: () => foreman.skip() });
+def('onboarding_restart', { description: 'Shows the onboarding again.', run: () => foreman.restart() });
+
+/* ================= Autopilot ================= */
+
+def('get_autopilot', { description: 'Autopilot rules and its recent decisions.', run: () => ({ ...autopilot.settings(), log: autopilot.log() }) });
+def('set_autopilot', { description: 'Turns Autopilot on or off and sets its rules (plain sentences).', input: { enabled: 'boolean', rules: 'string[]' }, run: (a) => autopilot.save(a) });
+
+/* ================= Brain ================= */
+
+def('list_brain', { description: 'The Brain: company pages every coworker reads, and pending proposals.', run: () => ({ pages: brain.listPages(), proposals: brain.listProposals() }) });
+def('upsert_brain_page', { description: 'Creates or replaces a Brain page.', input: { slug: 'string', title: 'string!', body: 'string' }, run: (a) => brain.upsertPage({ ...a, source: 'owner' }) });
+def('delete_brain_page', { description: 'Deletes a Brain page.', input: { slug: 'string!' }, run: (a) => brain.deletePage(a.slug) });
+def('decide_brain_proposal', { description: 'Accepts or rejects a Brain proposal from a coworker.', input: { proposalId: 'string!', accept: 'boolean!' }, run: (a) => brain.decideProposal(a.proposalId, a.accept) });
+
 def('list_notifications', { description: 'Workspace notifications.', input: { agentId: 'string', unreadOnly: 'boolean' }, run: (a) => ({ notifications: notif.listNotifications(a) }) });
 def('mark_notifications_read', { description: 'Mark notifications read.', input: { ids: 'any' }, run: (a) => { notif.markRead(a.ids || 'all'); return { ok: true }; } });
 
@@ -290,6 +334,11 @@ def('overview', {
     pendingPauses: q.get("SELECT COUNT(*) AS n FROM pauses WHERE status = 'pending'").n,
     unread: q.get('SELECT COUNT(*) AS n FROM notifications WHERE read = 0').n,
     runningRuns: q.get("SELECT COUNT(*) AS n FROM runs WHERE status = 'running'").n,
+    onboarding: { done: !!foreman.state().done, step: foreman.state().step || 'site' },
+    foremanId: ensureForeman(),
+    brainPages: brain.listPages().length,
+    brainProposals: brain.listProposals().length,
+    autopilot: !!autopilot.settings().enabled,
     usage: q.get("SELECT COUNT(*) AS runs, COALESCE(SUM(cost_usd), 0) AS cost, COALESCE(SUM(input_tokens + output_tokens), 0) AS tokens FROM runs WHERE started_at > ?", new Date(Date.now() - 30 * 86400_000).toISOString()),
   }),
 });

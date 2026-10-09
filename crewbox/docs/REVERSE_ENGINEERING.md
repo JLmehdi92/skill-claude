@@ -29,13 +29,13 @@ Pourquoi REA n'a pas « tout » révélé : le front public est un site marketin
 | Rerun | Crewbox | Statut |
 | - | - | - |
 | Machine cloud privée par workspace | Votre machine (`~/.crewbox`) | ✅ (par construction) |
-| Boxes / board | Board en grille, Boxes renommables, déplacement de coworker | ✅ (board plat, pas isométrique) |
+| Boxes / board | Plateaux isométriques, Boxes renommables, déplacement de coworker | ✅ |
 | Coworker : nom, handle, soul, modèle, verbosité, capacités, auto-amélioration, activé | Identique | ✅ |
 | 20 familles de capacités | 19 implémentées (`browser` passe par l'app « Headless browser » MCP) | ✅ / ⚠️ |
 | Skills (SKILL.md + références, index seul en contexte, lecture paginée, écriture atomique, skills d'app en lecture seule) | Identique, mêmes limites | ✅ |
 | Mémoire qui s'efface, rappel qui prolonge, `autoMemory` | Identique (rappel par mots-clés, pas d'embeddings) | ✅ |
-| Apps (catalogue 200+, OAuth géré) | 14 apps MCP + n'importe quel serveur MCP stdio/HTTP/SSE ; authentification par clé | ⚠️ pas d'OAuth géré |
-| Statuts `active` / `needs_auth` / `needs_config` | `active` / `needs_config` | ✅ |
+| Apps (catalogue 200+, OAuth géré) | Les 207 apps du catalogue Rerun : OAuth sur les serveurs MCP distants officiels (DCR, jetons locaux), clé API (MCP officiel ou API REST décrite), commande `npx`, ou app OAuth du propriétaire (Google, Microsoft, LinkedIn, Reddit) ; + n'importe quel serveur MCP | ✅ (6 services sans intégration publique) |
+| Statuts `active` / `needs_auth` / `needs_config` | Identique | ✅ |
 | Tâches planifiées (cron + fuseau, one-off, modèle propre, Run now) | Identique (croner) | ✅ |
 | Triggers webhook (contrat HTTP complet) | Identique, testé | ✅ |
 | 4 pauses + notifications (`info/progress/done/error`) | Identique, carte unique groupée, réponse libre possible | ✅ |
@@ -44,6 +44,10 @@ Pourquoi REA n'a pas « tout » révélé : le front public est un site marketin
 | Fichiers privés + dossier partagé + publication `/p/<slug>` | Identique (CSP sandbox) | ✅ |
 | Délégation (4 sous-coworkers) et `@handle` | Identique | ✅ |
 | Board isométrique (Boxes en plateaux, coworkers en blocs à yeux, HUD) | Reproduit d'après une capture de l'app (le code du board n'est servi qu'aux comptes connectés) : mêmes proportions, couleurs et HUD ; états et animations reconstitués | ✅ |
+| Foreman : site analysé → Brain → objectif → carte du plan → équipe construite + configuration guidée ; assistant derrière l'orbe | Identique dans l'esprit (crawl local jusqu'à 18 pages, détection des outils, plan par le modèle ou par recettes éprouvées sans modèle) | ✅ |
+| Brain (pages entreprise lues par tous, propositions des coworkers) | Identique | ✅ |
+| Autopilot (règles en langage naturel qui répondent aux pauses, journal) | Identique ; identifiants et connexions d'apps toujours laissés au propriétaire | ✅ |
+| Humeurs du board (au travail ambre, t'attend cyan, erreur rouge, éteint endormi, ligne d'état) | Identique (d'après le changelog du 7 oct.) ; « verrouillé » = apps à connecter | ✅ |
 | Créer un coworker en décrivant le job | « Describe the job » : un appel au modèle rédige soul, skills, planning et apps | ✅ |
 | Templates, export, liens de partage | Identique (marketplace locale, sans paiement) ; les 94 templates publics de rerun.build importés, corps des skills reconstitués depuis les descriptions publiques | ✅ |
 | API MCP (50 outils) | 39 outils publics aux mêmes noms et formes (+ outils locaux pour l'UI) | ✅ hors outils d'auteur de templates |
@@ -51,7 +55,7 @@ Pourquoi REA n'a pas « tout » révélé : le front public est un site marketin
 
 ## Non reproduit (volontairement ou faute d'information publique)
 
-- **Foreman** (l'agent d'onboarding qui conçoit toute une équipe) et **Autopilot** (répondre aux pauses selon des règles) : non implémentés.
 - Comptes multiples, sièges, rôles, facturation, crédits de modèle, marketplace payante, programme d'experts.
 - Notifications par e-mail (tout arrive dans l'application).
-- OAuth géré et proxy d'appels pour les apps.
+- Proxy d'appels hébergé pour les apps : les connexions OAuth se font depuis votre machine (redirection `http://127.0.0.1:4747/oauth/callback`) ; certains éditeurs n'acceptent pas une redirection locale, il faut alors passer par la clé API ou la commande locale.
+- Autodesk, CrowdStrike, Expedia, Moonbundle, Replit, Vocci : pas d'intégration publique trouvée (serveur MCP personnalisé possible).

@@ -9,6 +9,7 @@ import HowItWorks from './sections/HowItWorks.jsx';
 import Footer from './sections/Footer.jsx';
 import DockNav from './sections/DockNav.jsx';
 import AgentPanel from './panel/AgentPanel.jsx';
+import Onboarding from './foreman/Onboarding.jsx';
 import { Modals, Toasts } from './ui/Overlays.jsx';
 
 export default function App() {
@@ -32,6 +33,7 @@ export default function App() {
       </ClickSpark>
       <DockNav />
       <AgentPanel />
+      <Onboarding />
       <Modals />
       <Toasts />
     </AppProvider>

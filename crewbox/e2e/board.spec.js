@@ -24,24 +24,26 @@ test.describe('Board', () => {
     await expect(new AgentPanel(page).root.locator('h2')).toContainText(name.split(' ')[0], { timeout: 15_000 });
   });
 
-  test('a block shows its state: waiting, switched off, asleep until its next task', async ({ page, api }) => {
+  test('a block shows its mood: waiting, switched off (asleep), apps to connect', async ({ page, api }) => {
     const home = new HomePage(page);
     await home.goto('fr');
     const spaceId = await firstSpace(api);
     const waiting = await api('create_agent', { name: uniq('Attente'), spaceId });
     const off = await api('create_agent', { name: uniq('Eteint'), spaceId });
-    const sleepy = await api('create_agent', { name: uniq('Dodo'), spaceId });
+    const locked = await api('create_agent', { name: uniq('Verrou'), spaceId });
     await api('update_agent', { agentId: off.agentId, enabled: false });
-    await api('upsert_schedule', { agentId: sleepy.agentId, name: 'Lundi', cron: '0 9 * * 1', body: 'Fais le point.', enabled: true });
+    await api('attach_connector', { agentId: locked.agentId, slug: 'resend', method: 'apiKey' });
     await page.reload();
     await home.useView('Plateau');
     const board = new BoardPage(page);
     await board.show();
     await expect(board.block(off.name)).toHaveClass(/st-off/);
-    await expect(board.block(sleepy.name)).toHaveClass(/st-sleep/);
+    await expect(board.block(locked.name)).toHaveClass(/st-locked/);
+    await expect(board.block(locked.name).locator('.rb-status')).toHaveText('apps à connecter');
     await api('chat', { agentId: waiting.agentId, message: '/tool ask_user {"questions":[{"question":"On lance ?"}]}' });
     await expect(board.block(waiting.name)).toHaveClass(/st-waiting/);
     await expect(board.block(waiting.name).locator('.rb-bubble')).toBeVisible();
+    await expect(board.block(waiting.name).locator('.rb-status')).toHaveText('t’attend');
     await expect(board.progress.locator('.rb-dot.amber')).toBeVisible();
     await board.progress.click();
     await expect(page.getByRole('dialog', { name: 'À traiter' })).toContainText('On lance ?');
@@ -80,8 +82,9 @@ test.describe('Board', () => {
     await board.add.click();
     await expect(page.getByRole('dialog', { name: 'Nouveau coworker' })).toBeVisible();
     await page.keyboard.press('Escape');
+    // The orb is Foreman, the assistant that can set up the whole workspace.
     await board.orb.click();
-    await expect(page.getByRole('dialog', { name: 'Nouveau coworker' })).toBeVisible();
+    await expect(new AgentPanel(page).root.locator('h2')).toContainText('Foreman', { timeout: 15_000 });
   });
 
   test('a coworker can wear a board colour', async ({ page, api }) => {

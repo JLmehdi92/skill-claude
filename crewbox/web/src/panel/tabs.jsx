@@ -11,6 +11,7 @@ import SpotlightCard from '../reactbits/SpotlightCard.jsx';
 import CountUp from '../reactbits/CountUp.jsx';
 import { NotificationList } from '../dialogs/Inbox.jsx';
 import { t } from '../lib/i18n.js';
+import ConnectApp, { AppIcon, METHOD_LABEL, STATUS_LABEL, statusTone } from './ConnectApp.jsx';
 import { COLORS } from '../board/iso.js';
 
 /** Load data for a tab and reload it on matching server events. */
@@ -254,50 +255,65 @@ function McpEditor({ agent, close }) {
   );
 }
 
+const APP_CATS = ['all', 'marketing', 'crm', 'productivity', 'communication', 'dev', 'data', 'analytics', 'seo', 'ai', 'ecommerce', 'payments', 'finance', 'other'];
+const CAT_LABEL = { all: 'All', marketing: 'Marketing', crm: 'CRM', productivity: 'Productivity', communication: 'Communication', dev: 'Developer', data: 'Data', analytics: 'Analytics', seo: 'SEO', ai: 'AI', ecommerce: 'E-commerce', payments: 'Payments', finance: 'Finance', other: 'Other' };
+
 export function AppsTab({ agent }) {
   const { openModal, safe, toast } = useApp();
   const [data, load] = useLoad(async () => ({
-    ...(await api('search_connectors', { query: '' })), ...(await api('list_mcp_servers', { agentId: agent.id })),
+    ...(await api('list_connectors', { limit: 400 })), ...(await api('list_mcp_servers', { agentId: agent.id })),
     ...(await api('list_secrets', { agentId: agent.id })), ...(await api('list_permissions', { agentId: agent.id })),
-  }), [agent.id], ['agents']);
+  }), [agent.id], ['agents', 'app_connected']);
   const [query, setQuery] = useState('');
+  const [cat, setCat] = useState('all');
+  const [shown, setShown] = useState(36);
   const secrets = (names, title) => openModal({ title: title ? t('Connect {name}', { name: title }) : t('Credentials'), onClose: load, render: (close) => <SecretsEditor agent={agent} names={names} close={() => { close(); load(); }} /> });
+  const connect = (slug, name) => openModal({ title: t('Connect {name}', { name }), onClose: load, render: (close) => <ConnectApp agentId={agent.id} slug={slug} onDone={() => { toast(t('{name} connected', { name })); close(); load(); }} /> });
   if (!data) return null;
   const installed = new Set(data.servers.map((s) => s.connector).filter(Boolean));
-  const lib = data.connectors.filter((c) => `${c.name} ${c.category} ${c.description}`.toLowerCase().includes(query.toLowerCase()));
+  const words = query.toLowerCase().split(/\s+/).filter(Boolean);
+  const lib = data.connectors.filter((c) => (cat === 'all' || c.category === cat) && words.every((w) => `${c.name} ${c.slug} ${c.category} ${c.description}`.toLowerCase().includes(w)));
   return (
     <div className="stack">
       <SectionHead title={t('Installed')} sub={t('Each app is an MCP server plus a skill on how to use it.')} />
       {!data.servers.length ? <Empty icon="plug">{t('No app yet. Install one below, or ask the coworker: it searches the library and raises a setup card.')}</Empty> : null}
       {data.servers.map((s) => (
-        <div className="card-row" key={s.slug}>
+        <div className="card-row app-row" key={s.slug} data-testid={`app-${s.connector || s.slug}`}>
           <div className="row between wrap">
-            <div className="row"><Icon name="plug" size={16} /><strong>{s.name}</strong><Pill tone={s.status === 'active' ? 'ok' : 'warn'}>{t(s.status)}</Pill></div>
+            <div className="row">{s.connector ? <AppIcon slug={s.connector} /> : <Icon name="plug" size={16} />}<strong>{s.name}</strong><Pill tone={statusTone(s.status)}>{STATUS_LABEL[s.status]?.() || s.status}</Pill>{s.spec?.method ? <span className="muted small">{METHOD_LABEL[s.spec.method]?.()}</span> : null}</div>
             <div className="row">
-              <AsyncButton size="sm" onClick={async () => { const r = await api('probe_mcp_server', { agentId: agent.id, slug: s.slug }); openModal({ title: t('{name} · {n} tools', { name: s.name, n: r.tools.length }), render: () => <div className="stack">{r.tools.map((x) => <div className="card-row" key={x.name}><code>{x.name}</code><p className="muted small">{x.description}</p></div>)}</div> }); }}>{t('Test')}</AsyncButton>
-              {s.missingSecrets.length ? <Button size="sm" variant="primary" icon="key" onClick={() => secrets(s.missingSecrets, s.name)}>{t('Connect')}</Button> : null}
-              <Button size="sm" variant="danger" icon="trash" onClick={safe(async () => { if (!(await confirmDialog(openModal, { title: t('Remove {name}', { name: s.name }), text: t('Its tools and skill go away with it.'), danger: true, confirmLabel: t('Remove') }))) return; if (s.connector) await api('detach_connector', { agentId: agent.id, slug: s.connector, confirm: true }); else await api('delete_mcp_server', { agentId: agent.id, slug: s.slug }); load(); })} />
+              {s.status === 'active' ? <AsyncButton size="sm" onClick={async () => { const r = await api('probe_mcp_server', { agentId: agent.id, slug: s.slug }); openModal({ title: t('{name} · {n} tools', { name: s.name, n: r.tools.length }), render: () => <div className="stack">{r.tools.map((x) => <div className="card-row" key={x.name}><code>{x.name}</code><p className="muted small">{x.description}</p></div>)}</div> }); }}>{t('Test')}</AsyncButton> : null}
+              {s.connector && s.status !== 'active' ? <Button size="sm" variant="primary" icon="link" onClick={() => connect(s.connector, s.name)}>{s.status === 'needs_auth' ? t('Sign in') : t('Connect')}</Button> : null}
+              {!s.connector && s.missingSecrets.length ? <Button size="sm" variant="primary" icon="key" onClick={() => secrets(s.missingSecrets, s.name)}>{t('Connect')}</Button> : null}
+              {s.connector && s.status === 'active' ? <Button size="sm" onClick={() => connect(s.connector, s.name)}>{t('Change')}</Button> : null}
+              <Button size="sm" variant="danger" icon="trash" aria-label={t('Remove {name}', { name: s.name })} onClick={safe(async () => { if (!(await confirmDialog(openModal, { title: t('Remove {name}', { name: s.name }), text: t('Its tools and skill go away with it.'), danger: true, confirmLabel: t('Remove') }))) return; if (s.connector) await api('detach_connector', { agentId: agent.id, slug: s.connector, confirm: true }); else await api('delete_mcp_server', { agentId: agent.id, slug: s.slug }); load(); })} />
             </div>
           </div>
           <code className="muted small break">{s.transport === 'stdio' ? `${s.command} ${s.args.join(' ')}` : s.url}</code>
         </div>
       ))}
 
-      <SectionHead title={t('Library')}>
-        <div style={{ width: 200 }}><Input placeholder={t('Search apps…')} value={query} onChange={(e) => setQuery(e.target.value)} /></div>
+      <SectionHead title={t('Library')} sub={t('{n} apps: everything rerun.build connects, plus any MCP server.', { n: data.total })}>
         <Button size="sm" icon="plus" onClick={() => openModal({ title: t('Custom MCP server'), onClose: load, render: (close) => <McpEditor agent={agent} close={() => { close(); load(); }} /> })}>{t('Custom MCP')}</Button>
       </SectionHead>
-      <div className="card-grid">
-        {lib.map((c) => (
-          <SpotlightCard key={c.slug} className="mini-card" spotlightColor="rgba(167, 139, 250, 0.22)">
-            <div className="row between"><strong>{c.name}</strong><Pill>{c.category}</Pill></div>
-            <p className="muted small">{c.description}</p>
-            <div className="row end">
-              {installed.has(c.slug) ? <Pill tone="ok">{t('installed')}</Pill> : <AsyncButton size="sm" variant="primary" onClick={async () => { const r = await api('attach_connector', { agentId: agent.id, slug: c.slug }); if (r.missingSecrets?.length) secrets(r.missingSecrets, c.name); else toast(t('{name} connected', { name: c.name })); load(); }}>{t('Install')}</AsyncButton>}
+      <Input placeholder={t('Search apps… (e.g. send emails, CRM, Stripe)')} aria-label={t('Search apps…')} value={query} onChange={(e) => { setQuery(e.target.value); setShown(36); }} />
+      <div className="cat-chips small" role="group" aria-label={t('Categories')}>
+        {APP_CATS.map((c) => <button key={c} className={`cat-chip ${cat === c ? 'on' : ''}`} aria-pressed={cat === c} onClick={() => { setCat(c); setShown(36); }}>{t(CAT_LABEL[c])}</button>)}
+      </div>
+      <div className="app-grid" data-testid="app-library">
+        {lib.slice(0, shown).map((c) => (
+          <div key={c.slug} className="app-card" data-testid={`lib-${c.slug}`}>
+            <div className="row"><AppIcon slug={c.slug} size={26} /><div className="grow"><strong>{c.name}</strong><span className="muted small">{t(CAT_LABEL[c.category] || c.category)}</span></div></div>
+            <p className="muted small clamp-2">{c.description}</p>
+            <div className="row between">
+              <span className="auth-badges">{c.authMethods.slice(0, 3).map((m) => <i key={m} className={`auth-badge a-${m}`}>{METHOD_LABEL[m]?.()}</i>)}</span>
+              {installed.has(c.slug) ? <Pill tone="ok">{t('installed')}</Pill> : c.authMethods.length ? <AsyncButton size="sm" variant="primary" onClick={async () => { const r = await api('attach_connector', { agentId: agent.id, slug: c.slug }); if (r.status === 'active') toast(t('{name} connected', { name: c.name })); else connect(c.slug, c.name); load(); }}>{t('Install')}</AsyncButton> : <span className="muted small">{t('MCP only')}</span>}
             </div>
-          </SpotlightCard>
+          </div>
         ))}
       </div>
+      {!lib.length ? <p className="muted center">{t('No app matches. Add it as a custom MCP server.')}</p> : null}
+      {shown < lib.length ? <button className="more-btn" onClick={() => setShown((n) => n + 60)}>{t('Show more')} <b>{lib.length - shown}</b></button> : null}
 
       <SectionHead title={t('Credentials')} sub="Values stay on this machine and never reach the model. ${NAME} in MCP configs, $NAME in shell.">
         <Button size="sm" icon="plus" onClick={() => secrets([])}>{t('Variable')}</Button>

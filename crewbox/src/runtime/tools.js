@@ -13,6 +13,11 @@ import { searchConnectors, attachConnector, findApp } from '../catalog.js';
 import { upsertServer } from '../mcp.js';
 import { updateAgent } from '../agents.js';
 import { notify } from '../notifications.js';
+import * as brain from '../brain.js';
+import * as foreman from '../foreman/index.js';
+import { listAgents, listSpaces, createAgent } from '../agents.js';
+import { listTemplates, getTemplate, installTemplate } from '../templates.js';
+import { listAgentConnectors } from '../catalog.js';
 
 // Built-in tools, grouped by capability family. A handler may declare:
 //   pause: 'question' | 'approval' | 'connector' | 'secret'  → stops the run and shows a card
@@ -239,6 +244,60 @@ export function builtinTools(agent, rt) {
   add('memory', { name: 'memory_delete', description: 'Forget a memory by id.', input_schema: obj({ id: str('Memory id') }, ['id']) }, {
     run: ({ id }) => JSON.stringify(mem.deleteMemory(agent.id, id)),
   });
+
+  /* ---- the Brain (company knowledge every coworker reads) ---- */
+  add(null, { name: 'brain_read', description: 'Read a page of the Brain, the company knowledge base (offer, customers, tone, tools…). Without slug, lists the pages.', input_schema: obj({ slug: str('Page slug; omit to list the pages') }) }, {
+    run: ({ slug }) => JSON.stringify(slug ? brain.getPage(slug) : { pages: brain.listPages().map(({ slug: s, title, updatedAt }) => ({ slug: s, title, updatedAt })) }),
+  });
+  add(null, { name: 'brain_propose', description: 'Propose a change to the Brain when you learned something durable about the company. Give the full new text of the page. The owner accepts or rejects it; nothing changes before.', input_schema: obj({ slug: str('Existing page to replace, or omit for a new page'), title: str('Page title'), body: str('The full page, in markdown'), reason: str('Why, in one sentence') }, ['title', 'body', 'reason']) }, {
+    run: (input) => JSON.stringify(brain.propose(agent.id, input)),
+  });
+
+  /* ---- workspace tools: only the assistant behind the orb (Foreman) has them ---- */
+  if (agent.space_id === '__system__') {
+    const byHandle = (h) => { const a = listAgents().find((x) => x.handle === String(h).replace(/^@/, '')); if (!a) throw new ToolError(`No coworker @${h}. Use workspace_overview.`); return a; };
+    const startSetup = async (args) => (await import('./runner.js')).startRun(args);
+    add(null, { name: 'workspace_overview', description: 'The whole workspace: Boxes, coworkers (status, apps and their connection status, schedules), Brain pages, cards waiting for the owner.', input_schema: obj({}) }, {
+      run: () => JSON.stringify({
+        boxes: listSpaces().map(({ id, name, agentCount }) => ({ id, name, coworkers: agentCount })),
+        coworkers: listAgents().map((a) => ({ handle: a.handle, name: a.name, box: a.space_id, status: a.enabled ? a.status : 'off', description: a.description, schedules: a.schedules, apps: listAgentConnectors(a.id).map((c) => `${c.slug}:${c.status}`) })),
+        brain: brain.listPages().map(({ slug, title }) => ({ slug, title })),
+        waitingCards: q.get("SELECT COUNT(*) AS n FROM pauses WHERE status = 'pending'").n,
+      }),
+    });
+    add(null, { name: 'analyze_website', description: "Read the owner's website (home, pricing, features, about…) and write what you learn to the Brain. Takes up to a minute.", input_schema: obj({ url: str('Website address') }, ['url']) }, {
+      run: async ({ url }) => { const r = await foreman.analyzeWebsite({ url }); return JSON.stringify({ company: r.company, pagesRead: r.pagesRead.length, toolsSpotted: r.tools.map((t) => t.name), brainPages: r.brain.map((p) => p.title), suggestedGoals: r.suggestedGoals }); },
+    });
+    add(null, { name: 'design_team', description: 'Design a team of coworkers for a goal of the owner (uses the Brain). Returns the plan; explain it, then call build_team when the owner agrees.', input_schema: obj({ goal: str('What the owner wants the team to do'), feedback: str('Changes the owner asked for on the previous plan') }, ['goal']) }, {
+      run: async ({ goal, feedback }) => { const p = await foreman.makePlan({ goal, feedback, previous: feedback ? foreman.state().plan : undefined }); return JSON.stringify({ boxName: p.boxName, summary: p.summary, coworkers: p.agents.map((a) => ({ name: a.name, handle: a.handle, job: a.description, apps: a.apps.map((x) => x.name), schedules: a.schedules.map((s) => `${s.name} (${s.cron})`), firstWeek: a.firstWeek })) }); },
+    });
+    add(null, { name: 'build_team', description: 'Build the last team you designed: coworkers, skills, schedules (paused until set up), apps, and start their guided setups.', input_schema: obj({}) }, {
+      gate: () => true,
+      run: async () => { const plan = foreman.state().plan; if (!plan) throw new ToolError('Design a team first (design_team).'); const r = foreman.buildTeam({ plan, startSetup: (a) => { startSetup(a); return {}; } }); return JSON.stringify({ built: r.agents.map((a) => ({ name: a.name, handle: a.handle, apps: a.apps.map((x) => `${x.slug}:${x.status || x.error}`) })) }); },
+    });
+    add(null, { name: 'create_coworker', description: 'Create one coworker from a full description of its job.', input_schema: obj({ name: str('First name · Role'), description: str('One line'), soul: str('Its system prompt, in markdown'), box: str('Box id (default: the first)'), apps: { type: 'array', items: { type: 'string' }, description: 'App slugs from apps_search' } }, ['name', 'soul']) }, {
+      gate: () => true,
+      run: ({ name, description, soul, box, apps }) => {
+        const a = createAgent({ name, description: description || '', soul, spaceId: box || listSpaces()[0]?.id });
+        const connected = (apps || []).map((s) => { try { return attachConnector(a.id, s); } catch (e) { return { slug: s, error: e.message }; } });
+        return JSON.stringify({ handle: a.handle, apps: connected.map((c) => `${c.slug}:${c.status || c.error}`) });
+      },
+    });
+    add(null, { name: 'search_templates', description: 'Search the template library (100 ready-made coworkers).', input_schema: obj({ query: str('Need, e.g. "lead generation"') }) }, {
+      run: ({ query }) => { const s = String(query || '').toLowerCase(); return JSON.stringify(listTemplates().filter((t) => !s || `${t.name} ${t.description} ${(t.tags || []).join(' ')}`.toLowerCase().includes(s)).slice(0, 15).map((t) => ({ slug: t.slug, name: t.name, description: t.description, coworkers: t.agents.map((a) => a.name) }))); },
+    });
+    add(null, { name: 'install_template', description: 'Install a template: its coworkers land in a Box and start their guided setup.', input_schema: obj({ slug: str('Template slug'), box: str('Box id (default: the first)') }, ['slug']) }, {
+      gate: () => true,
+      run: ({ slug, box }) => { const t = getTemplate(slug); if (!t) throw new ToolError(`No template ${slug}.`); return JSON.stringify(installTemplate(t, { spaceId: box || listSpaces()[0]?.id, startSetup: (a) => { startSetup(a); return {}; } })); },
+    });
+    add(null, { name: 'attach_app', description: 'Install an app on a coworker. The owner finishes the connection (sign-in or key) in the coworker panel.', input_schema: obj({ coworker: str('@handle'), slug: str('App slug from apps_search') }, ['coworker', 'slug']) }, {
+      gate: () => true,
+      run: ({ coworker, slug }) => JSON.stringify(attachConnector(byHandle(coworker).id, slug)),
+    });
+    add(null, { name: 'brain_write', description: 'Create or replace a Brain page (the owner told you something durable about the company).', input_schema: obj({ slug: str('Existing page slug, or omit'), title: str('Title'), body: str('Full page in markdown') }, ['title', 'body']) }, {
+      run: (input) => JSON.stringify(brain.upsertPage({ ...input, source: 'foreman' })),
+    });
+  }
 
   /* ---- databases ---- */
   const dbScopes = [T.db && 'own', T.sharedDb && 'shared'].filter(Boolean);

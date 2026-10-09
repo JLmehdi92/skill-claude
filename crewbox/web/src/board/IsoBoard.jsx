@@ -73,7 +73,7 @@ function useActivity() {
   return useSyncExternalStore(subscribe, getVersion);
 }
 
-export default function IsoBoard({ overview, onOpen, onAdd, onRename, onNewBox, onInbox, onNotifications, onTemplates, onAsk, onList }) {
+export default function IsoBoard({ overview, onOpen, onAdd, onRename, onNewBox, onInbox, onNotifications, onTemplates, onAsk, onList, onOnboarding, onBrain, onAutopilot }) {
   const wrap = useRef(null);
   const svg = useRef(null);
   const camEl = useRef(null);
@@ -236,7 +236,9 @@ export default function IsoBoard({ overview, onOpen, onAdd, onRename, onNewBox, 
   const onBlockOpen = useCallback((a) => openRef.current(a), []);
   const flyToBox = (tile) => { setMenu(null); focusPoint(tile.center, 1.6); };
 
-  const status = (a) => (!a.enabled ? 'off' : a.status === 'idle' && a.schedules ? 'sleep' : a.status);
+  // Moods, as on Rerun's board: amber at work, cyan when waiting for you, red on error, asleep when
+  // off; a coworker whose apps are not connected yet is a ghost with a lock.
+  const status = (a) => (!a.enabled ? 'off' : a.status === 'idle' && a.appsPending ? 'locked' : a.status);
   const total = agents.length;
   const working = agents.filter((a) => a.enabled && a.status === 'running').length;
   const unread = overview.unread || 0;
@@ -269,7 +271,7 @@ export default function IsoBoard({ overview, onOpen, onAdd, onRename, onNewBox, 
             const st = status(agent);
             const fresh = p && now - p.at < THOUGHT_MS;
             return (
-              <Block key={agent.id} agent={agent} color={colorOf(agent)} status={st} at={at} index={index}
+              <Block key={agent.id} agent={agent} color={colorOf(agent)} status={st} at={at} index={index} waitingCards={agent.waitingCards}
                 pulse={p && now - p.at < 1500 ? p : null}
                 thought={st === 'running' ? (fresh ? p.tool : t('thinking…')) : null}
                 onOpen={onBlockOpen} />
@@ -301,6 +303,10 @@ export default function IsoBoard({ overview, onOpen, onAdd, onRename, onNewBox, 
               <hr />
               <button role="menuitem" onClick={() => { setMenu(null); onNewBox(); }}><PlusIcon size={15} />{t('New Box')}</button>
               <button role="menuitem" onClick={() => { setMenu(null); onList(); }}>{t('List view')}</button>
+              <hr />
+              {onBrain ? <button role="menuitem" onClick={() => { setMenu(null); onBrain(); }}>{t('Brain')}{overview.brainProposals ? <em>{overview.brainProposals}</em> : null}</button> : null}
+              {onAutopilot ? <button role="menuitem" onClick={() => { setMenu(null); onAutopilot(); }}>{t('Autopilot')}<em>{overview.autopilot ? t('on') : t('off')}</em></button> : null}
+              {onOnboarding ? <button role="menuitem" onClick={() => { setMenu(null); onOnboarding(); }}>{t('Set up a team with Foreman')}</button> : null}
             </div>
           ) : null}
         </div>
@@ -352,7 +358,7 @@ export default function IsoBoard({ overview, onOpen, onAdd, onRename, onNewBox, 
           </div>
         </div>
       </div>
-      <button className="rb-orb" onClick={onAsk} aria-label={t('Describe a job')} data-testid="rb-orb">
+      <button className="rb-orb" onClick={onAsk} aria-label={t('Ask Foreman, your assistant')} title={t('Ask Foreman, your assistant')} data-testid="rb-orb">
         <span className="rb-orb-ball"><span className="rb-orb-visor"><i /><i /></span></span>
       </button>
 

@@ -11,6 +11,9 @@ import Icon from '../ui/icons.jsx';
 import { openNewAgent } from '../dialogs/NewAgent.jsx';
 import { prompt } from '../dialogs/Prompt.jsx';
 import { openInbox, openNotifications } from '../dialogs/Inbox.jsx';
+import { openOnboarding } from '../foreman/Onboarding.jsx';
+import { openKnowledge } from '../dialogs/Knowledge.jsx';
+import { openSettings } from '../dialogs/Settings.jsx';
 
 import IsoBoard from '../board/IsoBoard.jsx';
 import { scrollTo } from '../lib/smooth.js';
@@ -101,7 +104,10 @@ export default function Board() {
           onInbox={() => openInbox(ctx)}
           onNotifications={() => openNotifications(ctx)}
           onTemplates={() => scrollTo('#templates')}
-          onAsk={() => openNewAgent(ctx)}
+          onAsk={() => (overview.foremanId ? openAgent(overview.foremanId, 'chat') : openNewAgent(ctx))}
+          onOnboarding={openOnboarding}
+          onBrain={() => openKnowledge(ctx)}
+          onAutopilot={() => openSettings(openModal, 'autopilot')}
           onList={() => choose('list')}
         />
       ) : (

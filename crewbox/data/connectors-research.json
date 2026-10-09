@@ -1,0 +1,4621 @@
+{
+ "source": "rerun.build service icons (207), researched and probed on 2026-10-09",
+ "connectors": [
+  {
+   "slug": "adobe",
+   "name": "Adobe",
+   "category": "productivity",
+   "summary": "Use Adobe creative tools (Photoshop, Lightroom, Illustrator, Firefly, Express, Stock) to generate and edit images and designs.",
+   "remoteMcp": {
+    "url": "https://adobe-creativity.adobe.io/mcp",
+    "auth": "oauth",
+    "probe": "401 application/json www-authenticate: Bearer resource_metadata=\"https://adobe-creativity.adobe.io/.well-known/oauth-protected-resource/mcp\" {\"error\":\"unauthorized\",\"error_description\":\"JWT token required\"}"
+   },
+   "npm": null,
+   "api": {
+    "baseUrl": "https://firefly-api.adobe.io",
+    "auth": "oauth",
+    "header": "Authorization",
+    "envVar": "ADOBE_CLIENT_ID",
+    "keyLabel": "OAuth server-to-server credentials (client ID + secret)",
+    "keyHelp": "developer.adobe.com/console",
+    "docs": "https://developer.adobe.com/firefly-services/docs/"
+   },
+   "notes": "Remote MCP is 'Adobe for creativity' (Adobe IMS OAuth); URL from mcpservers.org listing, verified by probe. Firefly Services API requires OAuth client credentials plus x-api-key (client ID). No official end-user npm MCP (only @adobe/express-developer-mcp for add-on devs)."
+  },
+  {
+   "slug": "affonso",
+   "name": "Affonso",
+   "category": "marketing",
+   "summary": "Manage an affiliate program: affiliates, referrals, commissions and payouts.",
+   "remoteMcp": {
+    "url": "https://api.affonso.io/mcp",
+    "auth": "bearer",
+    "probe": "401 application/json www-authenticate: Bearer resource_metadata=\"https://api.affonso.io/.well-known/oauth-protected-resource\" {\"jsonrpc\":\"2.0\",\"id\":null,\"error\":{\"code\":-32001,\"message\":\"API key is required. Use Authorization: Bearer <api_key>\"}}"
+   },
+   "npm": null,
+   "api": {
+    "baseUrl": "https://api.affonso.io/v1",
+    "auth": "bearer",
+    "header": "Authorization",
+    "envVar": "AFFONSO_API_KEY",
+    "keyLabel": "API key (sk_live_…)",
+    "keyHelp": "affonso.io/app/affiliate-program/connect/api",
+    "docs": "https://docs.affonso.io/api/introduction"
+   },
+   "notes": "Docs: MCP accepts Bearer API key, OAuth 2.1 also supported. Only @affonso/sdk and @affonso/cli on npm, no MCP package."
+  },
+  {
+   "slug": "agentkey",
+   "name": "AgentKey",
+   "category": "data",
+   "summary": "Query live web search, scraping, social media and crypto/on-chain data from many providers through one API key.",
+   "remoteMcp": null,
+   "npm": {
+    "package": "@agentkey/mcp",
+    "version": "0.4.0",
+    "official": true,
+    "env": [
+     "AGENTKEY_API_KEY"
+    ],
+    "args": []
+   },
+   "api": {
+    "baseUrl": "https://api.agentkey.app",
+    "auth": "bearer",
+    "header": "Authorization",
+    "envVar": "AGENTKEY_API_KEY",
+    "keyLabel": "API key",
+    "keyHelp": "console.agentkey.app",
+    "docs": "https://agentkey.app"
+   },
+   "notes": "AgentKey by Chainbase (agentkey.app). npm package repo github.com/chainbase-labs/agentkey-server; base URL and Bearer header read from package source. No hosted MCP URL found; no public API reference page found (docs = homepage)."
+  },
+  {
+   "slug": "agentmail",
+   "name": "AgentMail",
+   "category": "communication",
+   "summary": "Create email inboxes for agents and send, receive, list and reply to email messages and threads.",
+   "remoteMcp": {
+    "url": "https://mcp.agentmail.to/mcp",
+    "auth": "oauth",
+    "probe": "401 application/json; www-authenticate: Bearer resource_metadata=https://mcp.agentmail.to/.well-known/oauth-protected-resource/mcp {\"error\":\"Unauthorized\"}"
+   },
+   "npm": {
+    "package": "agentmail-mcp",
+    "version": "1.1.0",
+    "official": true,
+    "env": [
+     "AGENTMAIL_API_KEY"
+    ],
+    "args": [
+     "-y",
+     "agentmail-mcp"
+    ]
+   },
+   "api": {
+    "baseUrl": "https://api.agentmail.to/v0",
+    "auth": "bearer",
+    "header": "Authorization",
+    "envVar": "AGENTMAIL_API_KEY",
+    "keyLabel": "API key",
+    "keyHelp": "console.agentmail.to",
+    "docs": "https://docs.agentmail.to"
+   },
+   "notes": "npm package is a bridge to the hosted server (sends key as x-api-key); optional --file-root and --tools args."
+  },
+  {
+   "slug": "agnost",
+   "name": "Agnost AI",
+   "category": "analytics",
+   "summary": "Query analytics on your MCP servers and agents: tool calls, errors, intents and conversations.",
+   "remoteMcp": {
+    "url": "https://mcp.agnost.ai/mcp",
+    "auth": "oauth",
+    "probe": "401 application/json www-authenticate: Bearer error=\"invalid_token\", error_description=\"Authentication required\", resource_metadata=\"https://mcp.agnost.ai/.well-known/oauth-protected-resource\""
+   },
+   "npm": null,
+   "api": null,
+   "notes": "Hosted MCP documented at docs.agnost.ai (Google sign-in via OAuth). npm 'agnost' is the tracking SDK, not an MCP server. No public REST API with API key found."
+  },
+  {
+   "slug": "ahrefs",
+   "name": "Ahrefs",
+   "category": "seo",
+   "summary": "Research keywords, backlinks, organic traffic, rankings and competitor domains with Ahrefs SEO data.",
+   "remoteMcp": {
+    "url": "https://api.ahrefs.com/mcp/mcp",
+    "auth": "oauth",
+    "probe": "401  www-authenticate: Bearer resource_metadata=\"https://api.ahrefs.com/.well-known/oauth-protected-resource\" api token is required"
+   },
+   "npm": {
+    "package": "@ahrefs/mcp",
+    "version": "0.0.11",
+    "official": true,
+    "env": [
+     "API_KEY"
+    ],
+    "args": []
+   },
+   "api": {
+    "baseUrl": "https://api.ahrefs.com/v3",
+    "auth": "bearer",
+    "header": "Authorization",
+    "envVar": "AHREFS_API_KEY",
+    "keyLabel": "API key",
+    "keyHelp": "app.ahrefs.com/account/api-keys",
+    "docs": "https://docs.ahrefs.com/docs/api/reference/introduction"
+   },
+   "notes": "npm maintainers include an ahrefs.com account (no repository field). Local package env var is literally API_KEY. API access requires an Enterprise-level plan / API units."
+  },
+  {
+   "slug": "airtable",
+   "name": "Airtable",
+   "category": "productivity",
+   "summary": "Read and write records, tables and bases in Airtable.",
+   "remoteMcp": {
+    "url": "https://mcp.airtable.com/mcp",
+    "auth": "oauth",
+    "probe": "401 application/json; www-authenticate: Bearer error=\"invalid_token\", error_description=\"Missing Authorization header\", resource_metadata=\"https://mcp.airtable.com/.well-known/oauth-protected-resource\""
+   },
+   "npm": {
+    "package": "airtable-mcp-server",
+    "version": "1.14.0",
+    "official": false,
+    "env": [
+     "AIRTABLE_API_KEY"
+    ],
+    "args": [
+     "-y",
+     "airtable-mcp-server"
+    ]
+   },
+   "api": {
+    "baseUrl": "https://api.airtable.com/v0",
+    "auth": "bearer",
+    "header": "Authorization",
+    "envVar": "AIRTABLE_API_KEY",
+    "keyLabel": "Personal access token",
+    "keyHelp": "airtable.com/create/tokens",
+    "docs": "https://airtable.com/developers/web/api/introduction"
+   },
+   "notes": "npm airtable-mcp-server is community (domdomegg). @airtable/mcp-cli is official but is a CLI client for the hosted server, not a stdio MCP server."
+  },
+  {
+   "slug": "algolia",
+   "name": "Algolia",
+   "category": "dev",
+   "summary": "Search, browse and manage Algolia indices, records, settings and analytics.",
+   "remoteMcp": {
+    "url": "https://mcp.algolia.com/mcp",
+    "auth": "oauth",
+    "probe": "401 application/json; www-authenticate: Bearer resource_metadata=\"https://mcp.algolia.com/.well-known/oauth-protected-resource\", scope=\"public\""
+   },
+   "npm": null,
+   "api": {
+    "baseUrl": "https://{APPLICATION_ID}.algolia.net",
+    "auth": "header",
+    "header": "X-Algolia-API-Key",
+    "envVar": "ALGOLIA_API_KEY",
+    "keyLabel": "API key (plus Application ID in X-Algolia-Application-Id)",
+    "keyHelp": "dashboard.algolia.com/account/api-keys",
+    "docs": "https://www.algolia.com/doc/rest-api/search/"
+   },
+   "notes": "Also needs ALGOLIA_APP_ID sent in X-Algolia-Application-Id header. No official npm MCP package found (@algolia/mcp 404)."
+  },
+  {
+   "slug": "amplitude",
+   "name": "Amplitude",
+   "category": "analytics",
+   "summary": "Query product analytics: charts, events, cohorts, dashboards and experiments.",
+   "remoteMcp": {
+    "url": "https://mcp.amplitude.com/mcp",
+    "auth": "oauth",
+    "probe": "401 application/json; www-authenticate: Bearer realm=\"OAuth\", resource_metadata=\"https://mcp.amplitude.com/.well-known/oauth-protected-resource\", error=\"invalid_request\""
+   },
+   "npm": null,
+   "api": {
+    "baseUrl": "https://amplitude.com/api/2",
+    "auth": "basic",
+    "header": "Authorization",
+    "envVar": "AMPLITUDE_API_KEY",
+    "keyLabel": "API key + secret key (Basic auth)",
+    "keyHelp": "Amplitude > Settings > Projects > API keys",
+    "docs": "https://amplitude.com/docs/apis/analytics/dashboard-rest"
+   },
+   "notes": "Basic auth = API key:secret key (also AMPLITUDE_SECRET_KEY). EU region uses analytics.eu.amplitude.com. @amplitude/mcp-analytics is an SDK for instrumenting MCP servers, not an Amplitude MCP."
+  },
+  {
+   "slug": "apify",
+   "name": "Apify",
+   "category": "data",
+   "summary": "Run Apify Actors to scrape websites and extract data, and fetch datasets and run results.",
+   "remoteMcp": {
+    "url": "https://mcp.apify.com",
+    "auth": "oauth",
+    "probe": "401 application/json; www-authenticate: Bearer realm=\"OAuth\", error=\"invalid_token\", error_description=\"Missing or invalid access token. Pass an Apify API token in the Authorization: Bearer <token> header.\""
+   },
+   "npm": {
+    "package": "@apify/actors-mcp-server",
+    "version": "0.17.4",
+    "official": true,
+    "env": [
+     "APIFY_TOKEN"
+    ],
+    "args": [
+     "-y",
+     "@apify/actors-mcp-server"
+    ]
+   },
+   "api": {
+    "baseUrl": "https://api.apify.com/v2",
+    "auth": "bearer",
+    "header": "Authorization",
+    "envVar": "APIFY_TOKEN",
+    "keyLabel": "API token",
+    "keyHelp": "console.apify.com/account/integrations",
+    "docs": "https://docs.apify.com/api/v2"
+   },
+   "notes": "Hosted MCP supports OAuth or Authorization: Bearer <APIFY_TOKEN>."
+  },
+  {
+   "slug": "apollo",
+   "name": "Apollo.io",
+   "category": "crm",
+   "summary": "Search and enrich people and companies, and manage contacts, accounts and sequences in Apollo.",
+   "remoteMcp": {
+    "url": "https://mcp.apollo.io/mcp",
+    "auth": "oauth",
+    "probe": "401 application/json; www-authenticate: Bearer realm=\"Apollo.io\", resource_metadata=\"https://mcp.apollo.io/.well-known/oauth-protected-resource\", scope=\"read_user_profile app_scopes people_bulk_match ...\""
+   },
+   "npm": null,
+   "api": {
+    "baseUrl": "https://api.apollo.io/api/v1",
+    "auth": "header",
+    "header": "X-Api-Key",
+    "envVar": "APOLLO_API_KEY",
+    "keyLabel": "API key",
+    "keyHelp": "app.apollo.io/#/settings/integrations/api",
+    "docs": "https://docs.apollo.io/reference/authentication"
+   },
+   "notes": "No official npm MCP package found (only community packages)."
+  },
+  {
+   "slug": "arcads",
+   "name": "Arcads",
+   "category": "marketing",
+   "summary": "Generate AI UGC-style video ads with AI actors from scripts.",
+   "remoteMcp": {
+    "url": "https://mcp.arcads.ai",
+    "auth": "oauth",
+    "probe": "401 application/json www-authenticate: Bearer realm=\"mcp\", resource_metadata=\"https://mcp.arcads.ai/.well-known/oauth-protected-resource\" {\"error\":\"unauthorized\",\"error_description\":\"Missing or invalid access token\"}"
+   },
+   "npm": null,
+   "api": null,
+   "notes": "MCP URL documented in Arcads help center (intercom.help/arcads); requires active subscription with credits. No verifiable public REST API docs found."
+  },
+  {
+   "slug": "asana",
+   "name": "Asana",
+   "category": "productivity",
+   "summary": "Create, search and update tasks, projects, comments and workspaces in Asana.",
+   "remoteMcp": {
+    "url": "https://mcp.asana.com/v2/mcp",
+    "auth": "oauth",
+    "probe": "401 application/json www-authenticate: Bearer realm=\"Asana MCP\", resource_metadata=\"https://mcp.asana.com/.well-known/oauth-protected-resource/v2\", error=\"invalid_request\""
+   },
+   "npm": null,
+   "api": {
+    "baseUrl": "https://app.asana.com/api/1.0",
+    "auth": "bearer",
+    "header": "Authorization",
+    "envVar": "ASANA_ACCESS_TOKEN",
+    "keyLabel": "Personal access token",
+    "keyHelp": "app.asana.com/0/my-apps",
+    "docs": "https://developers.asana.com/reference/rest-api-reference"
+   },
+   "notes": "Legacy endpoint https://mcp.asana.com/sse also answers 401 OAuth; v2 is the current one."
+  },
+  {
+   "slug": "assemblyai",
+   "name": "AssemblyAI",
+   "category": "ai",
+   "summary": "Transcribe and analyze audio (speech-to-text, summaries, speaker labels) and search AssemblyAI docs.",
+   "remoteMcp": {
+    "url": "https://www.assemblyai.com/docs/mcp",
+    "auth": "none",
+    "probe": "200 text/event-stream event: message data: {\"result\":{\"protocolVersion\":\"2025-06-18\",...,\"serverInfo\":{\"name\":\"AssemblyAI\",\"version\":\"1.0.0\"}}}"
+   },
+   "npm": null,
+   "api": {
+    "baseUrl": "https://api.assemblyai.com",
+    "auth": "header",
+    "header": "Authorization",
+    "envVar": "ASSEMBLYAI_API_KEY",
+    "keyLabel": "API key",
+    "keyHelp": "assemblyai.com/dashboard/api-keys",
+    "docs": "https://www.assemblyai.com/docs/api-reference"
+   },
+   "notes": "Remote MCP is a docs/knowledge-base search server only (no transcription). API key goes raw in Authorization header (no Bearer prefix). No official npm MCP."
+  },
+  {
+   "slug": "atlassian",
+   "name": "Atlassian",
+   "category": "productivity",
+   "summary": "Search, create and update Jira issues and Confluence pages.",
+   "remoteMcp": {
+    "url": "https://mcp.atlassian.com/v1/mcp",
+    "auth": "oauth",
+    "probe": "401 application/json www-authenticate: Bearer realm=\"OAuth\", error=\"invalid_token\", error_description=\"Missing or invalid access token\""
+   },
+   "npm": null,
+   "api": {
+    "baseUrl": "https://{your-site}.atlassian.net/rest/api/3",
+    "auth": "basic",
+    "header": "Authorization",
+    "envVar": "ATLASSIAN_API_TOKEN",
+    "keyLabel": "API token (Basic auth with account email)",
+    "keyHelp": "id.atlassian.com/manage-profile/security/api-tokens",
+    "docs": "https://developer.atlassian.com/cloud/jira/platform/rest/v3/"
+   },
+   "notes": "Remote MCP (Atlassian Rovo MCP) also at /v1/sse; OAuth 2.1. REST uses Basic email:API token, needs site URL + email."
+  },
+  {
+   "slug": "attio",
+   "name": "Attio",
+   "category": "crm",
+   "summary": "Search, create and update CRM records, lists, notes and tasks in Attio.",
+   "remoteMcp": {
+    "url": "https://mcp.attio.com/mcp",
+    "auth": "oauth",
+    "probe": "401 application/json; www-authenticate: Bearer resource_metadata=\"https://mcp.attio.com/.well-known/oauth-protected-resource\", scope=\"openid offline_access mcp\""
+   },
+   "npm": {
+    "package": "attio-mcp",
+    "version": "1.7.0",
+    "official": false,
+    "env": [
+     "ATTIO_API_KEY"
+    ],
+    "args": [
+     "-y",
+     "attio-mcp"
+    ]
+   },
+   "api": {
+    "baseUrl": "https://api.attio.com/v2",
+    "auth": "bearer",
+    "header": "Authorization",
+    "envVar": "ATTIO_API_KEY",
+    "keyLabel": "API key / access token",
+    "keyHelp": "Attio > Workspace settings > Developers",
+    "docs": "https://docs.attio.com/rest-api/overview"
+   },
+   "notes": "npm attio-mcp is community (kesslerio)."
+  },
+  {
+   "slug": "audible",
+   "name": "Audible",
+   "category": "other",
+   "summary": "Get English-language audiobook recommendations from the Audible catalog by genre, mood or topic.",
+   "remoteMcp": {
+    "url": "https://mcp.audible.com/mcp",
+    "auth": "none",
+    "probe": "200 application/json {\"result\":{\"protocolVersion\":\"2025-06-18\",...,\"serverInfo\":{\"name\":\"Audible MCP Server\",\"version\":\"1.0.0\"},\"instructions\":\"A server for English-language audiobook recommendations from the Audible catalog...\"}}"
+   },
+   "npm": null,
+   "api": null,
+   "notes": "Official Audible remote MCP (recommendations only); answered initialize without auth. No public Audible REST API."
+  },
+  {
+   "slug": "autodesk",
+   "name": "Autodesk",
+   "category": "dev",
+   "summary": "Access Autodesk Platform Services (APS) to manage design files, models and Autodesk Construction Cloud projects and issues.",
+   "remoteMcp": null,
+   "npm": null,
+   "api": {
+    "baseUrl": "https://developer.api.autodesk.com",
+    "auth": "oauth",
+    "header": "Authorization",
+    "envVar": "AUTODESK_CLIENT_ID",
+    "keyLabel": "APS app client ID + secret (OAuth)",
+    "keyHelp": "aps.autodesk.com/myapps",
+    "docs": "https://aps.autodesk.com/developer/documentation"
+   },
+   "notes": "No hosted MCP URL found; official open-source server github.com/autodesk-platform-services/aps-mcp-server-nodejs runs locally (not on npm). APS API is OAuth 2 only (also AUTODESK_CLIENT_SECRET)."
+  },
+  {
+   "slug": "aws",
+   "name": "Amazon Web Services",
+   "category": "dev",
+   "summary": "Search AWS documentation and best practices, and operate AWS resources and APIs.",
+   "remoteMcp": {
+    "url": "https://knowledge-mcp.global.api.aws",
+    "auth": "none",
+    "probe": "200 application/json {\"jsonrpc\":\"2.0\",\"id\":1,\"result\":{\"protocolVersion\":\"2025-03-26\",...,\"serverInfo\":{\"name\":\"AWSKnowledgeMCP\",\"version\":\"1.0.0\"}}}"
+   },
+   "npm": null,
+   "api": null,
+   "notes": "AWS Knowledge MCP is docs-only and needs no auth. The managed AWS MCP Server https://aws-mcp.us-east-1.api.aws/mcp (probe 200, serverInfo AWSMCP) requires SigV4 IAM credentials via mcp-proxy-for-aws. awslabs MCP servers are Python (uvx), not npm. AWS APIs use SigV4 signing, so no simple key-header api entry."
+  },
+  {
+   "slug": "beehiiv",
+   "name": "beehiiv",
+   "category": "marketing",
+   "summary": "Manage newsletter publications, posts, subscribers and segments on beehiiv.",
+   "remoteMcp": {
+    "url": "https://mcp.beehiiv.com/mcp",
+    "auth": "oauth",
+    "probe": "401 application/json; www-authenticate: Bearer resource_metadata=\"https://mcp.beehiiv.com/.well-known/oauth-protected-resource/mcp\" {\"error\":\"unauthorized\"}"
+   },
+   "npm": null,
+   "api": {
+    "baseUrl": "https://api.beehiiv.com/v2",
+    "auth": "bearer",
+    "header": "Authorization",
+    "envVar": "BEEHIIV_API_KEY",
+    "keyLabel": "API key",
+    "keyHelp": "app.beehiiv.com/settings/workspace/api",
+    "docs": "https://developers.beehiiv.com"
+   },
+   "notes": "No official npm MCP (only community)."
+  },
+  {
+   "slug": "bitly",
+   "name": "Bitly",
+   "category": "marketing",
+   "summary": "Create and manage short links, QR codes and view click analytics.",
+   "remoteMcp": {
+    "url": "https://api-ssl.bitly.com/v4/mcp",
+    "auth": "oauth",
+    "probe": "401 application/json www-authenticate: Bearer as_uri=\"https://api-ssl.bitly.com/.well-known/oauth-protected-resource\", error=\"invalid_token\""
+   },
+   "npm": null,
+   "api": {
+    "baseUrl": "https://api-ssl.bitly.com/v4",
+    "auth": "bearer",
+    "header": "Authorization",
+    "envVar": "BITLY_ACCESS_TOKEN",
+    "keyLabel": "Access token",
+    "keyHelp": "app.bitly.com/settings/api",
+    "docs": "https://dev.bitly.com/api-reference"
+   },
+   "notes": "No official npm MCP."
+  },
+  {
+   "slug": "brandsearch",
+   "name": "Brandsearch",
+   "category": "ecommerce",
+   "summary": "Research e-commerce brands, their Meta/TikTok/Instagram ads, emails and product catalogs.",
+   "remoteMcp": {
+    "url": "https://api.brandsearch.co/v1/mcp",
+    "auth": "oauth",
+    "probe": "401 application/json www-authenticate: Bearer realm=\"mcp\", resource_metadata=\"https://api.brandsearch.co/.well-known/oauth-protected-resource/v1/mcp\", error=\"invalid_request\""
+   },
+   "npm": null,
+   "api": {
+    "baseUrl": "https://api.brandsearch.co",
+    "auth": "header",
+    "header": "X-API-Key",
+    "envVar": "BRANDSEARCH_API_KEY",
+    "keyLabel": "API key (bsk_…)",
+    "keyHelp": "brandsearch.co (account settings)",
+    "docs": "https://docs.brandsearch.co"
+   },
+   "notes": "Base URL, header and MCP URL from docs.brandsearch.co/llms.txt."
+  },
+  {
+   "slug": "brevo",
+   "name": "Brevo",
+   "category": "marketing",
+   "summary": "Send transactional and marketing emails/SMS and manage contacts, lists and campaigns in Brevo.",
+   "remoteMcp": {
+    "url": "https://mcp.brevo.com/v1/brevo/mcp",
+    "auth": "bearer",
+    "probe": "401 application/json www-authenticate: Bearer error=\"invalid_token\", error_description=\"Authentication required\", resource_metadata=\"https://mcp.brevo.com/.well-known/oauth-protected-resource/v1/brevo/mcp\""
+   },
+   "npm": null,
+   "api": {
+    "baseUrl": "https://api.brevo.com/v3",
+    "auth": "header",
+    "header": "api-key",
+    "envVar": "BREVO_API_KEY",
+    "keyLabel": "API key",
+    "keyHelp": "app.brevo.com/settings/keys/api",
+    "docs": "https://developers.brevo.com/reference"
+   },
+   "notes": "Docs: MCP needs an MCP-enabled API key passed as Bearer token; per-module endpoints exist (e.g. /v1/brevo_contacts/mcp). npm Brevo MCPs are community only."
+  },
+  {
+   "slug": "brex",
+   "name": "Brex",
+   "category": "finance",
+   "summary": "Review expenses, card transactions, budgets, accounts and users in Brex.",
+   "remoteMcp": {
+    "url": "https://api.brex.com/mcp",
+    "auth": "oauth",
+    "probe": "401 application/json; www-authenticate: Bearer realm=\"api\", error=\"invalid_token\", authorization_uri=\"https://accounts-api.brex.com/oauth2/default/v1/authorize\", resource_metadata=\"https://api.brex.com/.well-known/oauth-protected-resource/mcp\""
+   },
+   "npm": {
+    "package": "mcp-brex",
+    "version": "0.4.0",
+    "official": false,
+    "env": [
+     "BREX_API_KEY"
+    ],
+    "args": [
+     "-y",
+     "mcp-brex"
+    ]
+   },
+   "api": {
+    "baseUrl": "https://platform.brexapis.com",
+    "auth": "bearer",
+    "header": "Authorization",
+    "envVar": "BREX_API_TOKEN",
+    "keyLabel": "User token",
+    "keyHelp": "dashboard.brex.com/settings/developer",
+    "docs": "https://developer.brex.com"
+   },
+   "notes": "Remote URL from mcp.so listing, verified by probe (Brex OAuth). npm mcp-brex is community (dennisonbertram)."
+  },
+  {
+   "slug": "brightdata",
+   "name": "Bright Data",
+   "category": "data",
+   "summary": "Search the web, scrape any page and extract structured data from sites like Amazon, LinkedIn and social platforms.",
+   "remoteMcp": {
+    "url": "https://mcp.brightdata.com/mcp",
+    "auth": "oauth",
+    "probe": "401  www-authenticate: Bearer resource_metadata=\"https://mcp.brightdata.com/.well-known/oauth-protected-resource/mcp\", scope=\"mcp\""
+   },
+   "npm": {
+    "package": "@brightdata/mcp",
+    "version": "2.12.0",
+    "official": true,
+    "env": [
+     "API_TOKEN"
+    ],
+    "args": [
+     "-y",
+     "@brightdata/mcp"
+    ]
+   },
+   "api": {
+    "baseUrl": "https://api.brightdata.com",
+    "auth": "bearer",
+    "header": "Authorization",
+    "envVar": "BRIGHTDATA_API_TOKEN",
+    "keyLabel": "API token",
+    "keyHelp": "brightdata.com/cp/setting/users",
+    "docs": "https://docs.brightdata.com/api-reference"
+   },
+   "notes": "Hosted MCP also accepts ?token=API_TOKEN query param. Optional local env: WEB_UNLOCKER_ZONE, BROWSER_ZONE, RATE_LIMIT."
+  },
+  {
+   "slug": "browser-use",
+   "name": "Browser Use",
+   "category": "ai",
+   "summary": "Run cloud browser agents that navigate websites, fill forms and extract data from natural-language tasks.",
+   "remoteMcp": {
+    "url": "https://api.browser-use.com/v3/mcp",
+    "auth": "bearer",
+    "probe": "200 application/json {\"jsonrpc\":\"2.0\",\"id\":1,\"result\":{\"protocolVersion\":\"2024-11-05\",...,\"serverInfo\":{\"name\":\"browser-use-v3-agent\",\"version\":\"3.0.0\"}}}"
+   },
+   "npm": {
+    "package": "browser-use-mcp",
+    "version": "1.3.0",
+    "official": true,
+    "env": [
+     "BROWSER_USE_API_KEY"
+    ],
+    "args": [
+     "-y",
+     "browser-use-mcp"
+    ]
+   },
+   "api": {
+    "baseUrl": "https://api.browser-use.com/api/v4",
+    "auth": "header",
+    "header": "X-Browser-Use-API-Key",
+    "envVar": "BROWSER_USE_API_KEY",
+    "keyLabel": "API key",
+    "keyHelp": "cloud.browser-use.com/settings?tab=api-keys",
+    "docs": "https://docs.browser-use.com/cloud/api-v4-overview"
+   },
+   "notes": "Docs: MCP key goes in x-browser-use-api-key header (not Bearer); initialize answered without key. npm package published by a browser-use.com maintainer (no repo field)."
+  },
+  {
+   "slug": "buffer",
+   "name": "Buffer",
+   "category": "marketing",
+   "summary": "Schedule and publish social media posts and manage channels in Buffer.",
+   "remoteMcp": {
+    "url": "https://mcp.buffer.com/mcp",
+    "auth": "oauth",
+    "probe": "401 application/json; www-authenticate: Bearer realm=\"buffer-mcp\", resource_metadata=\"https://mcp.buffer.com/.well-known/oauth-protected-resource/mcp\""
+   },
+   "npm": null,
+   "api": {
+    "baseUrl": "https://api.buffer.com",
+    "auth": "bearer",
+    "header": "Authorization",
+    "envVar": "BUFFER_API_KEY",
+    "keyLabel": "API key",
+    "keyHelp": "publish.buffer.com/settings/api",
+    "docs": "https://developers.buffer.com"
+   },
+   "notes": "Buffer API is GraphQL at https://api.buffer.com with Bearer token (developers.buffer.com/llms.txt)."
+  },
+  {
+   "slug": "cal-com",
+   "name": "Cal.com",
+   "category": "productivity",
+   "summary": "Manage scheduling: event types, bookings, availability and schedules on Cal.com.",
+   "remoteMcp": {
+    "url": "https://mcp.cal.com/mcp",
+    "auth": "oauth",
+    "probe": "401 application/json www-authenticate: Bearer resource_metadata=\"https://mcp.cal.com/.well-known/oauth-protected-resource/mcp\" {\"error\":\"unauthorized\",\"error_description\":\"Bearer token required\"}"
+   },
+   "npm": {
+    "package": "@calcom/cal-mcp",
+    "version": "0.0.6",
+    "official": true,
+    "env": [
+     "CAL_API_KEY"
+    ],
+    "args": [
+     "-y",
+     "@calcom/cal-mcp"
+    ]
+   },
+   "api": {
+    "baseUrl": "https://api.cal.com/v2",
+    "auth": "bearer",
+    "header": "Authorization",
+    "envVar": "CAL_API_KEY",
+    "keyLabel": "API key",
+    "keyHelp": "app.cal.com/settings/developer/api-keys",
+    "docs": "https://cal.com/docs/api-reference/v2/introduction"
+   },
+   "notes": "npm package maintained by cal.com team; add --all-tools to expose every endpoint."
+  },
+  {
+   "slug": "calendly",
+   "name": "Calendly",
+   "category": "productivity",
+   "summary": "List event types, scheduled events and invitees, and create scheduling links in Calendly.",
+   "remoteMcp": {
+    "url": "https://mcp.calendly.com",
+    "auth": "oauth",
+    "probe": "401 application/json www-authenticate: Bearer error=\"invalid_token\", error_description=\"Authentication failed...\", resource_metadata=\"https://mcp.calendly.com/.well-known/oa...\""
+   },
+   "npm": null,
+   "api": {
+    "baseUrl": "https://api.calendly.com",
+    "auth": "bearer",
+    "header": "Authorization",
+    "envVar": "CALENDLY_API_TOKEN",
+    "keyLabel": "Personal access token",
+    "keyHelp": "calendly.com/integrations/api_webhooks",
+    "docs": "https://developer.calendly.com/api-docs"
+   },
+   "notes": "No official npm MCP."
+  },
+  {
+   "slug": "canny",
+   "name": "Canny",
+   "category": "productivity",
+   "summary": "Manage customer feedback boards, posts, votes, comments and changelog entries in Canny.",
+   "remoteMcp": null,
+   "npm": {
+    "package": "@mailerlite/canny-mcp-server",
+    "version": "2.1.0",
+    "official": false,
+    "env": [
+     "CANNY_API_KEY"
+    ],
+    "args": []
+   },
+   "api": {
+    "baseUrl": "https://canny.io/api/v1",
+    "auth": "query",
+    "header": "apiKey",
+    "envVar": "CANNY_API_KEY",
+    "keyLabel": "Secret API key",
+    "keyHelp": "canny.io/admin/settings/api",
+    "docs": "https://developers.canny.io/api-reference"
+   },
+   "notes": "No official Canny MCP found (mcp.canny.io 404). npm package is by MailerLite (third party). Canny API takes apiKey as a request parameter (POST body/form)."
+  },
+  {
+   "slug": "canva",
+   "name": "Canva",
+   "category": "productivity",
+   "summary": "Search, create, edit and export Canva designs and assets.",
+   "remoteMcp": {
+    "url": "https://mcp.canva.com/mcp",
+    "auth": "oauth",
+    "probe": "401 application/json www-authenticate: Bearer realm=\"OAuth\", resource_metadata=\"https://mcp.canva.com/.well-known/oauth-protected-resource/mcp\", error=\"invalid_token\""
+   },
+   "npm": null,
+   "api": {
+    "baseUrl": "https://api.canva.com/rest/v1",
+    "auth": "oauth",
+    "header": "Authorization",
+    "envVar": "CANVA_ACCESS_TOKEN",
+    "keyLabel": "OAuth access token",
+    "keyHelp": "canva.com/developers/integrations",
+    "docs": "https://www.canva.dev/docs/connect/"
+   },
+   "notes": "Canva Connect API is OAuth only. @canva/cli (official) offers a dev MCP for building Canva apps, not for user designs, so npm left null."
+  },
+  {
+   "slug": "chatseo",
+   "name": "ChatSEO",
+   "category": "seo",
+   "summary": "Analyze Google Search Console data, audit sites, track rankings and draft SEO content.",
+   "remoteMcp": {
+    "url": "https://api.chatseo.app/mcp",
+    "auth": "oauth",
+    "probe": "401 application/json www-authenticate: Bearer realm=\"mcp\", resource_metadata=\"https://api.chatseo.app/.well-known/oauth-protected-resource/mcp\" {\"error\":\"invalid_token\",\"error_description\":\"Missing bearer token\"}"
+   },
+   "npm": null,
+   "api": null,
+   "notes": "ChatSEO = chatseo.app (AI SEO agent). MCP documented at chatseo.app/mcp, OAuth 2.1, Pro plan required. A REST API is mentioned but no public reference/base URL found."
+  },
+  {
+   "slug": "clay",
+   "name": "Clay",
+   "category": "crm",
+   "summary": "Search companies and people, enrich records and run Clay functions and workflows.",
+   "remoteMcp": {
+    "url": "https://api.clay.com/v3/mcp",
+    "auth": "oauth",
+    "probe": "401 application/json; www-authenticate: Bearer resource_metadata=\"https://api.clay.com/.well-known/oauth-protected-resource/v3/mcp\" {\"type\":\"Unauthorized\",\"message\":\"You must be logged in\",\"oauth\":{...}}"
+   },
+   "npm": null,
+   "api": {
+    "baseUrl": "https://api.clay.com/public/v0",
+    "auth": "header",
+    "header": "clay-api-key",
+    "envVar": "CLAY_API_KEY",
+    "keyLabel": "Public API key (beta)",
+    "keyHelp": "app.clay.com/workspaces/~/settings/account?accountTab=api-keys-beta",
+    "docs": "https://developers.clay.com"
+   },
+   "notes": "Remote URL listed by third-party directories (not on developers.clay.com, which documents a local `clay mcp` CLI server); verified by probe. @clayhq/clay-mcp on npm is Clay.earth (different product)."
+  },
+  {
+   "slug": "clerk",
+   "name": "Clerk",
+   "category": "dev",
+   "summary": "Manage users, organizations, sessions and invitations in Clerk authentication.",
+   "remoteMcp": {
+    "url": "https://mcp.clerk.com/mcp",
+    "auth": "none",
+    "probe": "200 text/event-stream event: message data: {\"result\":{\"protocolVersion\":\"2025-06-18\",...,\"serverInfo\":{\"name\":\"Clerk MCP Server\",\"version\":\"0.0.0\"}}}"
+   },
+   "npm": {
+    "package": "@clerk/agent-toolkit",
+    "version": "0.3.15",
+    "official": true,
+    "env": [
+     "CLERK_SECRET_KEY"
+    ],
+    "args": [
+     "-y",
+     "@clerk/agent-toolkit",
+     "-p",
+     "local-mcp"
+    ]
+   },
+   "api": {
+    "baseUrl": "https://api.clerk.com/v1",
+    "auth": "bearer",
+    "header": "Authorization",
+    "envVar": "CLERK_SECRET_KEY",
+    "keyLabel": "Secret key (sk_…)",
+    "keyHelp": "dashboard.clerk.com (API keys)",
+    "docs": "https://clerk.com/docs/reference/backend-api"
+   },
+   "notes": "Remote MCP answers without auth (SDK snippets/docs). Local MCP via agent-toolkit manages users/orgs with secret key."
+  },
+  {
+   "slug": "clickup",
+   "name": "ClickUp",
+   "category": "productivity",
+   "summary": "Create, search and update tasks, lists, docs and comments in ClickUp.",
+   "remoteMcp": {
+    "url": "https://mcp.clickup.com/mcp",
+    "auth": "oauth",
+    "probe": "401 application/json; www-authenticate: Bearer realm=\"MCP Server\", error=\"invalid_token\", resource_metadata=\"https://mcp.clickup.com/.well-known/oauth-protected-resource/mcp\""
+   },
+   "npm": {
+    "package": "@taazkareem/clickup-mcp-server",
+    "version": "0.14.6",
+    "official": false,
+    "env": [
+     "CLICKUP_API_KEY",
+     "CLICKUP_TEAM_ID",
+     "CLICKUP_MCP_LICENSE_KEY"
+    ],
+    "args": []
+   },
+   "api": {
+    "baseUrl": "https://api.clickup.com/api/v2",
+    "auth": "header",
+    "header": "Authorization",
+    "envVar": "CLICKUP_API_TOKEN",
+    "keyLabel": "Personal API token (pk_…)",
+    "keyHelp": "app.clickup.com/settings/apps",
+    "docs": "https://developer.clickup.com/reference"
+   },
+   "notes": "npm package is community (taazkareem) and its README requires a CLICKUP_MCP_LICENSE_KEY (paid license); prefer the official remote. ClickUp token goes raw in Authorization header (no Bearer)."
+  },
+  {
+   "slug": "cloudflare",
+   "name": "Cloudflare",
+   "category": "dev",
+   "summary": "Manage Cloudflare accounts, DNS, Workers, KV, R2, D1 and other resources.",
+   "remoteMcp": {
+    "url": "https://mcp.cloudflare.com/mcp",
+    "auth": "oauth",
+    "probe": "401  www-authenticate: Bearer realm=\"OAuth\", resource_metadata=\"https://mcp.cloudflare.com/.well-known/oauth-protected-resource/mcp\", scope=\"user:read account:read\""
+   },
+   "npm": null,
+   "api": {
+    "baseUrl": "https://api.cloudflare.com/client/v4",
+    "auth": "bearer",
+    "header": "Authorization",
+    "envVar": "CLOUDFLARE_API_TOKEN",
+    "keyLabel": "API token",
+    "keyHelp": "dash.cloudflare.com/profile/api-tokens",
+    "docs": "https://developers.cloudflare.com/api/"
+   },
+   "notes": "Other official remotes: https://bindings.mcp.cloudflare.com/mcp (OAuth), https://docs.mcp.cloudflare.com/mcp (200, no auth). @cloudflare/mcp-server-cloudflare 0.2.0 is the legacy local package, superseded by remote servers."
+  },
+  {
+   "slug": "cloudinary",
+   "name": "Cloudinary",
+   "category": "dev",
+   "summary": "Upload, search, transform and manage images and videos in Cloudinary.",
+   "remoteMcp": {
+    "url": "https://asset-management.mcp.cloudinary.com/sse",
+    "auth": "oauth",
+    "probe": "401 application/json; www-authenticate: Bearer resource_metadata=\"https://asset-management.mcp.cloudinary.com/.well-known/oauth-protected-resource\", scope=\"openid profile email offline_access asset_management upload media_generation\""
+   },
+   "npm": {
+    "package": "@cloudinary/asset-management-mcp",
+    "version": "0.11.3",
+    "official": true,
+    "env": [
+     "CLOUDINARY_URL"
+    ],
+    "args": [
+     "-y",
+     "@cloudinary/asset-management-mcp",
+     "start"
+    ]
+   },
+   "api": {
+    "baseUrl": "https://api.cloudinary.com/v1_1/{cloud_name}",
+    "auth": "basic",
+    "header": "Authorization",
+    "envVar": "CLOUDINARY_URL",
+    "keyLabel": "API key + API secret (cloud name)",
+    "keyHelp": "console.cloudinary.com/settings/api-keys",
+    "docs": "https://cloudinary.com/documentation/admin_api"
+   },
+   "notes": "Hosted MCP accepts OAuth or API key headers. CLOUDINARY_URL=cloudinary://API_KEY:API_SECRET@CLOUD_NAME (or CLOUDINARY_CLOUD_NAME/API_KEY/API_SECRET)."
+  },
+  {
+   "slug": "cockroachdb",
+   "name": "CockroachDB",
+   "category": "data",
+   "summary": "Manage CockroachDB Cloud clusters and databases and run SQL queries.",
+   "remoteMcp": {
+    "url": "https://cockroachlabs.cloud/mcp",
+    "auth": "oauth",
+    "probe": "401 application/json www-authenticate: Bearer realm=\"mcp\", resource_metadata=\"https://cockroachlabs.cloud/.well-known/oauth-protected-resource/mcp\", error=\"invalid_request\""
+   },
+   "npm": null,
+   "api": {
+    "baseUrl": "https://cockroachlabs.cloud/api/v1",
+    "auth": "bearer",
+    "header": "Authorization",
+    "envVar": "COCKROACH_API_KEY",
+    "keyLabel": "Service account API key",
+    "keyHelp": "cockroachlabs.cloud (Organization > Access Management > Service Accounts)",
+    "docs": "https://www.cockroachlabs.com/docs/api/cloud/v1"
+   },
+   "notes": "No official npm MCP."
+  },
+  {
+   "slug": "contentful",
+   "name": "Contentful",
+   "category": "dev",
+   "summary": "Create, update, publish and query content entries, assets and content types in Contentful.",
+   "remoteMcp": {
+    "url": "https://mcp.contentful.com/mcp",
+    "auth": "oauth",
+    "probe": "401 (no www-authenticate, empty body); /.well-known/oauth-protected-resource => {\"resource\":\"https://mcp.contentful.com\",\"authorization_servers\":[\"https://mcp.contentful.com\"],\"bearer_methods_supported\":[\"header\"]}"
+   },
+   "npm": {
+    "package": "@contentful/mcp-server",
+    "version": "1.23.14",
+    "official": true,
+    "env": [
+     "CONTENTFUL_MANAGEMENT_ACCESS_TOKEN",
+     "SPACE_ID",
+     "ENVIRONMENT_ID"
+    ],
+    "args": [
+     "-y",
+     "@contentful/mcp-server"
+    ]
+   },
+   "api": {
+    "baseUrl": "https://api.contentful.com",
+    "auth": "bearer",
+    "header": "Authorization",
+    "envVar": "CONTENTFUL_MANAGEMENT_ACCESS_TOKEN",
+    "keyLabel": "Content Management API personal access token",
+    "keyHelp": "app.contentful.com/account/profile/cma_tokens",
+    "docs": "https://www.contentful.com/developers/docs/references/content-management-api/"
+   },
+   "notes": "Remote URL documented by Contentful (EU: https://mcp.eu.contentful.com/mcp); probe 401 lacks www-authenticate but OAuth protected-resource metadata exists, so borderline verification."
+  },
+  {
+   "slug": "context7",
+   "name": "Context7",
+   "category": "dev",
+   "summary": "Fetch up-to-date, version-specific library documentation and code examples for coding.",
+   "remoteMcp": {
+    "url": "https://mcp.context7.com/mcp",
+    "auth": "none",
+    "probe": "200 text/event-stream event: message data: {\"result\":{\"protocolVersion\":\"2025-06-18\",...,\"serverInfo\":{\"name\":\"Context7\",\"version\":\"4.2.0\"}}}"
+   },
+   "npm": {
+    "package": "@upstash/context7-mcp",
+    "version": "4.2.0",
+    "official": true,
+    "env": [
+     "CONTEXT7_API_KEY"
+    ],
+    "args": [
+     "-y",
+     "@upstash/context7-mcp"
+    ]
+   },
+   "api": {
+    "baseUrl": "https://context7.com/api",
+    "auth": "bearer",
+    "header": "Authorization",
+    "envVar": "CONTEXT7_API_KEY",
+    "keyLabel": "API key (optional)",
+    "keyHelp": "context7.com/dashboard",
+    "docs": "https://context7.com/docs/api-guide"
+   },
+   "notes": "Works anonymously at low rate limits; Bearer API key or OAuth raises limits. npm can also take --api-key arg."
+  },
+  {
+   "slug": "crowdstrike",
+   "name": "CrowdStrike",
+   "category": "dev",
+   "summary": "Query CrowdStrike Falcon detections, incidents, hosts and threat intelligence.",
+   "remoteMcp": null,
+   "npm": null,
+   "api": {
+    "baseUrl": "https://api.crowdstrike.com",
+    "auth": "oauth",
+    "header": "Authorization",
+    "envVar": "FALCON_CLIENT_ID",
+    "keyLabel": "API client ID + secret (OAuth2 client credentials)",
+    "keyHelp": "falcon.crowdstrike.com/api-clients-and-keys",
+    "docs": "https://developer.crowdstrike.com"
+   },
+   "notes": "No hosted MCP; falcon-mcp (github.com/CrowdStrike/falcon-mcp) is a Python package, not npm. API uses OAuth2 client credentials (FALCON_CLIENT_ID/FALCON_CLIENT_SECRET); base URL varies by cloud region."
+  },
+  {
+   "slug": "crypto-com",
+   "name": "Crypto.com",
+   "category": "finance",
+   "summary": "Get real-time cryptocurrency prices, tickers, order books and market data from the Crypto.com Exchange.",
+   "remoteMcp": {
+    "url": "https://mcp.crypto.com/market-data/mcp",
+    "auth": "none",
+    "probe": "200 text/event-stream data: {\"jsonrpc\":\"2.0\",\"id\":1,\"result\":{\"protocolVersion\":\"2025-03-26\",...,\"serverInfo\":{\"name\":\"Crypto.com Exchange MCP\",...}}}"
+   },
+   "npm": null,
+   "api": {
+    "baseUrl": "https://api.crypto.com/exchange/v1",
+    "auth": null,
+    "header": null,
+    "envVar": "CRYPTO_COM_API_KEY",
+    "keyLabel": "API key + secret",
+    "keyHelp": "crypto.com/exchange (User center > API)",
+    "docs": "https://exchange-docs.crypto.com/exchange/v1/rest-ws/index.html"
+   },
+   "notes": "Remote MCP is public market data only, no auth. Exchange public endpoints need no key; private endpoints are HMAC-SHA256 signed (api_key + sig in JSON body), so auth is null (no simple header scheme)."
+  },
+  {
+   "slug": "dataforseo",
+   "name": "DataForSEO",
+   "category": "seo",
+   "summary": "Pull SERP results, keyword volumes, backlinks, on-page audits and domain analytics data for SEO research.",
+   "remoteMcp": {
+    "url": "https://mcp.dataforseo.com/mcp",
+    "auth": "oauth",
+    "probe": "401 application/json; www-authenticate: Bearer error=\"invalid_token\", error_description=\"token is null or empty\", resource_metadata=\"https://mcp.dataforseo.com/.well-known/oauth-protected-resource\""
+   },
+   "npm": {
+    "package": "dataforseo-mcp-server",
+    "version": "3.1.3",
+    "official": true,
+    "env": [
+     "DATAFORSEO_LOGIN",
+     "DATAFORSEO_PASSWORD"
+    ],
+    "args": []
+   },
+   "api": {
+    "baseUrl": "https://api.dataforseo.com/v3",
+    "auth": "basic",
+    "header": "Authorization",
+    "envVar": "DATAFORSEO_LOGIN",
+    "keyLabel": "API login and password",
+    "keyHelp": "app.dataforseo.com/api-access",
+    "docs": "https://docs.dataforseo.com/v3/"
+   },
+   "notes": "Basic auth uses API login + API password (DATAFORSEO_PASSWORD); DATAFORSEO_USERNAME accepted as alias by the npm server. Remote MCP URL inferred and probe-verified (OAuth)."
+  },
+  {
+   "slug": "dbt",
+   "name": "dbt",
+   "category": "data",
+   "summary": "Explore dbt project models, lineage and metrics, run jobs and query the Semantic Layer in dbt Cloud.",
+   "remoteMcp": {
+    "url": "https://cloud.getdbt.com/api/ai/v1/mcp/",
+    "auth": "oauth",
+    "probe": "401 text/html; www-authenticate: Bearer resource_metadata=\"https://cloud.getdbt.com/.well-known/oauth-protected-resource/api/ai/v1/mcp\""
+   },
+   "npm": null,
+   "api": {
+    "baseUrl": "https://cloud.getdbt.com/api/v2",
+    "auth": "bearer",
+    "header": "Authorization",
+    "envVar": "DBT_CLOUD_API_TOKEN",
+    "keyLabel": "Service or personal access token",
+    "keyHelp": "dbt Cloud > Account settings > Service tokens / Personal tokens",
+    "docs": "https://docs.getdbt.com/dbt-cloud/api-v2"
+   },
+   "notes": "Remote MCP host is region/account specific (cloud.getdbt.com for US multi-tenant); dbt also documents service-token auth with x-dbt-prod-environment-id headers. Official local server is Python (uvx dbt-mcp); npm 'dbt-mcp' is an unrelated third-party package."
+  },
+  {
+   "slug": "deel",
+   "name": "Deel",
+   "category": "finance",
+   "summary": "Manage workers, contracts, payroll, time off and invoices across Deel's global HR and payroll platform.",
+   "remoteMcp": {
+    "url": "https://api.letsdeel.com/mcp",
+    "auth": "oauth",
+    "probe": "200 application/json {\"result\":{\"protocolVersion\":\"2025-06-18\",\"serverInfo\":{\"name\":\"deel-mcp\",\"version\":\"1.0.0\"}},\"jsonrpc\":\"2.0\",\"id\":1}"
+   },
+   "npm": null,
+   "api": {
+    "baseUrl": "https://api.letsdeel.com/rest/v2",
+    "auth": "bearer",
+    "header": "Authorization",
+    "envVar": "DEEL_API_TOKEN",
+    "keyLabel": "API token",
+    "keyHelp": "Deel app > Developer Center > API tokens",
+    "docs": "https://developer.deel.com/docs"
+   },
+   "notes": "Official MCP documented at developer.deel.com/mcp (URL must be exactly https://api.letsdeel.com/mcp, no trailing slash). initialize answers without auth; tool calls need OAuth2, personal access token as fallback."
+  },
+  {
+   "slug": "deepgram",
+   "name": "Deepgram",
+   "category": "ai",
+   "summary": "Transcribe audio and video with speech-to-text, generate speech with text-to-speech, and analyze audio.",
+   "remoteMcp": null,
+   "npm": null,
+   "api": {
+    "baseUrl": "https://api.deepgram.com/v1",
+    "auth": "header",
+    "header": "Authorization",
+    "envVar": "DEEPGRAM_API_KEY",
+    "keyLabel": "API key",
+    "keyHelp": "console.deepgram.com (Project > API Keys)",
+    "docs": "https://developers.deepgram.com/reference"
+   },
+   "notes": "Authorization header value is 'Token <API_KEY>' (not Bearer). Only hosted MCP found is a docs-search server at https://api.dx.deepgram.com/kapa/mcp (401 OAuth, probe-verified) - not an API-control server. Deepgram CLI offers 'dg mcp' (pipx install deepctl). No official npm MCP package."
+  },
+  {
+   "slug": "descript",
+   "name": "Descript",
+   "category": "productivity",
+   "summary": "Import media, edit video and podcast projects, and export compositions in Descript.",
+   "remoteMcp": {
+    "url": "https://api.descript.com/v2/mcp",
+    "auth": "oauth",
+    "probe": "401 application/json; www-authenticate: Bearer resource_metadata=\"https://api.descript.com/.well-known/oauth-protected-resource\" {\"statusCode\":401,\"error\":\"Unauthorized\",\"message\":\"Authentication required\"}"
+   },
+   "npm": null,
+   "api": {
+    "baseUrl": "https://descriptapi.com/v1",
+    "auth": "bearer",
+    "header": "Authorization",
+    "envVar": "DESCRIPT_API_TOKEN",
+    "keyLabel": "API token",
+    "keyHelp": "Descript app settings > API tokens > Create token (token is tied to one Drive)",
+    "docs": "https://help.descript.com/developers"
+   },
+   "notes": "MCP URL documented at help.descript.com/api-and-mcp/mcp-custom ('uses OAuth, no API token required'). REST API is beta/early-access."
+  },
+  {
+   "slug": "discord",
+   "name": "Discord",
+   "category": "communication",
+   "summary": "Read and send messages, manage channels, roles and members in Discord servers.",
+   "remoteMcp": {
+    "url": "https://mcp.discord.com/mcp",
+    "auth": "oauth",
+    "probe": "401 www-authenticate: Bearer realm=\"mcp\", resource_metadata=\"https://mcp.discord.com/.well-known/oauth-protected-resource/mcp\", scope=\"identify guilds guilds.members.read connections personal.dm_channels.read ...\""
+   },
+   "npm": null,
+   "api": {
+    "baseUrl": "https://discord.com/api/v10",
+    "auth": "header",
+    "header": "Authorization",
+    "envVar": "DISCORD_BOT_TOKEN",
+    "keyLabel": "Bot token",
+    "keyHelp": "discord.com/developers/applications > your app > Bot > Reset Token",
+    "docs": "https://discord.com/developers/docs/reference"
+   },
+   "notes": "REST header value is 'Bot <token>'. mcp.discord.com is live and its OAuth metadata names https://discord.com as authorization server (user-scoped OAuth), but no public Discord docs page for it was found. No official npm package (community servers only)."
+  },
+  {
+   "slug": "docusign",
+   "name": "Docusign",
+   "category": "productivity",
+   "summary": "Create and send envelopes for e-signature, track signing status and manage agreements and templates.",
+   "remoteMcp": {
+    "url": "https://mcp.docusign.com/mcp",
+    "auth": "oauth",
+    "probe": "403 text/plain RBAC: access denied (POST without token); GET /.well-known/oauth-protected-resource -> 200 {\"resource\":\"https://mcp.docusign.com/mcp\",\"resource_name\":\"Docusign MCP\",\"authorization_servers\":[\"https://mcp.docusign.com\"]}"
+   },
+   "npm": null,
+   "api": {
+    "baseUrl": "https://demo.docusign.net/restapi",
+    "auth": "oauth",
+    "header": "Authorization",
+    "envVar": null,
+    "keyLabel": null,
+    "keyHelp": "developers.docusign.com (create an integration key)",
+    "docs": "https://developers.docusign.com/docs/esign-rest-api/"
+   },
+   "notes": "MCP returns 403 without www-authenticate, but OAuth protected-resource metadata confirms it; treat as OAuth. eSignature REST requires OAuth (auth code or JWT grant); production base URI is account-specific (from /oauth/userinfo)."
+  },
+  {
+   "slug": "doordash",
+   "name": "DoorDash",
+   "category": "other",
+   "summary": "Request delivery quotes and create, track or cancel on-demand deliveries via DoorDash.",
+   "remoteMcp": {
+    "url": "https://openapi.doordash.com/mcp/consumer",
+    "auth": "oauth",
+    "probe": "401 application/json {\"error\":\"Request does not contain an Authorization header\"}; /.well-known/oauth-protected-resource/mcp/consumer -> {\"authorization_servers\":[\"https://identity.doordash.com\"],\"scopes_supported\":[\"mcp:consumer:write\"]}"
+   },
+   "npm": null,
+   "api": {
+    "baseUrl": "https://openapi.doordash.com/drive/v2",
+    "auth": "bearer",
+    "header": "Authorization",
+    "envVar": "DOORDASH_SIGNING_SECRET",
+    "keyLabel": "Developer ID, Key ID and Signing Secret (JWT)",
+    "keyHelp": "developer.doordash.com portal > Credentials",
+    "docs": "https://developer.doordash.com/en-US/api/drive/"
+   },
+   "notes": "Consumer MCP (ordering) is OAuth via identity.doordash.com; URL from directory listings, confirmed by OAuth metadata. Drive API needs a short-lived HS256 JWT built from developer_id, key_id and signing_secret (also needs DOORDASH_DEVELOPER_ID, DOORDASH_KEY_ID)."
+  },
+  {
+   "slug": "dropbox",
+   "name": "Dropbox",
+   "category": "productivity",
+   "summary": "Search, read, upload, move and share files and folders in Dropbox.",
+   "remoteMcp": {
+    "url": "https://mcp.dropbox.com/mcp",
+    "auth": "oauth",
+    "probe": "401 text/plain; www-authenticate: Bearer resource_metadata=\"https://mcp.dropbox.com/.well-known/oauth-protected-resource/mcp\", error=\"invalid_token\", error_description=\"missing bearer token\""
+   },
+   "npm": null,
+   "api": {
+    "baseUrl": "https://api.dropboxapi.com/2",
+    "auth": "oauth",
+    "header": "Authorization",
+    "envVar": "DROPBOX_ACCESS_TOKEN",
+    "keyLabel": "OAuth access token",
+    "keyHelp": "dropbox.com/developers/apps (create app, generate access token)",
+    "docs": "https://www.dropbox.com/developers/documentation/http/documentation"
+   },
+   "notes": "REST uses OAuth 2 Bearer access tokens (short-lived; refresh tokens via OAuth). Content endpoints use https://content.dropboxapi.com/2."
+  },
+  {
+   "slug": "dublab",
+   "name": "DubLab",
+   "category": "ai",
+   "summary": "Dub videos into 90+ languages with AI voice cloning, then list dubs and download results.",
+   "remoteMcp": null,
+   "npm": null,
+   "api": {
+    "baseUrl": "https://dublab.app/api/v2",
+    "auth": "header",
+    "header": "apikey",
+    "envVar": "DUBLAB_API_KEY",
+    "keyLabel": "API key",
+    "keyHelp": "dublab.app (account API access; see dublab.app/docs/api/authentication)",
+    "docs": "https://dublab.app/docs/api/endpoints"
+   },
+   "notes": "DubLab (dublab.app) AI dubbing SaaS. Docs: key in 'apikey' header; 'Authorization: Bearer <key>' also accepted. Endpoints: GET /me, POST /dubs, GET /dubs, GET /dubs/{id}. No MCP server found."
+  },
+  {
+   "slug": "excalidraw",
+   "name": "Excalidraw",
+   "category": "productivity",
+   "summary": "Create and edit hand-drawn style diagrams, flowcharts and whiteboard sketches.",
+   "remoteMcp": {
+    "url": "https://mcp.excalidraw.com/mcp",
+    "auth": "none",
+    "probe": "200 text/event-stream event: message data: {\"result\":{\"protocolVersion\":\"2025-06-18\",\"capabilities\":{\"tools\":{\"listChanged\":true},\"resources\":{\"listChanged\":true}},\"serverInfo\":{\"name\":\"Excalidraw\",\"version\":\"1.0.0\"}}}"
+   },
+   "npm": null,
+   "api": null,
+   "notes": "Remote MCP answers initialize without auth (URL inferred, probe-verified). No public REST API. npm 'excalidraw-mcp' is a third-party package (not official)."
+  },
+  {
+   "slug": "expedia",
+   "name": "Expedia",
+   "category": "other",
+   "summary": "Search hotels, flights and travel packages and plan trips with Expedia.",
+   "remoteMcp": null,
+   "npm": null,
+   "api": null,
+   "notes": "Directories list https://www.expedia.com/mcp (OAuth) but probe returned 403 with bot-protection body and no www-authenticate, so unverified. Expedia Group APIs (Rapid, developers.expediagroup.com) are partner-only, not self-serve API keys."
+  },
+  {
+   "slug": "facebook",
+   "name": "Facebook",
+   "category": "marketing",
+   "summary": "Manage Meta ad campaigns, ad sets, creatives and insights, and work with Facebook Pages via the Graph API.",
+   "remoteMcp": {
+    "url": "https://mcp.facebook.com/ads",
+    "auth": "oauth",
+    "probe": "401 application/json www-authenticate: Bearer resource_metadata=\"https://mcp.facebook.com/.well-known/oauth-protected-resource/ads\", scope=\"ads_management ads_read catalog_management business_management pages_show_list pages_manage_ads instagram_basic ads_mcp_management\""
+   },
+   "npm": null,
+   "api": {
+    "baseUrl": "https://graph.facebook.com",
+    "auth": "bearer",
+    "header": "Authorization",
+    "envVar": "FACEBOOK_ACCESS_TOKEN",
+    "keyLabel": "Access token (user / system user)",
+    "keyHelp": "developers.facebook.com/tools/explorer or Business Settings > System users",
+    "docs": "https://developers.facebook.com/docs/graph-api"
+   },
+   "notes": "Official Meta Ads MCP (Ads AI Connectors, beta) documented on developers.facebook.com; needs Meta login with Business Manager access. Graph API also accepts access_token query param; prefix paths with a version (e.g. /vXX.0)."
+  },
+  {
+   "slug": "factset",
+   "name": "FactSet",
+   "category": "finance",
+   "summary": "Query FactSet fundamentals, estimates, prices and other financial datasets for company and market research.",
+   "remoteMcp": {
+    "url": "https://mcp.factset.com/content/v1",
+    "auth": "oauth",
+    "probe": "401 text/plain Authentication Failed; /.well-known/oauth-protected-resource/content/v1 -> {\"resource\":\"https://mcp.factset.com/content/v1\",\"authorization_servers\":[\"https://auth.factset.com\"]}"
+   },
+   "npm": null,
+   "api": {
+    "baseUrl": "https://api.factset.com",
+    "auth": "basic",
+    "header": "Authorization",
+    "envVar": "FACTSET_API_KEY",
+    "keyLabel": "Username-serial and API key",
+    "keyHelp": "developer.factset.com (Developer Portal > API keys)",
+    "docs": "https://developer.factset.com/api-catalog"
+   },
+   "notes": "FactSet AI-Ready Data MCP (launched Dec 2025); URL from directory listings, confirmed by OAuth protected-resource metadata. Requires a FactSet subscription. REST basic auth = USERNAME-SERIAL:API_KEY (also needs FACTSET_USERNAME)."
+  },
+  {
+   "slug": "fal",
+   "name": "fal",
+   "category": "ai",
+   "summary": "Run generative image, video and audio models (FLUX, Veo, Kling, etc.) on fal's serverless inference.",
+   "remoteMcp": {
+    "url": "https://mcp.fal.ai/mcp",
+    "auth": "oauth",
+    "probe": "401 application/json www-authenticate: Bearer resource_metadata=\"https://mcp.fal.ai/.well-known/oauth-protected-resource/mcp\" {\"error\":\"Authentication required\"}"
+   },
+   "npm": null,
+   "api": {
+    "baseUrl": "https://fal.run",
+    "auth": "header",
+    "header": "Authorization",
+    "envVar": "FAL_KEY",
+    "keyLabel": "API key",
+    "keyHelp": "fal.ai/dashboard/keys",
+    "docs": "https://fal.ai/docs"
+   },
+   "notes": "Header value is 'Key <FAL_KEY>'. Queue API at https://queue.fal.run. Remote MCP URL inferred and probe-verified (OAuth); fal docs reference an MCP at fal.ai/docs/mcp. npm 'fal-mcp' is third-party."
+  },
+  {
+   "slug": "fathom",
+   "name": "Fathom",
+   "category": "productivity",
+   "summary": "Retrieve meeting recordings, transcripts, summaries and action items from the Fathom AI notetaker.",
+   "remoteMcp": {
+    "url": "https://api.fathom.ai/mcp",
+    "auth": "oauth",
+    "probe": "401 application/json; www-authenticate: Bearer resource_metadata=\"https://api.fathom.ai/.well-known/oauth-protected-resource/mcp\" {\"error\":\"unauthorized\"}"
+   },
+   "npm": null,
+   "api": {
+    "baseUrl": "https://api.fathom.ai/external/v1",
+    "auth": "header",
+    "header": "X-Api-Key",
+    "envVar": "FATHOM_API_KEY",
+    "keyLabel": "API key",
+    "keyHelp": "Fathom > Settings > API Access",
+    "docs": "https://developers.fathom.ai"
+   },
+   "notes": "Fathom AI notetaker (fathom.video/fathom.ai), not Fathom Analytics. Remote MCP URL inferred and probe-verified (OAuth). npm 'fathom-mcp' is unrelated."
+  },
+  {
+   "slug": "figma",
+   "name": "Figma",
+   "category": "dev",
+   "summary": "Read Figma designs, components and variables for design-to-code, and inspect files, comments and assets.",
+   "remoteMcp": {
+    "url": "https://mcp.figma.com/mcp",
+    "auth": "oauth",
+    "probe": "401 text/plain; www-authenticate: Bearer resource_metadata=\"https://mcp.figma.com/.well-known/oauth-protected-resource\",scope=\"mcp:connect\",authorization_uri=\"https://api.figma.com/.well-known/oauth-authorization-server\""
+   },
+   "npm": null,
+   "api": {
+    "baseUrl": "https://api.figma.com/v1",
+    "auth": "header",
+    "header": "X-Figma-Token",
+    "envVar": "FIGMA_ACCESS_TOKEN",
+    "keyLabel": "Personal access token",
+    "keyHelp": "Figma > Settings > Security > Personal access tokens",
+    "docs": "https://developers.figma.com/docs/rest-api/"
+   },
+   "notes": "Official remote MCP is OAuth. npm 'figma-developer-mcp' (Framelink) is third-party, not Figma."
+  },
+  {
+   "slug": "firecrawl",
+   "name": "Firecrawl",
+   "category": "data",
+   "summary": "Scrape, crawl, map and search the web and extract clean markdown or structured data from pages.",
+   "remoteMcp": {
+    "url": "https://mcp.firecrawl.dev/v2/mcp",
+    "auth": "none",
+    "probe": "200 text/event-stream data: {\"result\":{\"protocolVersion\":\"2025-06-18\",\"serverInfo\":{\"name\":\"firecrawl-fastmcp\",\"version\":\"3.29.1\"},\"instructions\":\"Hosted keyless sessions expose ...\"}}"
+   },
+   "npm": {
+    "package": "firecrawl-mcp",
+    "version": "3.29.1",
+    "official": true,
+    "env": [
+     "FIRECRAWL_API_KEY"
+    ],
+    "args": []
+   },
+   "api": {
+    "baseUrl": "https://api.firecrawl.dev/v2",
+    "auth": "bearer",
+    "header": "Authorization",
+    "envVar": "FIRECRAWL_API_KEY",
+    "keyLabel": "API key",
+    "keyHelp": "firecrawl.dev/app/api-keys",
+    "docs": "https://docs.firecrawl.dev/api-reference/introduction"
+   },
+   "notes": "Remote MCP works keyless with usage limits; pass 'Authorization: Bearer <FIRECRAWL_API_KEY>' for higher limits and more tools. OAuth variant at https://mcp.firecrawl.dev/v2/mcp-oauth. npm optional FIRECRAWL_API_URL for self-hosted."
+  },
+  {
+   "slug": "fireflies",
+   "name": "Fireflies.ai",
+   "category": "productivity",
+   "summary": "Search meeting transcripts, summaries, action items and participants recorded by Fireflies.",
+   "remoteMcp": {
+    "url": "https://api.fireflies.ai/mcp",
+    "auth": "oauth",
+    "probe": "401 application/json; www-authenticate: Bearer error=\"invalid_token\", error_description=\"Missing Authorization header\", scope=\"email profile\", resource_metadata=\"https://api.fireflies.ai/.well-known/oauth-protected-resource/mcp\""
+   },
+   "npm": null,
+   "api": {
+    "baseUrl": "https://api.fireflies.ai/graphql",
+    "auth": "bearer",
+    "header": "Authorization",
+    "envVar": "FIREFLIES_API_KEY",
+    "keyLabel": "API key",
+    "keyHelp": "app.fireflies.ai/integrations/custom/fireflies",
+    "docs": "https://docs.fireflies.ai"
+   },
+   "notes": "API is GraphQL on a single endpoint. Remote MCP URL inferred and probe-verified (OAuth)."
+  },
+  {
+   "slug": "fish-audio",
+   "name": "Fish Audio",
+   "category": "ai",
+   "summary": "Generate speech with text-to-speech, clone voices, transcribe audio and create AI media.",
+   "remoteMcp": {
+    "url": "https://api.fish.audio/mcp",
+    "auth": "oauth",
+    "probe": "401 application/json www-authenticate: Bearer resource_metadata=\"https://api.fish.audio/.well-known/oauth-protected-resource/mcp\" {\"error\":\"unauthorized\"}"
+   },
+   "npm": null,
+   "api": {
+    "baseUrl": "https://api.fish.audio",
+    "auth": "bearer",
+    "header": "Authorization",
+    "envVar": "FISH_AUDIO_API_KEY",
+    "keyLabel": "API key",
+    "keyHelp": "fish.audio/app/api-keys",
+    "docs": "https://docs.fish.audio"
+   },
+   "notes": "Remote MCP URL inferred and probe-verified (OAuth, team-bound). OpenAPI at https://api.fish.audio/openapi.json."
+  },
+  {
+   "slug": "frameio",
+   "name": "Frame.io",
+   "category": "productivity",
+   "summary": "Manage video review projects, upload assets, and read or post comments and approvals in Frame.io.",
+   "remoteMcp": {
+    "url": "https://mcp.frame.io/mcp",
+    "auth": "oauth",
+    "probe": "401 application/json www-authenticate: Bearer error=\"invalid_token\", error_description=\"Authentication required\", resource_metadata=\"https://mcp.frame.io/.well-known/oauth-protected-resource/mcp\""
+   },
+   "npm": null,
+   "api": {
+    "baseUrl": "https://api.frame.io/v4",
+    "auth": "oauth",
+    "header": "Authorization",
+    "envVar": null,
+    "keyLabel": null,
+    "keyHelp": "Adobe Developer Console (OAuth credential for Frame.io API)",
+    "docs": "https://developer.adobe.com/frameio/"
+   },
+   "notes": "Frame.io V4 API uses Adobe IMS OAuth only (no static API keys). Remote MCP URL inferred and probe-verified (OAuth)."
+  },
+  {
+   "slug": "freshdesk",
+   "name": "Freshdesk",
+   "category": "crm",
+   "summary": "Create, update and search support tickets, contacts and companies in Freshdesk.",
+   "remoteMcp": {
+    "url": "https://mcp.freshdesk.com/mcp",
+    "auth": "oauth",
+    "probe": "401 application/json www-authenticate: Bearer resource_metadata=\"https://mcp.freshdesk.com/.well-known/oauth-protected-resource/mcp\" {\"error\": \"unauthorized\"}"
+   },
+   "npm": null,
+   "api": {
+    "baseUrl": "https://{domain}.freshdesk.com/api/v2",
+    "auth": "basic",
+    "header": "Authorization",
+    "envVar": "FRESHDESK_API_KEY",
+    "keyLabel": "API key",
+    "keyHelp": "Freshdesk > Profile settings > View API key",
+    "docs": "https://developers.freshdesk.com/api/"
+   },
+   "notes": "Basic auth with API key as username and 'X' as password; base URL needs your helpdesk subdomain (FRESHDESK_DOMAIN). Remote MCP URL inferred and probe-verified (OAuth). npm 'freshdesk-mcp' is third-party."
+  },
+  {
+   "slug": "fullenrich",
+   "name": "FullEnrich",
+   "category": "crm",
+   "summary": "Find and enrich B2B contacts' emails and phone numbers, and search people and companies.",
+   "remoteMcp": {
+    "url": "https://mcp.fullenrich.com/mcp",
+    "auth": "oauth",
+    "probe": "401 text/plain; www-authenticate: Bearer resource_metadata=\"https://mcp.fullenrich.com/.well-known/oauth-protected-resource\" unauthorized"
+   },
+   "npm": null,
+   "api": {
+    "baseUrl": "https://app.fullenrich.com/api/v2",
+    "auth": "bearer",
+    "header": "Authorization",
+    "envVar": "FULLENRICH_API_KEY",
+    "keyLabel": "API key",
+    "keyHelp": "app.fullenrich.com/app/api",
+    "docs": "https://docs.fullenrich.com"
+   },
+   "notes": "Remote MCP URL inferred and probe-verified (OAuth). Enrichment is async (webhook or polling)."
+  },
+  {
+   "slug": "gamma",
+   "name": "Gamma",
+   "category": "productivity",
+   "summary": "Generate presentations, documents and web pages from prompts with Gamma.",
+   "remoteMcp": {
+    "url": "https://mcp.gamma.app/mcp",
+    "auth": "oauth",
+    "probe": "401 application/json; www-authenticate: Bearer resource_metadata=\"https://mcp.gamma.app/.well-known/oauth-protected-resource\" {\"error\":\"Authentication required\",\"message\":\"Provide X-API-KEY or Authorization: Bearer header\"}"
+   },
+   "npm": null,
+   "api": {
+    "baseUrl": "https://public-api.gamma.app/v1.0",
+    "auth": "header",
+    "header": "X-API-KEY",
+    "envVar": "GAMMA_API_KEY",
+    "keyLabel": "API key",
+    "keyHelp": "Gamma > Account settings > API key",
+    "docs": "https://developers.gamma.app"
+   },
+   "notes": "Remote MCP accepts OAuth or an API key (X-API-KEY / Bearer) per its 401 body. npm 'gamma-mcp' is third-party."
+  },
+  {
+   "slug": "getxapi",
+   "name": "GetXAPI",
+   "category": "marketing",
+   "summary": "Read X/Twitter users, tweets, followers and search results, and post or DM via a pay-per-call third-party X API.",
+   "remoteMcp": null,
+   "npm": {
+    "package": "@getxapi/mcp",
+    "version": "0.1.1",
+    "official": true,
+    "env": [
+     "GETXAPI_KEY"
+    ],
+    "args": []
+   },
+   "api": {
+    "baseUrl": "https://api.getxapi.com",
+    "auth": "bearer",
+    "header": "Authorization",
+    "envVar": "GETXAPI_KEY",
+    "keyLabel": "API key",
+    "keyHelp": "getxapi.com (Get API Key)",
+    "docs": "https://docs.getxapi.com/docs"
+   },
+   "notes": "Third-party X/Twitter data API (not X Corp). Write tools in the npm server additionally need X_AUTH_TOKEN (optional X_CT0, X_TWID, X_PROXY). No hosted MCP URL found."
+  },
+  {
+   "slug": "github",
+   "name": "GitHub",
+   "category": "dev",
+   "summary": "Manage repositories, issues, pull requests, code search, Actions and releases on GitHub.",
+   "remoteMcp": {
+    "url": "https://api.githubcopilot.com/mcp/",
+    "auth": "oauth",
+    "probe": "401 text/plain; www-authenticate: Bearer error=\"invalid_request\", error_description=\"No access token was provided in this request\", resource_metadata=\"https://api.githubcopilot.com/.well-known/oauth-protected-resource/mcp/\""
+   },
+   "npm": null,
+   "api": {
+    "baseUrl": "https://api.github.com",
+    "auth": "bearer",
+    "header": "Authorization",
+    "envVar": "GITHUB_TOKEN",
+    "keyLabel": "Personal access token",
+    "keyHelp": "github.com/settings/tokens",
+    "docs": "https://docs.github.com/en/rest"
+   },
+   "notes": "Remote MCP supports OAuth or a PAT as 'Authorization: Bearer'. @modelcontextprotocol/server-github is deprecated on npm; the official local server is github/github-mcp-server (Go binary/Docker), not on npm."
+  },
+  {
+   "slug": "gmail",
+   "name": "Gmail",
+   "category": "communication",
+   "summary": "Search, read, draft, label and send emails and manage threads in Gmail.",
+   "remoteMcp": {
+    "url": "https://gmailmcp.googleapis.com/mcp/v1",
+    "auth": "oauth",
+    "probe": "200 application/json; {\"jsonrpc\":\"2.0\",\"result\":{\"protocolVersion\":\"2025-06-18\",\"serverInfo\":{\"name\":\"StatelessServer\",\"version\":\"ESF\"}}}"
+   },
+   "npm": null,
+   "api": {
+    "baseUrl": "https://gmail.googleapis.com/gmail/v1",
+    "auth": "oauth",
+    "header": "Authorization",
+    "envVar": null,
+    "keyLabel": null,
+    "keyHelp": "Google Cloud Console > APIs & Services > Credentials (OAuth client)",
+    "docs": "https://developers.google.com/workspace/gmail/api/reference/rest"
+   },
+   "notes": "Google Workspace remote MCP (Developer Preview; listed on developers.google.com/workspace/guides/configure-mcp-servers). initialize answers without auth, but tools need Google OAuth 2.0 (own Web OAuth client, Cloud project enrolled in Workspace Developer Preview with the MCP service enabled)."
+  },
+  {
+   "slug": "gocardless",
+   "name": "GoCardless",
+   "category": "payments",
+   "summary": "Collect direct debit payments, manage mandates, customers, subscriptions and payouts.",
+   "remoteMcp": {
+    "url": "https://mcp.gocardless.com/mcp",
+    "auth": "oauth",
+    "probe": "401 application/json www-authenticate: Bearer realm=\"GoCardless MCP\", resource_metadata=\"https://mcp.gocardless.com/.well-known/oauth-protected-resource\" {\"error\":\"unauthorized\",\"error_description\":\"Authentication required - authenticate via OAuth\"}"
+   },
+   "npm": null,
+   "api": {
+    "baseUrl": "https://api.gocardless.com",
+    "auth": "bearer",
+    "header": "Authorization",
+    "envVar": "GOCARDLESS_ACCESS_TOKEN",
+    "keyLabel": "Access token",
+    "keyHelp": "manage.gocardless.com > Developers > Create access token",
+    "docs": "https://developer.gocardless.com/api-reference"
+   },
+   "notes": "REST also requires 'GoCardless-Version' header (e.g. 2015-07-06). Sandbox: https://api-sandbox.gocardless.com. Remote MCP URL inferred and probe-verified (OAuth)."
+  },
+  {
+   "slug": "godaddy",
+   "name": "GoDaddy",
+   "category": "dev",
+   "summary": "Check domain availability and pricing, suggest domains, and manage domains and DNS records.",
+   "remoteMcp": {
+    "url": "https://api.godaddy.com/v1/domains/mcp",
+    "auth": "none",
+    "probe": "200 text/event-stream data: {\"jsonrpc\":\"2.0\",\"id\":1,\"result\":{\"protocolVersion\":\"2025-06-18\",\"serverInfo\":{\"name\":\"godaddy-domains-mcp\",\"version\":\"1.29.1\"}}}"
+   },
+   "npm": null,
+   "api": {
+    "baseUrl": "https://api.godaddy.com",
+    "auth": "header",
+    "header": "Authorization",
+    "envVar": "GODADDY_API_KEY",
+    "keyLabel": "API key and secret",
+    "keyHelp": "developer.godaddy.com/keys",
+    "docs": "https://developer.godaddy.com/doc"
+   },
+   "notes": "Official MCP (developer.godaddy.com/docs/api-users/mcp) is public, read-only, no auth (domain search/availability). REST header value is 'sso-key <KEY>:<SECRET>' (also needs GODADDY_API_SECRET). npm 'godaddy-mcp' is third-party."
+  },
+  {
+   "slug": "gohighlevel",
+   "name": "HighLevel",
+   "category": "crm",
+   "summary": "Manage contacts, opportunities, pipelines, conversations, calendars and payments in a HighLevel sub-account.",
+   "remoteMcp": {
+    "url": "https://services.leadconnectorhq.com/mcp/",
+    "auth": "oauth",
+    "probe": "401 application/json; www-authenticate: Bearer realm=\"ghl-mcp\", error=\"invalid_token\", resource_metadata=\"https://services.leadconnectorhq.com/mcp/.well-known/oauth-protected-resource/mcp\" {\"error\":\"invalid_token\",\"error_description\":\"Authorization required for protected tools\"}"
+   },
+   "npm": null,
+   "api": {
+    "baseUrl": "https://services.leadconnectorhq.com",
+    "auth": "bearer",
+    "header": "Authorization",
+    "envVar": "GHL_PRIVATE_INTEGRATION_TOKEN",
+    "keyLabel": "Private Integration Token",
+    "keyHelp": "HighLevel sub-account > Settings > Private Integrations",
+    "docs": "https://marketplace.gohighlevel.com/docs/"
+   },
+   "notes": "HighLevel also documents the MCP with a Private Integration Token as Bearer plus a 'locationId' header. REST requires a 'Version' header (e.g. 2021-07-28)."
+  },
+  {
+   "slug": "gong",
+   "name": "Gong",
+   "category": "crm",
+   "summary": "Retrieve call recordings, transcripts, deal and activity data and conversation insights from Gong.",
+   "remoteMcp": {
+    "url": "https://mcp.gong.io/mcp",
+    "auth": "oauth",
+    "probe": "401 application/json;charset=UTF-8 www-authenticate: Bearer realm=\"mcp\", resource_metadata=\"https://mcp.gong.io/.well-known/oauth-protected-resource/mcp\" {\"error\":\"unauthorized\",\"error_description\":\"Authorization header missing or invalid\"}"
+   },
+   "npm": null,
+   "api": {
+    "baseUrl": "https://api.gong.io/v2",
+    "auth": "basic",
+    "header": "Authorization",
+    "envVar": "GONG_ACCESS_KEY",
+    "keyLabel": "Access key and secret",
+    "keyHelp": "Gong > Company settings > Ecosystem > API (technical admin)",
+    "docs": "https://help.gong.io/docs/receive-access-to-the-api"
+   },
+   "notes": "Basic auth = access key:access key secret (also needs GONG_ACCESS_KEY_SECRET); tenant may be given a customer-specific base URL. Remote MCP URL inferred and probe-verified (OAuth)."
+  },
+  {
+   "slug": "google-analytics",
+   "name": "Google Analytics",
+   "category": "analytics",
+   "summary": "Run GA4 reports on traffic, conversions and audiences and read property and account configuration.",
+   "remoteMcp": null,
+   "npm": null,
+   "api": {
+    "baseUrl": "https://analyticsdata.googleapis.com/v1beta",
+    "auth": "oauth",
+    "header": "Authorization",
+    "envVar": null,
+    "keyLabel": null,
+    "keyHelp": "Google Cloud Console > Credentials (OAuth client or service account added to the GA property)",
+    "docs": "https://developers.google.com/analytics/devguides/reporting/data/v1"
+   },
+   "notes": "No Google-hosted remote MCP found (analyticsmcp.googleapis.com 404). Official server is Python 'analytics-mcp' (github.com/googleanalytics/google-analytics-mcp, run via pipx) using Application Default Credentials with analytics.readonly scope. Admin API: analyticsadmin.googleapis.com."
+  },
+  {
+   "slug": "google-bigquery",
+   "name": "BigQuery",
+   "category": "data",
+   "summary": "List datasets and tables, inspect schemas and run SQL queries in Google BigQuery.",
+   "remoteMcp": {
+    "url": "https://bigquery.googleapis.com/mcp",
+    "auth": "oauth",
+    "probe": "200 application/json; {\"id\":1,\"jsonrpc\":\"2.0\",\"result\":{\"capabilities\":{\"tools\":{\"listChanged\":false}},\"protocolVersion\":\"2025-06-18\",\"serverInfo\":{\"name\":\"StatelessServer\",\"version\":\"ESF\"}}}"
+   },
+   "npm": null,
+   "api": {
+    "baseUrl": "https://bigquery.googleapis.com/bigquery/v2",
+    "auth": "oauth",
+    "header": "Authorization",
+    "envVar": null,
+    "keyLabel": null,
+    "keyHelp": "Google Cloud Console > IAM > Service accounts / OAuth client",
+    "docs": "https://cloud.google.com/bigquery/docs/reference/rest"
+   },
+   "notes": "Listed on docs.cloud.google.com/mcp/supported-products. initialize answers without auth; tools need Google OAuth / IAM credentials and the MCP service enabled in the project."
+  },
+  {
+   "slug": "google-calendar",
+   "name": "Google Calendar",
+   "category": "productivity",
+   "summary": "List calendars, search, create, update and delete events and find free time in Google Calendar.",
+   "remoteMcp": {
+    "url": "https://calendarmcp.googleapis.com/mcp/v1",
+    "auth": "oauth",
+    "probe": "200 application/json; {\"jsonrpc\":\"2.0\",\"result\":{\"protocolVersion\":\"2025-06-18\",\"serverInfo\":{\"name\":\"StatelessServer\",\"version\":\"ESF\"}}}"
+   },
+   "npm": null,
+   "api": {
+    "baseUrl": "https://www.googleapis.com/calendar/v3",
+    "auth": "oauth",
+    "header": "Authorization",
+    "envVar": null,
+    "keyLabel": null,
+    "keyHelp": "Google Cloud Console > APIs & Services > Credentials (OAuth client)",
+    "docs": "https://developers.google.com/workspace/calendar/api/v3/reference"
+   },
+   "notes": "Google Workspace remote MCP (Developer Preview; listed on developers.google.com/workspace/guides/configure-mcp-servers). initialize answers without auth, but tools need Google OAuth 2.0 (own Web OAuth client, Cloud project enrolled in Workspace Developer Preview with the MCP service enabled)."
+  },
+  {
+   "slug": "google-docs",
+   "name": "Google Docs",
+   "category": "productivity",
+   "summary": "Create, read and edit Google Docs documents.",
+   "remoteMcp": {
+    "url": "https://docsmcp.googleapis.com/mcp/v1",
+    "auth": "oauth",
+    "probe": "200 application/json; {\"jsonrpc\":\"2.0\",\"result\":{\"protocolVersion\":\"2025-06-18\",\"serverInfo\":{\"name\":\"StatelessServer\",\"version\":\"ESF\"}}}"
+   },
+   "npm": null,
+   "api": {
+    "baseUrl": "https://docs.googleapis.com/v1",
+    "auth": "oauth",
+    "header": "Authorization",
+    "envVar": null,
+    "keyLabel": null,
+    "keyHelp": "Google Cloud Console > APIs & Services > Credentials (OAuth client)",
+    "docs": "https://developers.google.com/workspace/docs/api/reference/rest"
+   },
+   "notes": "Google Workspace remote MCP (Developer Preview; listed on developers.google.com/workspace/guides/configure-mcp-servers). initialize answers without auth, but tools need Google OAuth 2.0 (own Web OAuth client, Cloud project enrolled in Workspace Developer Preview with the MCP service enabled)."
+  },
+  {
+   "slug": "google-drive",
+   "name": "Google Drive",
+   "category": "productivity",
+   "summary": "Search, read, create, update, share and organize files in Google Drive.",
+   "remoteMcp": {
+    "url": "https://drivemcp.googleapis.com/mcp/v1",
+    "auth": "oauth",
+    "probe": "200 application/json; {\"jsonrpc\":\"2.0\",\"result\":{\"protocolVersion\":\"2025-06-18\",\"serverInfo\":{\"name\":\"StatelessServer\",\"version\":\"ESF\"}}}"
+   },
+   "npm": null,
+   "api": {
+    "baseUrl": "https://www.googleapis.com/drive/v3",
+    "auth": "oauth",
+    "header": "Authorization",
+    "envVar": null,
+    "keyLabel": null,
+    "keyHelp": "Google Cloud Console > APIs & Services > Credentials (OAuth client)",
+    "docs": "https://developers.google.com/workspace/drive/api/reference/rest/v3"
+   },
+   "notes": "Google Workspace remote MCP (Developer Preview; listed on developers.google.com/workspace/guides/configure-mcp-servers). initialize answers without auth, but tools need Google OAuth 2.0 (own Web OAuth client, Cloud project enrolled in Workspace Developer Preview with the MCP service enabled). @modelcontextprotocol/server-gdrive is deprecated on npm."
+  },
+  {
+   "slug": "google-maps",
+   "name": "Google Maps",
+   "category": "data",
+   "summary": "Search places, compute routes and look up weather and location data with Google Maps Platform.",
+   "remoteMcp": {
+    "url": "https://mapstools.googleapis.com/mcp",
+    "auth": "bearer",
+    "probe": "200 application/json; {\"id\":1,\"jsonrpc\":\"2.0\",\"result\":{\"capabilities\":{\"tools\":{\"listChanged\":false}},\"protocolVersion\":\"2025-06-18\",\"serverInfo\":{\"name\":\"StatelessServer\",\"version\":\"scaffolding on HTTPServer2\"}}}"
+   },
+   "npm": null,
+   "api": {
+    "baseUrl": "https://places.googleapis.com/v1",
+    "auth": "header",
+    "header": "X-Goog-Api-Key",
+    "envVar": "GOOGLE_MAPS_API_KEY",
+    "keyLabel": "API key",
+    "keyHelp": "console.cloud.google.com > Google Maps Platform > Keys & Credentials",
+    "docs": "https://developers.google.com/maps/documentation"
+   },
+   "notes": "Maps Grounding Lite (developers.google.com/maps/ai/grounding-lite): pass the API key in the 'X-Goog-Api-Key' header (not Authorization: Bearer), or use OAuth; enable the Maps Grounding Lite API and billing. Tools: search_places, compute_routes, lookup_weather. @modelcontextprotocol/server-google-maps is deprecated."
+  },
+  {
+   "slug": "google-meet",
+   "name": "Google Meet",
+   "category": "communication",
+   "summary": "Create meeting spaces and retrieve conference records, participants, recordings and transcripts from Google Meet.",
+   "remoteMcp": null,
+   "npm": null,
+   "api": {
+    "baseUrl": "https://meet.googleapis.com/v2",
+    "auth": "oauth",
+    "header": "Authorization",
+    "envVar": null,
+    "keyLabel": null,
+    "keyHelp": "Google Cloud Console > APIs & Services > Credentials (OAuth client)",
+    "docs": "https://developers.google.com/workspace/meet/api/guides/overview"
+   },
+   "notes": "No Google-hosted Meet MCP found (meetmcp.googleapis.com 404; not in the Workspace MCP list). Meetings can also be created through Calendar events."
+  },
+  {
+   "slug": "google-photos",
+   "name": "Google Photos",
+   "category": "other",
+   "summary": "Let users pick photos via the Picker API and manage albums and media items an app created in Google Photos.",
+   "remoteMcp": null,
+   "npm": null,
+   "api": {
+    "baseUrl": "https://photoslibrary.googleapis.com/v1",
+    "auth": "oauth",
+    "header": "Authorization",
+    "envVar": null,
+    "keyLabel": null,
+    "keyHelp": "Google Cloud Console > APIs & Services > Credentials (OAuth client)",
+    "docs": "https://developers.google.com/photos"
+   },
+   "notes": "No Google-hosted Photos MCP found (photosmcp.googleapis.com 404). Library API scopes are limited to app-created content; reading a user's full library goes through the Picker API (photospicker.googleapis.com)."
+  },
+  {
+   "slug": "google-search-console",
+   "name": "Google Search Console",
+   "category": "seo",
+   "summary": "Query search performance (clicks, impressions, queries, pages), inspect URLs and manage sitemaps and sites.",
+   "remoteMcp": null,
+   "npm": null,
+   "api": {
+    "baseUrl": "https://searchconsole.googleapis.com",
+    "auth": "oauth",
+    "header": "Authorization",
+    "envVar": null,
+    "keyLabel": null,
+    "keyHelp": "Google Cloud Console > Credentials (OAuth client or service account added as a property user)",
+    "docs": "https://developers.google.com/webmaster-tools/v1/api_reference_index"
+   },
+   "notes": "No Google-hosted Search Console MCP found (searchconsolemcp.googleapis.com 404). Search Analytics endpoints live under /webmasters/v3/sites/{site}/searchAnalytics/query; URL Inspection under /v1/urlInspection/index:inspect."
+  },
+  {
+   "slug": "google-sheets",
+   "name": "Google Sheets",
+   "category": "productivity",
+   "summary": "Create spreadsheets and read, write, append and format cell ranges in Google Sheets.",
+   "remoteMcp": {
+    "url": "https://sheetsmcp.googleapis.com/mcp/v1",
+    "auth": "oauth",
+    "probe": "200 application/json; {\"jsonrpc\":\"2.0\",\"result\":{\"protocolVersion\":\"2025-06-18\",\"serverInfo\":{\"name\":\"StatelessServer\",\"version\":\"ESF\"}}}"
+   },
+   "npm": null,
+   "api": {
+    "baseUrl": "https://sheets.googleapis.com/v4",
+    "auth": "oauth",
+    "header": "Authorization",
+    "envVar": null,
+    "keyLabel": null,
+    "keyHelp": "Google Cloud Console > APIs & Services > Credentials (OAuth client or service account)",
+    "docs": "https://developers.google.com/workspace/sheets/api/reference/rest"
+   },
+   "notes": "Google Workspace remote MCP (Developer Preview; listed on developers.google.com/workspace/guides/configure-mcp-servers). initialize answers without auth, but tools need Google OAuth 2.0 (own Web OAuth client, Cloud project enrolled in Workspace Developer Preview with the MCP service enabled)."
+  },
+  {
+   "slug": "google-slides",
+   "name": "Google Slides",
+   "category": "productivity",
+   "summary": "Create presentations and add, edit and read slides, text, images and shapes in Google Slides.",
+   "remoteMcp": {
+    "url": "https://slidesmcp.googleapis.com/mcp/v1",
+    "auth": "oauth",
+    "probe": "200 application/json; {\"jsonrpc\":\"2.0\",\"result\":{\"protocolVersion\":\"2025-06-18\",\"serverInfo\":{\"name\":\"StatelessServer\",\"version\":\"ESF\"}}}"
+   },
+   "npm": null,
+   "api": {
+    "baseUrl": "https://slides.googleapis.com/v1",
+    "auth": "oauth",
+    "header": "Authorization",
+    "envVar": null,
+    "keyLabel": null,
+    "keyHelp": "Google Cloud Console > APIs & Services > Credentials (OAuth client)",
+    "docs": "https://developers.google.com/workspace/slides/api/reference/rest"
+   },
+   "notes": "Google Workspace remote MCP (Developer Preview; listed on developers.google.com/workspace/guides/configure-mcp-servers). initialize answers without auth, but tools need Google OAuth 2.0 (own Web OAuth client, Cloud project enrolled in Workspace Developer Preview with the MCP service enabled)."
+  },
+  {
+   "slug": "google-tasks",
+   "name": "Google Tasks",
+   "category": "productivity",
+   "summary": "Create, list, update and complete tasks and task lists in a user's Google Tasks.",
+   "remoteMcp": null,
+   "npm": null,
+   "api": {
+    "baseUrl": "https://tasks.googleapis.com/tasks/v1",
+    "auth": "oauth",
+    "header": "Authorization",
+    "envVar": null,
+    "keyLabel": "OAuth access token",
+    "keyHelp": "console.cloud.google.com (enable Google Tasks API, create OAuth client)",
+    "docs": "https://developers.google.com/workspace/tasks/reference/rest"
+   },
+   "notes": "No Google-hosted Tasks MCP found (tasksmcp.googleapis.com/mcp/v1 -> 404; Google only hosts gmailmcp.googleapis.com etc.). Community npm gtasks-mcp is unpublished. API is OAuth-only."
+  },
+  {
+   "slug": "granola",
+   "name": "Granola",
+   "category": "productivity",
+   "summary": "Search and read meeting notes, transcripts, AI summaries, folders and spaces from Granola.",
+   "remoteMcp": {
+    "url": "https://mcp.granola.ai/mcp",
+    "auth": "oauth",
+    "probe": "401 application/json www-authenticate: Bearer error=\"invalid_token\", error_description=\"Authorization needed\", resource_metadata=\"https://mcp.granola.ai/.well-known/oauth-protected-resource\""
+   },
+   "npm": null,
+   "api": {
+    "baseUrl": "https://public-api.granola.ai/v1",
+    "auth": "bearer",
+    "header": "Authorization",
+    "envVar": "GRANOLA_API_KEY",
+    "keyLabel": "API key",
+    "keyHelp": "Granola Settings -> Connectors -> API keys (Business/Enterprise plans)",
+    "docs": "https://docs.granola.ai/introduction"
+   },
+   "notes": "API keys look like grn_...; endpoints /v1/notes, /v1/folders, /v1/spaces."
+  },
+  {
+   "slug": "gusto",
+   "name": "Gusto",
+   "category": "finance",
+   "summary": "Read and manage payroll, employees, contractors, departments and company data in Gusto.",
+   "remoteMcp": {
+    "url": "https://mcp.api.gusto.com/anthropic",
+    "auth": "oauth",
+    "probe": "401 application/json www-authenticate: Bearer resource_metadata=\"https://mcp.api.gusto.com/.well-known/oauth-protected-resource\""
+   },
+   "npm": null,
+   "api": {
+    "baseUrl": "https://api.gusto.com",
+    "auth": "oauth",
+    "header": "Authorization",
+    "envVar": null,
+    "keyLabel": "OAuth access token",
+    "keyHelp": "dev.gusto.com (create an app)",
+    "docs": "https://docs.gusto.com/app-integrations/reference"
+   },
+   "notes": "MCP URL comes from directory listings (mcpservers.org), not Gusto docs; probe confirms OAuth metadata on Gusto domain. API requires partner OAuth app."
+  },
+  {
+   "slug": "heygen",
+   "name": "HeyGen",
+   "category": "ai",
+   "summary": "Generate AI avatar videos, list avatars and voices, and translate or dub videos with HeyGen.",
+   "remoteMcp": {
+    "url": "https://mcp.heygen.com/mcp/v1/",
+    "auth": "oauth",
+    "probe": "401 application/json www-authenticate: Bearer error=\"invalid_token\", error_description=\"Bearer token required\", resource_metadata=\"https://mcp.heygen.com/.well-known/oauth-protected-resource/mcp/v1\""
+   },
+   "npm": null,
+   "api": {
+    "baseUrl": "https://api.heygen.com",
+    "auth": "header",
+    "header": "X-Api-Key",
+    "envVar": "HEYGEN_API_KEY",
+    "keyLabel": "API key",
+    "keyHelp": "app.heygen.com -> Settings -> API",
+    "docs": "https://docs.heygen.com/reference"
+   },
+   "notes": "No HeyGen MCP on npm (@heygen/mcp, heygen-mcp 404)."
+  },
+  {
+   "slug": "higgsfield",
+   "name": "Higgsfield",
+   "category": "ai",
+   "summary": "Generate and edit AI images and videos (Soul, Genjutsu, etc.) and manage Higgsfield generations.",
+   "remoteMcp": {
+    "url": "https://mcp.higgsfield.ai/mcp",
+    "auth": "oauth",
+    "probe": "401 application/json www-authenticate: Bearer resource_metadata=\"https://mcp.higgsfield.ai/.well-known/oauth-protected-resource/mcp\", scope=\"openid email offline_access\""
+   },
+   "npm": null,
+   "api": {
+    "baseUrl": "https://api.higgsfield.ai",
+    "auth": "header",
+    "header": "Authorization",
+    "envVar": "HIGGSFIELD_API_KEY",
+    "keyLabel": "API key ID and secret",
+    "keyHelp": "console.higgsfield.ai",
+    "docs": "https://docs.higgsfield.ai"
+   },
+   "notes": "REST auth header is 'Authorization: Key <HF_API_KEY_ID>:<HF_API_KEY_SECRET>'. npm higgsfield-mcp exists but is third-party (Storyvord), not listed."
+  },
+  {
+   "slug": "hubspot",
+   "name": "HubSpot",
+   "category": "crm",
+   "summary": "Search, create and update CRM contacts, companies, deals, tickets, notes and associations in HubSpot.",
+   "remoteMcp": {
+    "url": "https://mcp.hubspot.com/",
+    "auth": "oauth",
+    "probe": "401 www-authenticate: Bearer resource_metadata=\"https://mcp.hubspot.com/.well-known/oauth-protected-resource\""
+   },
+   "npm": {
+    "package": "@hubspot/mcp-server",
+    "version": "0.4.0",
+    "official": true,
+    "env": [
+     "PRIVATE_APP_ACCESS_TOKEN"
+    ],
+    "args": [
+     "-y",
+     "@hubspot/mcp-server"
+    ]
+   },
+   "api": {
+    "baseUrl": "https://api.hubapi.com",
+    "auth": "bearer",
+    "header": "Authorization",
+    "envVar": "HUBSPOT_ACCESS_TOKEN",
+    "keyLabel": "Private app access token",
+    "keyHelp": "HubSpot Settings -> Integrations -> Private Apps",
+    "docs": "https://developers.hubspot.com/docs/api-reference"
+   },
+   "notes": "https://mcp.hubspot.com/anthropic answers the same OAuth 401. npm package maintained by HubSpot staff."
+  },
+  {
+   "slug": "huggingface",
+   "name": "Hugging Face",
+   "category": "ai",
+   "summary": "Search models, datasets, Spaces and papers on the Hugging Face Hub and run Gradio Space tools.",
+   "remoteMcp": {
+    "url": "https://huggingface.co/mcp",
+    "auth": "none",
+    "probe": "200 application/json {\"result\":{\"protocolVersion\":\"2025-06-18\",...,\"serverInfo\":{\"name\":\"huggingface.co/mcp\",\"version\":\"0.4.28\""
+   },
+   "npm": null,
+   "api": {
+    "baseUrl": "https://huggingface.co/api",
+    "auth": "bearer",
+    "header": "Authorization",
+    "envVar": "HF_TOKEN",
+    "keyLabel": "Access token",
+    "keyHelp": "huggingface.co/settings/tokens",
+    "docs": "https://huggingface.co/docs/hub/api"
+   },
+   "notes": "Remote MCP works anonymously; pass an HF token as Bearer for user-scoped tools/limits. npm @llmindset/hf-mcp-server 0.4.28 (repo evalstate/hf-mcp-server) matches the hosted server version but is published under a personal account and its env vars could not be read, so npm left null."
+  },
+  {
+   "slug": "ifttt",
+   "name": "IFTTT",
+   "category": "productivity",
+   "summary": "Search IFTTT services and applets, run actions and queries, and trigger webhook events.",
+   "remoteMcp": {
+    "url": "https://ifttt.com/mcp",
+    "auth": "oauth",
+    "probe": "401 application/json www-authenticate: Bearer realm=\"mcp\", resource_metadata=\"https://ifttt.com/.well-known/oauth-protected-resource\", scope=\"mcp\""
+   },
+   "npm": null,
+   "api": {
+    "baseUrl": "https://maker.ifttt.com",
+    "auth": "query",
+    "header": null,
+    "envVar": "IFTTT_WEBHOOKS_KEY",
+    "keyLabel": "Webhooks key",
+    "keyHelp": "ifttt.com/maker_webhooks -> Documentation",
+    "docs": "https://ifttt.com/maker_webhooks"
+   },
+   "notes": "REST is only the Webhooks service: key goes in the URL path (/trigger/{event}/with/key/{key}). Remote MCP is closed source, hosted by IFTTT."
+  },
+  {
+   "slug": "indeed",
+   "name": "Indeed",
+   "category": "other",
+   "summary": "Search job listings, read job details and company data on Indeed.",
+   "remoteMcp": {
+    "url": "https://mcp.indeed.com/claude/mcp",
+    "auth": "oauth",
+    "probe": "401 application/json www-authenticate: Bearer error=\"invalid_token\", error_description=\"Authentication required\", resource_metadata=\"https://mcp.indeed.com/.well-known/oauth-protected-resource/claude/mcp\""
+   },
+   "npm": null,
+   "api": null,
+   "notes": "No public API-key REST API for job search."
+  },
+  {
+   "slug": "instacart",
+   "name": "Instacart",
+   "category": "ecommerce",
+   "summary": "Turn recipes and shopping lists into Instacart shoppable pages and find retailers.",
+   "remoteMcp": {
+    "url": "https://mcp.instacart.com/mcp",
+    "auth": "none",
+    "probe": "200 application/json {\"jsonrpc\":\"2.0\",\"id\":1,\"result\":{\"protocolVersion\":\"2024-11-05\",...,\"serverInfo\":{\"name\":\"InstacartRecipeServer\",\"version\":\"1.0.0\"}}}"
+   },
+   "npm": null,
+   "api": {
+    "baseUrl": "https://connect.instacart.com",
+    "auth": "bearer",
+    "header": "Authorization",
+    "envVar": "INSTACART_API_KEY",
+    "keyLabel": "API key",
+    "keyHelp": "Instacart Developer Platform dashboard",
+    "docs": "https://docs.instacart.com/developer_platform_api/"
+   },
+   "notes": "MCP endpoint found by probing (answers unauthenticated; recipe/shopping-list server), not confirmed in Instacart docs. API base URL is the production Developer Platform host."
+  },
+  {
+   "slug": "instantly",
+   "name": "Instantly",
+   "category": "marketing",
+   "summary": "Manage cold-email campaigns, leads, sending accounts and analytics in Instantly.",
+   "remoteMcp": {
+    "url": "https://mcp.instantly.ai/mcp",
+    "auth": "oauth",
+    "probe": "401 application/json www-authenticate: Bearer realm=\"instantly-mcp\", resource_metadata=\"https://mcp.instantly.ai/.well-known/oauth-protected-resource\""
+   },
+   "npm": null,
+   "api": {
+    "baseUrl": "https://api.instantly.ai/api/v2",
+    "auth": "bearer",
+    "header": "Authorization",
+    "envVar": "INSTANTLY_API_KEY",
+    "keyLabel": "API key",
+    "keyHelp": "Instantly Settings -> Integrations -> API",
+    "docs": "https://developer.instantly.ai"
+   },
+   "notes": "npm instantly-mcp (bcharleson) is community; README not readable, left null."
+  },
+  {
+   "slug": "intercom",
+   "name": "Intercom",
+   "category": "communication",
+   "summary": "Search and read conversations, contacts, companies and tickets in Intercom.",
+   "remoteMcp": {
+    "url": "https://mcp.intercom.com/mcp",
+    "auth": "oauth",
+    "probe": "401 application/json www-authenticate: Bearer realm=\"OAuth\", error=\"invalid_token\", resource_metadata=\"https://mcp.intercom.com/.well-known/oauth-protected-resource/mcp\", scope=\"mcp operator\""
+   },
+   "npm": null,
+   "api": {
+    "baseUrl": "https://api.intercom.io",
+    "auth": "bearer",
+    "header": "Authorization",
+    "envVar": "INTERCOM_ACCESS_TOKEN",
+    "keyLabel": "Access token",
+    "keyHelp": "Intercom Developer Hub -> your app -> Authentication",
+    "docs": "https://developers.intercom.com/docs/references/rest-api/api.intercom.io"
+   },
+   "notes": "No official npm package (@intercom/mcp-server 404)."
+  },
+  {
+   "slug": "intuit",
+   "name": "Intuit QuickBooks",
+   "category": "finance",
+   "summary": "Query QuickBooks Online accounting data: customers, invoices, bills, reports and payroll insights.",
+   "remoteMcp": {
+    "url": "https://ai-inc.quickbooks.intuit.com/v1/mcp",
+    "auth": "oauth",
+    "probe": "200 text/event-stream {\"jsonrpc\":\"2.0\",\"id\":1,\"result\":{\"protocolVersion\":\"2025-06-18\",...,\"serverInfo\":{\"name\":\"QBO MCP Federation"
+   },
+   "npm": null,
+   "api": {
+    "baseUrl": "https://quickbooks.api.intuit.com/v3",
+    "auth": "oauth",
+    "header": "Authorization",
+    "envVar": null,
+    "keyLabel": "OAuth access token",
+    "keyHelp": "developer.intuit.com (create an app)",
+    "docs": "https://developer.intuit.com/app/developer/qbo/docs/api/accounting/all-entities/account"
+   },
+   "notes": "MCP URL from directory listings; initialize answers 200 unauthenticated but OAuth metadata is published at ai-inc.quickbooks.intuit.com/.well-known/oauth-protected-resource (Intuit auth server), so tools need OAuth. intuit/quickbooks-online-mcp-server is not on npm."
+  },
+  {
+   "slug": "jina",
+   "name": "Jina AI",
+   "category": "ai",
+   "summary": "Read any URL as clean markdown, search the web and papers, and compute embeddings/reranking with Jina AI.",
+   "remoteMcp": {
+    "url": "https://mcp.jina.ai/v1",
+    "auth": "none",
+    "probe": "200 text/event-stream {\"result\":{\"protocolVersion\":\"2025-06-18\",...,\"serverInfo\":{\"name\":\"Jina AI Official MCP Server\",\"version\":\"1.9.0\"}"
+   },
+   "npm": {
+    "package": "jina-mcp-tools",
+    "version": "1.3.0",
+    "official": false,
+    "env": [
+     "JINA_API_KEY"
+    ],
+    "args": []
+   },
+   "api": {
+    "baseUrl": "https://r.jina.ai",
+    "auth": "bearer",
+    "header": "Authorization",
+    "envVar": "JINA_API_KEY",
+    "keyLabel": "API key",
+    "keyHelp": "jina.ai (API key shown on homepage / dashboard)",
+    "docs": "https://jina.ai/reader"
+   },
+   "notes": "Remote MCP answers without auth; pass JINA_API_KEY as Bearer for higher limits. /sse also answers. Search at s.jina.ai, embeddings at api.jina.ai/v1. npm jina-mcp-tools is community (PsychArch)."
+  },
+  {
+   "slug": "jira",
+   "name": "Jira",
+   "category": "dev",
+   "summary": "Search, create and update Jira issues, projects, sprints and comments (plus Confluence via Atlassian MCP).",
+   "remoteMcp": {
+    "url": "https://mcp.atlassian.com/v1/mcp",
+    "auth": "oauth",
+    "probe": "401 application/json www-authenticate: Bearer realm=\"OAuth\", error=\"invalid_token\", error_description=\"Missing or invalid access token\""
+   },
+   "npm": null,
+   "api": {
+    "baseUrl": "https://your-domain.atlassian.net/rest/api/3",
+    "auth": "basic",
+    "header": "Authorization",
+    "envVar": "JIRA_API_TOKEN",
+    "keyLabel": "API token (with account email)",
+    "keyHelp": "id.atlassian.com/manage-profile/security/api-tokens",
+    "docs": "https://developer.atlassian.com/cloud/jira/platform/rest/v3/intro/"
+   },
+   "notes": "Atlassian Rovo MCP; /v1/sse also answers. Basic auth = email:api_token; base URL is per-site. No official npm package."
+  },
+  {
+   "slug": "jotform",
+   "name": "Jotform",
+   "category": "productivity",
+   "summary": "List, create and edit forms and read or create form submissions in Jotform.",
+   "remoteMcp": {
+    "url": "https://mcp.jotform.com",
+    "auth": "oauth",
+    "probe": "401 application/json {\"message\":\"NO_AUTH_HEADER\"} (OAuth metadata at /.well-known/oauth-protected-resource, auth server oauth2.jotform.com)"
+   },
+   "npm": null,
+   "api": {
+    "baseUrl": "https://api.jotform.com",
+    "auth": "header",
+    "header": "APIKEY",
+    "envVar": "JOTFORM_API_KEY",
+    "keyLabel": "API key",
+    "keyHelp": "jotform.com/myaccount/api",
+    "docs": "https://api.jotform.com/docs/"
+   },
+   "notes": "Official docs: jotform.com/developers/mcp; MCP is OAuth-only (no bearer API keys); /mcp-app variant also exists."
+  },
+  {
+   "slug": "kaggle",
+   "name": "Kaggle",
+   "category": "data",
+   "summary": "Search and download datasets, models, notebooks and competitions on Kaggle.",
+   "remoteMcp": {
+    "url": "https://www.kaggle.com/mcp",
+    "auth": "none",
+    "probe": "200 text/event-stream {\"result\":{\"protocolVersion\":\"2025-06-18\",...,\"serverInfo\":{\"name\":\"Kaggle.Web\",\"version\":\"1.0.0.0\"}}"
+   },
+   "npm": null,
+   "api": {
+    "baseUrl": "https://www.kaggle.com/api/v1",
+    "auth": "basic",
+    "header": "Authorization",
+    "envVar": "KAGGLE_KEY",
+    "keyLabel": "API token (username + key)",
+    "keyHelp": "kaggle.com/settings -> API -> Create New Token",
+    "docs": "https://www.kaggle.com/docs/api"
+   },
+   "notes": "Remote MCP initializes without auth; authenticated tools likely need a Kaggle token as Bearer (not verified). Basic auth = KAGGLE_USERNAME:KAGGLE_KEY."
+  },
+  {
+   "slug": "kensho",
+   "name": "S&P Global (Kensho)",
+   "category": "finance",
+   "summary": "Query S&P Capital IQ financials, earnings call transcripts and company data via Kensho's LLM-ready API.",
+   "remoteMcp": {
+    "url": "https://kfinance.kensho.com/integrations/mcp",
+    "auth": "oauth",
+    "probe": "401 application/json www-authenticate: Bearer error=\"invalid_token\", ... resource_metadata=\"https://kfinance.kensho.com/.well-known/oauth-protected-resource/integrations/mcp\""
+   },
+   "npm": null,
+   "api": null,
+   "notes": "Requires S&P Capital IQ entitlement. REST base/auth for kFinance could not be verified, so api is null."
+  },
+  {
+   "slug": "kie-ai",
+   "name": "Kie.ai",
+   "category": "ai",
+   "summary": "Generate images, video and music through Kie.ai's aggregated AI model APIs (Veo, Nano Banana, Suno, etc.).",
+   "remoteMcp": null,
+   "npm": {
+    "package": "kie-mcp",
+    "version": "5.6.1",
+    "official": false,
+    "env": [
+     "KIE_API_KEY"
+    ],
+    "args": []
+   },
+   "api": {
+    "baseUrl": "https://api.kie.ai",
+    "auth": "bearer",
+    "header": "Authorization",
+    "envVar": "KIE_API_KEY",
+    "keyLabel": "API key",
+    "keyHelp": "kie.ai/api-key",
+    "docs": "https://docs.kie.ai"
+   },
+   "notes": "No vendor-hosted MCP found (mcp.kie.ai not resolving). kie-mcp is community (elibarnett)."
+  },
+  {
+   "slug": "kit",
+   "name": "Kit",
+   "category": "marketing",
+   "summary": "Manage subscribers, tags, sequences, forms and broadcasts in Kit (formerly ConvertKit).",
+   "remoteMcp": {
+    "url": "https://app.kit.com/mcp",
+    "auth": "oauth",
+    "probe": "401 application/json www-authenticate: Bearer resource_metadata=\"https://app.kit.com/.well-known/oauth-protected-resource/mcp\" {\"error\":\"Bearer token required\"}"
+   },
+   "npm": null,
+   "api": {
+    "baseUrl": "https://api.kit.com/v4",
+    "auth": "header",
+    "header": "X-Kit-Api-Key",
+    "envVar": "KIT_API_KEY",
+    "keyLabel": "API key (v4)",
+    "keyHelp": "app.kit.com -> Settings -> Developer",
+    "docs": "https://developers.kit.com"
+   },
+   "notes": "MCP URL documented at developers.kit.com/mcp/kit-mcp."
+  },
+  {
+   "slug": "klaviyo",
+   "name": "Klaviyo",
+   "category": "marketing",
+   "summary": "Manage profiles, lists, segments, campaigns, flows and read marketing performance in Klaviyo.",
+   "remoteMcp": {
+    "url": "https://mcp.klaviyo.com/mcp",
+    "auth": "oauth",
+    "probe": "401 www-authenticate: Bearer realm=\"OAuth\", resource_metadata=\"https://mcp.klaviyo.com/.well-known/oauth-protected-resource/mcp\""
+   },
+   "npm": null,
+   "api": {
+    "baseUrl": "https://a.klaviyo.com/api",
+    "auth": "header",
+    "header": "Authorization",
+    "envVar": "KLAVIYO_API_KEY",
+    "keyLabel": "Private API key",
+    "keyHelp": "Klaviyo Settings -> API keys",
+    "docs": "https://developers.klaviyo.com/en/reference/api_overview"
+   },
+   "notes": "REST header value is 'Klaviyo-API-Key <key>' plus a 'revision' header. Klaviyo's local MCP is Python (uvx), not npm."
+  },
+  {
+   "slug": "klubizz",
+   "name": "Klubizz",
+   "category": "communication",
+   "summary": "Manage a Klubizz community (French Skool alternative): members, posts, courses, events and media.",
+   "remoteMcp": {
+    "url": "https://api.klubizz.com/mcp",
+    "auth": "oauth",
+    "probe": "401 application/json www-authenticate: Bearer resource_metadata=\"https://api.klubizz.com/.well-known/oauth-protected-resource\" {\"jsonrpc\":\"2.0\",...,\"message\":\"Autorisation requise. Connecte ce Klub depuis ton assistant.\""
+   },
+   "npm": null,
+   "api": {
+    "baseUrl": "https://api.klubizz.com/public/v1",
+    "auth": "bearer",
+    "header": "Authorization",
+    "envVar": "KLUBIZZ_API_KEY",
+    "keyLabel": "API key",
+    "keyHelp": "Klubizz Klub settings -> API (Pro plan)",
+    "docs": "https://klubizz.com/docs"
+   },
+   "notes": "MCP URL found via probe; OAuth metadata points resource_documentation to klubizz.com/docs. MCP/API/webhooks included from Pro plan. Keys look like klb_live_..."
+  },
+  {
+   "slug": "legalzoom",
+   "name": "LegalZoom",
+   "category": "other",
+   "summary": "Review legal documents for risks and key clauses and get routed to LegalZoom attorneys.",
+   "remoteMcp": {
+    "url": "https://www.legalzoom.com/mcp/claude/v1",
+    "auth": "oauth",
+    "probe": "401 application/json www-authenticate: Bearer resource_metadata=\"https://www.legalzoom.com/.well-known/oauth-protected-resource/mcp/claude/v1\""
+   },
+   "npm": null,
+   "api": null,
+   "notes": "Non-www legalzoom.com/mcp/claude/v1 301-redirects. No public REST API."
+  },
+  {
+   "slug": "lemlist",
+   "name": "lemlist",
+   "category": "marketing",
+   "summary": "Manage outreach campaigns, leads, sequences and activities in lemlist.",
+   "remoteMcp": {
+    "url": "https://app.lemlist.com/mcp",
+    "auth": "oauth",
+    "probe": "401 application/json www-authenticate: Bearer resource_metadata=\"https://app.lemlist.com/.well-known/oauth-protected-resource/mcp\", scope=\"full_access\" {\"error\":{\"message\":\"X-API-Key header or Authorization: Bearer token is required\"}}"
+   },
+   "npm": null,
+   "api": {
+    "baseUrl": "https://api.lemlist.com/api",
+    "auth": "basic",
+    "header": "Authorization",
+    "envVar": "LEMLIST_API_KEY",
+    "keyLabel": "API key",
+    "keyHelp": "lemlist Settings -> Integrations -> API",
+    "docs": "https://developer.lemlist.com"
+   },
+   "notes": "Remote MCP accepts OAuth or an API key via X-API-Key / Bearer. REST basic auth uses empty username and the API key as password."
+  },
+  {
+   "slug": "lightreel",
+   "name": "LightReel",
+   "category": "marketing",
+   "summary": "Research TikTok and Instagram UGC trends, hooks, creators and competitor content with LightReel's AI researcher.",
+   "remoteMcp": {
+    "url": "https://api.lightreel.ai/mcp",
+    "auth": "oauth",
+    "probe": "401 application/json www-authenticate: Bearer error=\"invalid_token\", error_description=\"Missing Authorization header\", scope=\"lightreel\", resource_metadata=\"https://api.lightreel.ai/.well-known/oauth-protected-resource/mcp\""
+   },
+   "npm": null,
+   "api": {
+    "baseUrl": "https://api.lightreel.ai",
+    "auth": "bearer",
+    "header": "Authorization",
+    "envVar": "LIGHTREEL_API_KEY",
+    "keyLabel": "API key",
+    "keyHelp": "LightReel dashboard (lightreel.ai)",
+    "docs": "https://lightreel.ai/docs"
+   },
+   "notes": "MCP endpoint discovered by probe (resource_name 'Lightreel'), not mentioned in public docs. API: POST /v1/chat; keys lr_live_...; npm 'lightreel' is the SDK, not an MCP server."
+  },
+  {
+   "slug": "linear",
+   "name": "Linear",
+   "category": "dev",
+   "summary": "Create, search and update Linear issues, projects, cycles, comments and teams.",
+   "remoteMcp": {
+    "url": "https://mcp.linear.app/mcp",
+    "auth": "oauth",
+    "probe": "401 www-authenticate: Bearer realm=\"OAuth\", resource_metadata=\"https://mcp.linear.app/.well-known/oauth-protected-resource/mcp\", scope=\"read write\""
+   },
+   "npm": null,
+   "api": {
+    "baseUrl": "https://api.linear.app/graphql",
+    "auth": "header",
+    "header": "Authorization",
+    "envVar": "LINEAR_API_KEY",
+    "keyLabel": "Personal API key",
+    "keyHelp": "linear.app/settings/account/security",
+    "docs": "https://linear.app/developers"
+   },
+   "notes": "GraphQL API; personal keys are sent raw in Authorization (no Bearer prefix); OAuth tokens use Bearer."
+  },
+  {
+   "slug": "linkedin",
+   "name": "LinkedIn",
+   "category": "marketing",
+   "summary": "Publish posts and read profile, page and ads data via LinkedIn's APIs.",
+   "remoteMcp": null,
+   "npm": null,
+   "api": {
+    "baseUrl": "https://api.linkedin.com",
+    "auth": "oauth",
+    "header": "Authorization",
+    "envVar": null,
+    "keyLabel": "OAuth access token",
+    "keyHelp": "linkedin.com/developers/apps",
+    "docs": "https://learn.microsoft.com/en-us/linkedin/"
+   },
+   "notes": "No official LinkedIn MCP server or npm package found. API is OAuth-only with product approval."
+  },
+  {
+   "slug": "lovable",
+   "name": "Lovable",
+   "category": "dev",
+   "summary": "Create and manage Lovable app projects: send build prompts, inspect code and deploy apps.",
+   "remoteMcp": {
+    "url": "https://mcp.lovable.dev",
+    "auth": "oauth",
+    "probe": "401 application/json www-authenticate: Bearer realm=\"mcp\", resource_metadata=\"https://mcp.lovable.dev/.well-known/oauth-protected-resource\" {\"jsonrpc\":\"2.0\",\"error\":{\"code\":-32001,\"message\":\"Not authenticated\"}}"
+   },
+   "npm": null,
+   "api": null,
+   "notes": "Documented at docs.lovable.dev/integrations/lovable-mcp-server (research preview). No public API-key REST API."
+  },
+  {
+   "slug": "lucid",
+   "name": "Lucid",
+   "category": "productivity",
+   "summary": "Search, read, create and edit Lucidchart diagrams and Lucidspark boards.",
+   "remoteMcp": {
+    "url": "https://mcp.lucid.app/mcp",
+    "auth": "oauth",
+    "probe": "401 application/json {\"error\": \"unauthorized\", \"error_description\": \"Invalid or expired access token\"} (OAuth metadata at /.well-known/oauth-protected-resource)"
+   },
+   "npm": null,
+   "api": {
+    "baseUrl": "https://api.lucid.co",
+    "auth": "bearer",
+    "header": "Authorization",
+    "envVar": "LUCID_API_KEY",
+    "keyLabel": "API key",
+    "keyHelp": "Lucid developer portal (developer.lucid.co)",
+    "docs": "https://developer.lucid.co/reference/overview"
+   },
+   "notes": "Lucid MCP uses OAuth by default; Lucid documents an API key option for unattended use."
+  },
+  {
+   "slug": "lumail",
+   "name": "Lumail",
+   "category": "marketing",
+   "summary": "Manage email marketing subscribers, tags, campaigns and workflows in Lumail.",
+   "remoteMcp": {
+    "url": "https://lumail.io/mcp",
+    "auth": "oauth",
+    "probe": "401 application/json www-authenticate: Bearer resource_metadata=\"https://lumail.io/.well-known/oauth-protected-resource/mcp\", scope=\"offline_access lumail.read lumail.write lumail.full\""
+   },
+   "npm": null,
+   "api": {
+    "baseUrl": "https://lumail.io",
+    "auth": "bearer",
+    "header": "Authorization",
+    "envVar": "LUMAIL_API_KEY",
+    "keyLabel": "Organization API token",
+    "keyHelp": "Lumail organization settings -> API tokens",
+    "docs": "https://lumail.io/docs/api-reference"
+   },
+   "notes": "MCP URL taken from OAuth resource metadata (mcp.lumail.io/mcp also answers). OpenAPI at lumail.io/openapi.json; tokens lum_... npm 'lumail' (Melvynx, official) is the SDK/CLI, not an MCP server."
+  },
+  {
+   "slug": "mailchimp",
+   "name": "Mailchimp",
+   "category": "marketing",
+   "summary": "Manage audiences, campaigns, automations and reports in Mailchimp (and send transactional email via Mandrill).",
+   "remoteMcp": {
+    "url": "https://ai-inc.mailchimp.com/claude/mcp/v2",
+    "auth": "oauth",
+    "probe": "401 application/json www-authenticate: Bearer resource_metadata=\"https://ai-inc.mailchimp.com/.well-known/oauth-protected-resource/claude\", error=\"missing_token\""
+   },
+   "npm": null,
+   "api": {
+    "baseUrl": "https://<dc>.api.mailchimp.com/3.0",
+    "auth": "basic",
+    "header": "Authorization",
+    "envVar": "MAILCHIMP_API_KEY",
+    "keyLabel": "API key",
+    "keyHelp": "Mailchimp Profile -> Extras -> API keys",
+    "docs": "https://mailchimp.com/developer/marketing/api/"
+   },
+   "notes": "Marketing MCP URL from directory listings (Mailchimp domain, OAuth). Transactional (Mandrill) MCP at https://mandrillapp.com/mcp uses 'Authorization: Bearer <api_key>' (probe 200 JSON-RPC error asking for it). <dc> = suffix of API key."
+  },
+  {
+   "slug": "make",
+   "name": "Make",
+   "category": "productivity",
+   "summary": "Run and manage Make scenarios, and expose on-demand scenarios as tools.",
+   "remoteMcp": {
+    "url": "https://mcp.make.com",
+    "auth": "oauth",
+    "probe": "401 application/json www-authenticate: Bearer resource_metadata=\"https://mcp.make.com/.well-known/oauth-protected-resource\""
+   },
+   "npm": {
+    "package": "@makehq/mcp-server",
+    "version": "0.5.0",
+    "official": true,
+    "env": [
+     "MAKE_API_KEY",
+     "MAKE_ZONE",
+     "MAKE_TEAM"
+    ],
+    "args": [
+     "-y",
+     "@makehq/mcp-server"
+    ]
+   },
+   "api": {
+    "baseUrl": "https://<zone>.make.com/api/v2",
+    "auth": "header",
+    "header": "Authorization",
+    "envVar": "MAKE_API_KEY",
+    "keyLabel": "API token",
+    "keyHelp": "Make Profile -> API access",
+    "docs": "https://developers.make.com/api-documentation"
+   },
+   "notes": "REST header value is 'Token <key>'; zone e.g. eu2.make.com. npm maintained by Make (repo integromat/make-mcp-server)."
+  },
+  {
+   "slug": "malwarebytes",
+   "name": "Malwarebytes",
+   "category": "other",
+   "summary": "Check links, phone numbers, emails and messages for scams using Malwarebytes threat intelligence.",
+   "remoteMcp": {
+    "url": "https://scamguard.malwarebytes.com/claude/mcp",
+    "auth": "none",
+    "probe": "200 text/event-stream {\"jsonrpc\":\"2.0\",\"id\":1,\"result\":{\"protocolVersion\":\"2025-06-18\",..."
+   },
+   "npm": null,
+   "api": null,
+   "notes": "URL from directory listings; initialize answers without auth (listings say OAuth sign-in may be requested). No public consumer REST API."
+  },
+  {
+   "slug": "mercury",
+   "name": "Mercury",
+   "category": "finance",
+   "summary": "Read Mercury bank accounts, balances, transactions and request transfers.",
+   "remoteMcp": {
+    "url": "https://mcp.mercury.com/mcp",
+    "auth": "oauth",
+    "probe": "401 application/json www-authenticate: Bearer error=\"invalid_token\", error_description=\"Missing Authorization header\" (OAuth metadata at /.well-known/oauth-protected-resource)"
+   },
+   "npm": null,
+   "api": {
+    "baseUrl": "https://api.mercury.com/api/v1",
+    "auth": "bearer",
+    "header": "Authorization",
+    "envVar": "MERCURY_API_KEY",
+    "keyLabel": "API token",
+    "keyHelp": "Mercury Settings -> API tokens",
+    "docs": "https://docs.mercury.com/reference"
+   },
+   "notes": "MCP scopes include read, transactions:request, transfers:request."
+  },
+  {
+   "slug": "mermaid",
+   "name": "Mermaid Chart",
+   "category": "productivity",
+   "summary": "Create, render and edit Mermaid diagrams and manage Mermaid Chart documents.",
+   "remoteMcp": {
+    "url": "https://mcp.mermaid.ai/mcp",
+    "auth": "oauth",
+    "probe": "401 application/json www-authenticate: Bearer realm=\"mcp\", resource_metadata=\"https://mcp.mermaid.ai/.well-known/oauth-protected-resource/mcp\", authorization_server=\"https://ummcsnegloedxcrwlucz.supabase.co/...\""
+   },
+   "npm": null,
+   "api": null,
+   "notes": "URL from directory listings; https://mcp.mermaidchart.com/mcp answers identically (same auth server). REST API not verified."
+  },
+  {
+   "slug": "meta-ads",
+   "name": "Meta Ads",
+   "category": "marketing",
+   "summary": "Manage Facebook and Instagram ad campaigns, ad sets, ads, catalogs and read performance insights.",
+   "remoteMcp": {
+    "url": "https://mcp.facebook.com/ads",
+    "auth": "oauth",
+    "probe": "401 application/json www-authenticate: Bearer resource_metadata=\"https://mcp.facebook.com/.well-known/oauth-protected-resource/ads\", scope=\"ads_management ads_read catalog_management business_management ...\""
+   },
+   "npm": null,
+   "api": {
+    "baseUrl": "https://graph.facebook.com",
+    "auth": "oauth",
+    "header": "Authorization",
+    "envVar": "META_ACCESS_TOKEN",
+    "keyLabel": "Access token",
+    "keyHelp": "developers.facebook.com/apps (Marketing API, system user token)",
+    "docs": "https://developers.facebook.com/docs/marketing-apis"
+   },
+   "notes": "Official Meta Ads MCP documented at developers.facebook.com (ads-ai-connectors/ads-mcp-server). No official npm package."
+  },
+  {
+   "slug": "metricool",
+   "name": "Metricool",
+   "category": "marketing",
+   "summary": "Schedule social posts and read social media and ads analytics across brands in Metricool.",
+   "remoteMcp": {
+    "url": "https://ai.metricool.com/mcp",
+    "auth": "oauth",
+    "probe": "401 application/json www-authenticate: Bearer resource_metadata=\"https://ai.metricool.com/.well-known/oauth-protected-resource\""
+   },
+   "npm": null,
+   "api": {
+    "baseUrl": "https://app.metricool.com/api",
+    "auth": "header",
+    "header": "X-Mc-Auth",
+    "envVar": "METRICOOL_API_TOKEN",
+    "keyLabel": "API access token",
+    "keyHelp": "Metricool Account settings -> API (Advanced/Custom plans)",
+    "docs": "https://app.metricool.com/resources/apidocs/index.html"
+   },
+   "notes": "MCP documented in help.metricool.com. REST calls also need userId and blogId query params."
+  },
+  {
+   "slug": "microsoft",
+   "name": "Microsoft 365",
+   "category": "productivity",
+   "summary": "Work with Outlook mail and calendar, OneDrive, Teams and other Microsoft 365 data via Microsoft Graph.",
+   "remoteMcp": null,
+   "npm": null,
+   "api": {
+    "baseUrl": "https://graph.microsoft.com/v1.0",
+    "auth": "oauth",
+    "header": "Authorization",
+    "envVar": null,
+    "keyLabel": "OAuth access token",
+    "keyHelp": "entra.microsoft.com -> App registrations",
+    "docs": "https://learn.microsoft.com/en-us/graph/overview"
+   },
+   "notes": "No public vendor-hosted M365 MCP verified. Microsoft Learn docs MCP (https://learn.microsoft.com/api/mcp, 200 no auth) exists but only searches docs. Community npm @softeria/ms-365-mcp-server is not official."
+  },
+  {
+   "slug": "miro",
+   "name": "Miro",
+   "category": "productivity",
+   "summary": "Read and create content on Miro boards: sticky notes, shapes, diagrams and documents.",
+   "remoteMcp": {
+    "url": "https://mcp.miro.com/",
+    "auth": "oauth",
+    "probe": "401 application/json www-authenticate: Bearer resource_metadata=\"https://mcp.miro.com/.well-known/oauth-protected-resource\""
+   },
+   "npm": null,
+   "api": {
+    "baseUrl": "https://api.miro.com/v2",
+    "auth": "bearer",
+    "header": "Authorization",
+    "envVar": "MIRO_ACCESS_TOKEN",
+    "keyLabel": "Access token",
+    "keyHelp": "miro.com/app/settings/user-profile/apps",
+    "docs": "https://developers.miro.com/reference"
+   },
+   "notes": null
+  },
+  {
+   "slug": "mixpanel",
+   "name": "Mixpanel",
+   "category": "analytics",
+   "summary": "Query Mixpanel events, funnels, retention, and user profiles for product analytics.",
+   "remoteMcp": {
+    "url": "https://mcp.mixpanel.com/mcp",
+    "auth": "oauth",
+    "probe": "401 application/json www-authenticate: Bearer error=\"invalid_token\", error_description=\"Authentication failed...\""
+   },
+   "npm": null,
+   "api": {
+    "baseUrl": "https://mixpanel.com/api",
+    "auth": "basic",
+    "header": "Authorization",
+    "envVar": "MIXPANEL_SERVICE_ACCOUNT_SECRET",
+    "keyLabel": "Service account (username + secret)",
+    "keyHelp": "Mixpanel Organization settings -> Service accounts",
+    "docs": "https://developer.mixpanel.com/reference/overview"
+   },
+   "notes": "EU residency uses eu.mixpanel.com."
+  },
+  {
+   "slug": "monday",
+   "name": "monday.com",
+   "category": "productivity",
+   "summary": "Create and update boards, items, columns, updates and workspaces on monday.com.",
+   "remoteMcp": {
+    "url": "https://mcp.monday.com/mcp",
+    "auth": "oauth",
+    "probe": "401 application/json www-authenticate: Bearer resource_metadata=\"https://mcp.monday.com/.well-known/oauth-protected-resource/mcp\" {\"errors\":[\"Not Authenticated\"]}"
+   },
+   "npm": {
+    "package": "@mondaydotcomorg/monday-api-mcp",
+    "version": "3.3.1",
+    "official": true,
+    "env": [
+     "monday_token"
+    ],
+    "args": [
+     "-y",
+     "@mondaydotcomorg/monday-api-mcp@latest",
+     "-t",
+     "<token>"
+    ]
+   },
+   "api": {
+    "baseUrl": "https://api.monday.com/v2",
+    "auth": "header",
+    "header": "Authorization",
+    "envVar": "MONDAY_API_TOKEN",
+    "keyLabel": "API token",
+    "keyHelp": "monday.com avatar -> Developers -> My access tokens",
+    "docs": "https://developer.monday.com/api-reference"
+   },
+   "notes": "GraphQL API; token sent raw in Authorization. npm token passed via -t/--token or monday_token env."
+  },
+  {
+   "slug": "monid",
+   "name": "Monid",
+   "category": "data",
+   "summary": "Discover and run hundreds of paid data endpoints (scraping, social, company/people data) through one wallet.",
+   "remoteMcp": {
+    "url": "https://mcp.monid.ai/v1",
+    "auth": "oauth",
+    "probe": "401 application/json www-authenticate: Bearer resource_metadata=\"https://mcp.monid.ai/.well-known/oauth-protected-resource/v1\""
+   },
+   "npm": null,
+   "api": {
+    "baseUrl": "https://api.monid.ai/v1",
+    "auth": "bearer",
+    "header": "Authorization",
+    "envVar": "MONID_API_KEY",
+    "keyLabel": "API key",
+    "keyHelp": "app.monid.ai/access/api-keys",
+    "docs": "https://docs.monid.ai/api/overview.html"
+   },
+   "notes": "MCP URL documented in docs.monid.ai/guide/quickstart-mcp. npm @monid-ai/cli is a CLI, not an MCP server."
+  },
+  {
+   "slug": "moodys",
+   "name": "Moody's",
+   "category": "finance",
+   "summary": "Query Moody's credit ratings, research and company/economic data from Moody's GenAI-ready data sets.",
+   "remoteMcp": {
+    "url": "https://api.moodys.com/genai-ready-data/m1/mcp",
+    "auth": "oauth",
+    "probe": "401 application/json {\"jsonrpc\":\"2.0\",\"error\":{\"code\":-32001,\"message\":\"Expected Authorization: Bearer <token>\"},\"id\":1}"
+   },
+   "npm": null,
+   "api": null,
+   "notes": "Official remote MCP (Streamable HTTP) documented at moodys.com/web/en/us/genai/model-context-protocol.html; OAuth sign-in, requires Moody's entitlement. No public self-serve REST API key."
+  },
+  {
+   "slug": "moonbundle",
+   "name": "Moon Bundles",
+   "category": "ecommerce",
+   "summary": "Shopify app for product bundles, quantity breaks, cart-drawer upsells and post-purchase offers.",
+   "remoteMcp": null,
+   "npm": null,
+   "api": null,
+   "notes": "Shopify app by CScorp LLC (apps.shopify.com/moonbundle). No MCP server or public API found; manage via Shopify admin/app UI."
+  },
+  {
+   "slug": "morningstar",
+   "name": "Morningstar",
+   "category": "finance",
+   "summary": "Retrieve Morningstar analyst research, fund/stock data, market analysis and investment news.",
+   "remoteMcp": {
+    "url": "https://mcp.morningstar.com/mcp",
+    "auth": "oauth",
+    "probe": "401 missing authorization — no claims in any metadata path (/.well-known/oauth-protected-resource lists authorization_servers https://mcp.morningstar.com/mcp)"
+   },
+   "npm": null,
+   "api": null,
+   "notes": "Official remote MCP documented on developer.morningstar.com; OAuth, requires a licensed Morningstar account. Data APIs are enterprise-licensed, no self-serve key."
+  },
+  {
+   "slug": "motion",
+   "name": "Motion",
+   "category": "ai",
+   "summary": "Generate and refine motion-design videos (launch videos, product demos, logo animations, social ads) from text prompts.",
+   "remoteMcp": {
+    "url": "https://mcp.motion.so/mcp",
+    "auth": "oauth",
+    "probe": "401 application/json www-authenticate: Bearer realm=\"Motion MCP\", error=\"invalid_token\", resource_metadata=\"https://mcp.motion.so/.well-known/oauth-protected-resource\""
+   },
+   "npm": null,
+   "api": null,
+   "notes": "Identified as motion.so (video agent) by matching Rerun's icon to motion.so favicon. Not to be confused with Motion creative analytics (projects.motionapp.com/mcp) or usemotion.com. No public REST API found."
+  },
+  {
+   "slug": "mozilla",
+   "name": "MDN Web Docs (Mozilla)",
+   "category": "dev",
+   "summary": "Search and read MDN Web Docs reference for HTML, CSS, JavaScript and Web APIs, including browser compatibility data.",
+   "remoteMcp": {
+    "url": "https://mcp.mdn.mozilla.net/mcp",
+    "auth": "none",
+    "probe": "200 application/json {\"result\":{\"protocolVersion\":\"2025-06-18\",...,\"serverInfo\":{\"name\":\"mdn\",\"version\":\"0.0.1\"}"
+   },
+   "npm": null,
+   "api": null,
+   "notes": "Public MDN MCP server, no auth (answered initialize with 200). No API key needed."
+  },
+  {
+   "slug": "n8n",
+   "name": "n8n",
+   "category": "productivity",
+   "summary": "Search, inspect and run n8n workflows that have been exposed to MCP on your n8n instance.",
+   "remoteMcp": null,
+   "npm": {
+    "package": "n8n-mcp",
+    "version": "2.92.1",
+    "official": false,
+    "env": [
+     "N8N_API_URL",
+     "N8N_API_KEY"
+    ],
+    "args": []
+   },
+   "api": {
+    "baseUrl": "https://{your-n8n-host}/api/v1",
+    "auth": "header",
+    "header": "X-N8N-API-KEY",
+    "envVar": "N8N_API_KEY",
+    "keyLabel": "API key",
+    "keyHelp": "n8n Settings > n8n API",
+    "docs": "https://docs.n8n.io/api/"
+   },
+   "notes": "n8n's official MCP is instance-level: URL copied from Settings > Instance-level MCP, ending in /mcp-server/http (OAuth2 or personal MCP access token) — host-specific so not probed. n8n-mcp is community (czlonkowski); env names from its README."
+  },
+  {
+   "slug": "neon",
+   "name": "Neon",
+   "category": "dev",
+   "summary": "Manage Neon serverless Postgres projects, branches and databases, run SQL and migrations.",
+   "remoteMcp": {
+    "url": "https://mcp.neon.tech/mcp",
+    "auth": "oauth",
+    "probe": "401 application/json www-authenticate: Bearer error=\"invalid_token\", error_description=\"No authorization provided\", resource_metadata=\"https://mcp.neon.tech/.well-known/oauth-protected-resource/mcp\""
+   },
+   "npm": {
+    "package": "@neondatabase/mcp-server-neon",
+    "version": "0.6.5",
+    "official": true,
+    "env": [
+     "NEON_API_KEY"
+    ],
+    "args": [
+     "start",
+     "<NEON_API_KEY>"
+    ]
+   },
+   "api": {
+    "baseUrl": "https://console.neon.tech/api/v2",
+    "auth": "bearer",
+    "header": "Authorization",
+    "envVar": "NEON_API_KEY",
+    "keyLabel": "API key",
+    "keyHelp": "console.neon.tech/app/settings/api-keys",
+    "docs": "https://api-docs.neon.tech/reference/getting-started-with-neon-api"
+   },
+   "notes": "Remote MCP uses OAuth, also accepts Authorization: Bearer <Neon API key>. Local package is run as `npx -y @neondatabase/mcp-server-neon start <API_KEY>`."
+  },
+  {
+   "slug": "newrelic",
+   "name": "New Relic",
+   "category": "dev",
+   "summary": "Query New Relic observability data with NRQL, inspect entities, alerts, incidents and APM performance.",
+   "remoteMcp": {
+    "url": "https://mcp.newrelic.com/mcp/",
+    "auth": "oauth",
+    "probe": "401 application/json www-authenticate: Bearer realm=\"New Relic MCP\", resource_metadata=\"https://mcp.newrelic.com/.well-known/oauth-protected-resource\", scope=\"observability:read offline offline_access\""
+   },
+   "npm": null,
+   "api": {
+    "baseUrl": "https://api.newrelic.com/graphql",
+    "auth": "header",
+    "header": "API-Key",
+    "envVar": "NEW_RELIC_API_KEY",
+    "keyLabel": "User API key",
+    "keyHelp": "one.newrelic.com > API keys",
+    "docs": "https://docs.newrelic.com/docs/apis/nerdgraph/get-started/introduction-new-relic-nerdgraph/"
+   },
+   "notes": "Remote MCP accepts OAuth or an 'api-key' header with a New Relic user key (per the 401 body). EU accounts use api.eu.newrelic.com. No official npm package."
+  },
+  {
+   "slug": "notch",
+   "name": "Notch",
+   "category": "marketing",
+   "summary": "Create finished video ads from a brief or product URL using your Notch brand kit, and analyze and ship Meta ad campaigns.",
+   "remoteMcp": {
+    "url": "https://app.usenotch.ai/mcp",
+    "auth": "oauth",
+    "probe": "401 application/json www-authenticate: Bearer resource_metadata=\"https://app.usenotch.ai/.well-known/oauth-protected-resource/mcp\" {\"error\":\"invalid_token\"}"
+   },
+   "npm": null,
+   "api": null,
+   "notes": "Notch = usenotch.ai (AI growth marketer for Meta/TikTok ads); setup documented at app.usenotch.ai/mcp/setup. Identification is by name/context (Rerun icon not an exact favicon match). No public REST API found."
+  },
+  {
+   "slug": "notion",
+   "name": "Notion",
+   "category": "productivity",
+   "summary": "Search, read, create and update Notion pages, databases and comments.",
+   "remoteMcp": {
+    "url": "https://mcp.notion.com/mcp",
+    "auth": "oauth",
+    "probe": "401 www-authenticate: Bearer realm=\"OAuth\", resource_metadata=\"https://mcp.notion.com/.well-known/oauth-protected-resource/mcp\", scope=\"default\""
+   },
+   "npm": {
+    "package": "@notionhq/notion-mcp-server",
+    "version": "2.5.2",
+    "official": true,
+    "env": [
+     "NOTION_TOKEN"
+    ],
+    "args": []
+   },
+   "api": {
+    "baseUrl": "https://api.notion.com/v1",
+    "auth": "bearer",
+    "header": "Authorization",
+    "envVar": "NOTION_TOKEN",
+    "keyLabel": "Internal integration secret",
+    "keyHelp": "notion.so/profile/integrations",
+    "docs": "https://developers.notion.com/reference/intro"
+   },
+   "notes": "REST calls also need a Notion-Version header. Remote MCP is OAuth-only."
+  },
+  {
+   "slug": "nuxt",
+   "name": "Nuxt",
+   "category": "dev",
+   "summary": "Search and read Nuxt framework documentation, modules, blog posts and deployment guides.",
+   "remoteMcp": {
+    "url": "https://nuxt.com/mcp",
+    "auth": "none",
+    "probe": "200 application/json {\"result\":{\"protocolVersion\":\"2025-06-18\",...,\"serverInfo\":{\"name\":\"Nuxt\",\"version\":\"1.0.0\"}}"
+   },
+   "npm": null,
+   "api": null,
+   "notes": "Public docs MCP, no auth. nuxt-mcp (antfu) is a dev-server plugin for Nuxt apps, not a docs connector, so not listed. No API."
+  },
+  {
+   "slug": "okx",
+   "name": "OKX",
+   "category": "finance",
+   "summary": "Get OKX market data and manage account balances, spot and swap orders on the OKX exchange.",
+   "remoteMcp": null,
+   "npm": {
+    "package": "@okx_ai/okx-trade-mcp",
+    "version": "1.4.8",
+    "official": true,
+    "env": [
+     "OKX_API_KEY",
+     "OKX_SECRET_KEY",
+     "OKX_PASSPHRASE"
+    ],
+    "args": [
+     "--profile",
+     "live",
+     "--modules",
+     "all"
+    ]
+   },
+   "api": {
+    "baseUrl": "https://www.okx.com/api/v5",
+    "auth": "header",
+    "header": "OK-ACCESS-KEY",
+    "envVar": "OKX_API_KEY",
+    "keyLabel": "API key (+ secret key and passphrase)",
+    "keyHelp": "OKX > Profile > API keys",
+    "docs": "https://www.okx.com/docs-v5/en/"
+   },
+   "notes": "No hosted MCP found. npm maintainers use okg.com (OKX) emails; README configures keys via ~/.okx/config.toml profiles, env vars OKX_API_KEY/OKX_SECRET_KEY/OKX_PASSPHRASE read in dist. REST requires HMAC signing (OK-ACCESS-SIGN, OK-ACCESS-TIMESTAMP, OK-ACCESS-PASSPHRASE)."
+  },
+  {
+   "slug": "omni",
+   "name": "Omni",
+   "category": "analytics",
+   "summary": "Ask natural-language questions of your Omni Analytics semantic models, run queries and explore topics.",
+   "remoteMcp": {
+    "url": "https://callbacks.omniapp.co/callback/mcp",
+    "auth": "oauth",
+    "probe": "401 application/json www-authenticate: Bearer resource_metadata=\"https://callbacks.omniapp.co/.well-known/oauth-protected-resource\", scope=\"mcp:access\", error=\"invalid_token\""
+   },
+   "npm": {
+    "package": "@omni-co/mcp",
+    "version": "0.0.14",
+    "official": true,
+    "env": [
+     "MCP_SERVER_URL",
+     "MCP_API_KEY",
+     "MCP_MODEL_ID",
+     "MCP_TOPIC_NAME"
+    ],
+    "args": []
+   },
+   "api": {
+    "baseUrl": "https://{your-org}.omniapp.co/api",
+    "auth": "bearer",
+    "header": "Authorization",
+    "envVar": "OMNI_API_KEY",
+    "keyLabel": "API key",
+    "keyHelp": "Omni Settings > API keys",
+    "docs": "https://docs.omni.co/api"
+   },
+   "notes": "Omni Analytics (omni.co). MCP must be enabled under Settings > AI; per-instance URL https://{org}.omniapp.co/mcp/https with API key also documented. npm maintainers include omni.co/exploreomni.com emails."
+  },
+  {
+   "slug": "outlook",
+   "name": "Outlook",
+   "category": "communication",
+   "summary": "Read, search, send and organize Outlook email, calendar events and contacts via Microsoft Graph.",
+   "remoteMcp": null,
+   "npm": {
+    "package": "@softeria/ms-365-mcp-server",
+    "version": "0.160.0",
+    "official": false,
+    "env": [],
+    "args": []
+   },
+   "api": {
+    "baseUrl": "https://graph.microsoft.com/v1.0",
+    "auth": "oauth",
+    "header": "Authorization",
+    "envVar": null,
+    "keyLabel": null,
+    "keyHelp": "Register an app in Microsoft Entra ID",
+    "docs": "https://learn.microsoft.com/en-us/graph/api/resources/mail-api-overview"
+   },
+   "notes": "No public vendor-hosted Outlook MCP found. Graph API is OAuth-only (Entra app). npm package is community (Softeria), uses device-code login."
+  },
+  {
+   "slug": "outreach",
+   "name": "Outreach",
+   "category": "crm",
+   "summary": "Work with Outreach prospects, accounts, sequences, tasks and engagement data.",
+   "remoteMcp": {
+    "url": "https://api.outreach.io/mcp/",
+    "auth": "oauth",
+    "probe": "401 application/json www-authenticate: Bearer resource_metadata=\"https://api.outreach.io/.well-known/oauth-protected-resource\" {\"error\":\"No Authorization header.\"}"
+   },
+   "npm": null,
+   "api": {
+    "baseUrl": "https://api.outreach.io/api/v2",
+    "auth": "oauth",
+    "header": "Authorization",
+    "envVar": null,
+    "keyLabel": null,
+    "keyHelp": "Outreach OAuth app (developers.outreach.io)",
+    "docs": "https://developers.outreach.io/api/"
+   },
+   "notes": "Official MCP (support.outreach.io article 46370115253403); requires Outreach license. REST API is OAuth 2.0 only."
+  },
+  {
+   "slug": "paddle",
+   "name": "Paddle",
+   "category": "payments",
+   "summary": "Manage Paddle Billing products, prices, customers, subscriptions, transactions and reports.",
+   "remoteMcp": {
+    "url": "https://mcp.paddle.com/mcp",
+    "auth": "oauth",
+    "probe": "401 application/json www-authenticate: Bearer error=\"unauthorized\", error_description=\"Authorization needed\", resource_metadata=\"https://mcp.paddle.com/.well-known/oauth-protected-resource\""
+   },
+   "npm": {
+    "package": "@paddle/paddle-mcp",
+    "version": "0.1.6",
+    "official": true,
+    "env": [
+     "PADDLE_API_KEY",
+     "PADDLE_ENVIRONMENT"
+    ],
+    "args": []
+   },
+   "api": {
+    "baseUrl": "https://api.paddle.com",
+    "auth": "bearer",
+    "header": "Authorization",
+    "envVar": "PADDLE_API_KEY",
+    "keyLabel": "API key",
+    "keyHelp": "vendors.paddle.com > Developer tools > Authentication",
+    "docs": "https://developer.paddle.com/api-reference/overview"
+   },
+   "notes": "Sandbox base URL is https://sandbox-api.paddle.com. Remote MCP URL found by probing vendor subdomain (OAuth metadata present)."
+  },
+  {
+   "slug": "pagerduty",
+   "name": "PagerDuty",
+   "category": "dev",
+   "summary": "Manage PagerDuty incidents, services, schedules, on-calls and escalation policies.",
+   "remoteMcp": {
+    "url": "https://mcp.pagerduty.com/mcp",
+    "auth": "oauth",
+    "probe": "401 www-authenticate: Bearer error=\"invalid_token\", resource_metadata=\"https://mcp.pagerduty.com/.well-known/oauth-protected-resource/mcp\""
+   },
+   "npm": null,
+   "api": {
+    "baseUrl": "https://api.pagerduty.com",
+    "auth": "header",
+    "header": "Authorization",
+    "envVar": "PAGERDUTY_API_KEY",
+    "keyLabel": "REST API key (sent as 'Token token=<key>')",
+    "keyHelp": "PagerDuty > Integrations > API Access Keys",
+    "docs": "https://developer.pagerduty.com/api-reference/"
+   },
+   "notes": "Remote MCP documented at support.pagerduty.com (pagerduty-mcp-server-integration-guide). Local server is a Python package (not npm)."
+  },
+  {
+   "slug": "pagespeed-insights",
+   "name": "PageSpeed Insights",
+   "category": "seo",
+   "summary": "Run Google PageSpeed Insights / Lighthouse audits and get Core Web Vitals and performance scores for a URL.",
+   "remoteMcp": null,
+   "npm": null,
+   "api": {
+    "baseUrl": "https://www.googleapis.com/pagespeedonline/v5",
+    "auth": "query",
+    "header": "key",
+    "envVar": "PAGESPEED_API_KEY",
+    "keyLabel": "Google API key",
+    "keyHelp": "console.cloud.google.com/apis/credentials",
+    "docs": "https://developers.google.com/speed/docs/insights/v5/get-started"
+   },
+   "notes": "Endpoint: GET /runPagespeed?url=...&key=...; key optional for low volume. No official MCP."
+  },
+  {
+   "slug": "pandadoc",
+   "name": "PandaDoc",
+   "category": "productivity",
+   "summary": "Create, send and track PandaDoc documents, templates, quotes and e-signatures.",
+   "remoteMcp": {
+    "url": "https://mcp.pandadoc.com/v1/mcp",
+    "auth": "oauth",
+    "probe": "401 www-authenticate: Bearer resource_metadata=\"https://mcp.pandadoc.com/.well-known/oauth-protected-resource/v1/mcp\""
+   },
+   "npm": null,
+   "api": {
+    "baseUrl": "https://api.pandadoc.com/public/v1",
+    "auth": "header",
+    "header": "Authorization",
+    "envVar": "PANDADOC_API_KEY",
+    "keyLabel": "API key (sent as 'API-Key <key>')",
+    "keyHelp": "app.pandadoc.com > Settings > Developer dashboard",
+    "docs": "https://developers.pandadoc.com/reference/about"
+   },
+   "notes": "Official MCP per PandaDoc's mcp-server-guide repo (OAuth)."
+  },
+  {
+   "slug": "paypal",
+   "name": "PayPal",
+   "category": "payments",
+   "summary": "Create and manage PayPal invoices, orders, payments, subscriptions, disputes and transaction reports.",
+   "remoteMcp": {
+    "url": "https://mcp.paypal.com/mcp",
+    "auth": "oauth",
+    "probe": "401 application/json www-authenticate: Bearer realm=\"OAuth\", resource_metadata=\"https://mcp.paypal.com/.well-known/oauth-protected-resource/mcp\", error=\"invalid_token\""
+   },
+   "npm": {
+    "package": "@paypal/mcp",
+    "version": "1.8.1",
+    "official": true,
+    "env": [
+     "PAYPAL_ACCESS_TOKEN",
+     "PAYPAL_ENVIRONMENT"
+    ],
+    "args": [
+     "--tools=all"
+    ]
+   },
+   "api": {
+    "baseUrl": "https://api-m.paypal.com",
+    "auth": "oauth",
+    "header": "Authorization",
+    "envVar": "PAYPAL_ACCESS_TOKEN",
+    "keyLabel": "Access token (from client ID + secret)",
+    "keyHelp": "developer.paypal.com/dashboard/applications",
+    "docs": "https://developer.paypal.com/api/rest/"
+   },
+   "notes": "REST uses OAuth2 client-credentials to mint a Bearer access token; sandbox is api-m.sandbox.paypal.com. PAYPAL_ENVIRONMENT = SANDBOX|PRODUCTION."
+  },
+  {
+   "slug": "perplexity",
+   "name": "Perplexity",
+   "category": "ai",
+   "summary": "Run real-time web search, Q&A, deep research and reasoning with Perplexity Sonar models.",
+   "remoteMcp": {
+    "url": "https://api.perplexity.ai/mcp",
+    "auth": "bearer",
+    "probe": "401 application/json www-authenticate: Bearer resource_metadata=\"https://api.perplexity.ai/.well-known/oauth-protected-resource\" {\"error\":{\"message\":\"Invalid API key provided...\",\"type\":\"invalid_api_key\"}}"
+   },
+   "npm": {
+    "package": "@perplexity-ai/mcp-server",
+    "version": "1.3.0",
+    "official": true,
+    "env": [
+     "PERPLEXITY_API_KEY"
+    ],
+    "args": []
+   },
+   "api": {
+    "baseUrl": "https://api.perplexity.ai",
+    "auth": "bearer",
+    "header": "Authorization",
+    "envVar": "PERPLEXITY_API_KEY",
+    "keyLabel": "API key",
+    "keyHelp": "perplexity.ai/account/api/keys",
+    "docs": "https://docs.perplexity.ai/"
+   },
+   "notes": "Remote MCP documented with 'Authorization: Bearer <API key>' (OAuth metadata also advertised)."
+  },
+  {
+   "slug": "pika",
+   "name": "Pika",
+   "category": "ai",
+   "summary": "Generate and edit AI videos and images through your Pika Agent.",
+   "remoteMcp": {
+    "url": "https://mcp.pika.me/api/mcp",
+    "auth": "oauth",
+    "probe": "401 application/json www-authenticate: Bearer resource_metadata=\"https://mcp.pika.me/.well-known/oauth-protected-resource\" {\"error\":\"Unauthorized\"}"
+   },
+   "npm": null,
+   "api": null,
+   "notes": "URL from third-party guide (mcp.directory); https://mcp.pika.art/mcp also answers 401 with OAuth metadata. No official public API key flow found (Pika API historically via fal.ai)."
+  },
+  {
+   "slug": "pipedrive",
+   "name": "Pipedrive",
+   "category": "crm",
+   "summary": "Manage Pipedrive deals, persons, organizations, activities, leads and pipelines.",
+   "remoteMcp": {
+    "url": "https://mcp.pipedrive.ai/mcp",
+    "auth": "oauth",
+    "probe": "401 application/json; www-authenticate: Bearer error=\"invalid_request\", error_description=\"Unauthorized: No API token or authorization header provided.\", resource_metadata=\"https://mcp.pipedrive.ai/mcp/.well-known/oauth-protected-resource\""
+   },
+   "npm": null,
+   "api": {
+    "baseUrl": "https://api.pipedrive.com/v1",
+    "auth": "header",
+    "header": "x-api-token",
+    "envVar": "PIPEDRIVE_API_TOKEN",
+    "keyLabel": "Personal API token",
+    "keyHelp": "Pipedrive > Personal preferences > API",
+    "docs": "https://developers.pipedrive.com/docs/api/v1"
+   },
+   "notes": "Official native MCP launched 2026 (Pipedrive newsroom); URL per tldv.io article, probe confirms. Also accepts API token. API token may alternatively be passed as ?api_token=."
+  },
+  {
+   "slug": "pitchbook",
+   "name": "PitchBook",
+   "category": "finance",
+   "summary": "Research private companies, deals, investors, funds and valuations with PitchBook data.",
+   "remoteMcp": {
+    "url": "https://premium.mcp.pitchbook.com/mcp",
+    "auth": "oauth",
+    "probe": "401 www-authenticate: Bearer resource_metadata=\"https://premium.mcp.pitchbook.com/.well-known/oauth-protected-resource/mcp\""
+   },
+   "npm": null,
+   "api": null,
+   "notes": "URL from directory listings (mcpservers.org); OAuth, requires PitchBook subscription. mcp.pitchbook.com/mcp also exists. PitchBook API is enterprise-only."
+  },
+  {
+   "slug": "plaid",
+   "name": "Plaid",
+   "category": "finance",
+   "summary": "Debug Plaid Items, view Link conversion analytics and API usage for your Plaid integration (Dashboard MCP).",
+   "remoteMcp": {
+    "url": "https://api.dashboard.plaid.com/mcp/",
+    "auth": "oauth",
+    "probe": "401 application/json {\"error\":\"Unauthorized\"}"
+   },
+   "npm": null,
+   "api": {
+    "baseUrl": "https://production.plaid.com",
+    "auth": "header",
+    "header": "PLAID-CLIENT-ID",
+    "envVar": "PLAID_CLIENT_ID",
+    "keyLabel": "Client ID + secret (PLAID-SECRET)",
+    "keyHelp": "dashboard.plaid.com/developers/keys",
+    "docs": "https://plaid.com/docs/api/"
+   },
+   "notes": "Dashboard MCP URL documented at plaid.com/docs/resources/mcp/ (OAuth, scope mcp:dashboard); probe returns plain 401 JSON without www-authenticate. https://mcp.plaid.com/mcp also answers with OAuth metadata. REST needs PLAID-CLIENT-ID + PLAID-SECRET headers (or in body); sandbox.plaid.com for testing."
+  },
+  {
+   "slug": "posthog",
+   "name": "PostHog",
+   "category": "analytics",
+   "summary": "Query PostHog product analytics, insights, feature flags, experiments, errors and dashboards.",
+   "remoteMcp": {
+    "url": "https://mcp.posthog.com/mcp",
+    "auth": "oauth",
+    "probe": "401 text/plain www-authenticate: Bearer resource_metadata=\"https://mcp.posthog.com/.well-known/oauth-protected-resource/mcp\" No token provided, please provide a valid API token."
+   },
+   "npm": null,
+   "api": {
+    "baseUrl": "https://us.posthog.com/api",
+    "auth": "bearer",
+    "header": "Authorization",
+    "envVar": "POSTHOG_API_KEY",
+    "keyLabel": "Personal API key",
+    "keyHelp": "PostHog > Settings > Personal API keys",
+    "docs": "https://posthog.com/docs/api"
+   },
+   "notes": "Remote MCP supports OAuth or a personal API key as Bearer. EU cloud uses eu.posthog.com. @posthog/mcp on npm is an analytics SDK, not a server."
+  },
+  {
+   "slug": "postiz",
+   "name": "Postiz",
+   "category": "marketing",
+   "summary": "Schedule and publish social media posts across connected channels and upload media with Postiz.",
+   "remoteMcp": {
+    "url": "https://api.postiz.com/mcp",
+    "auth": "bearer",
+    "probe": "401 text/html Missing Authorization header"
+   },
+   "npm": null,
+   "api": {
+    "baseUrl": "https://api.postiz.com/public/v1",
+    "auth": "header",
+    "header": "Authorization",
+    "envVar": "POSTIZ_API_KEY",
+    "keyLabel": "API key",
+    "keyHelp": "Postiz > Settings > Public API",
+    "docs": "https://docs.postiz.com/public-api"
+   },
+   "notes": "MCP accepts the API key as Authorization header (or /mcp/:apiKey path); self-hosted uses your backend URL. Probe has no www-authenticate. REST key is sent raw (no Bearer prefix). npm 'postiz' is a CLI agent, not an MCP server."
+  },
+  {
+   "slug": "postman",
+   "name": "Postman",
+   "category": "dev",
+   "summary": "Manage Postman workspaces, collections, environments, APIs, mocks and monitors.",
+   "remoteMcp": {
+    "url": "https://mcp.postman.com/mcp",
+    "auth": "oauth",
+    "probe": "401 application/json www-authenticate: Bearer resource_metadata=\"https://mcp.postman.com/.well-known/oauth-protected-resource/mcp\" {\"jsonrpc\":\"2.0\",\"error\":{\"code\":-32600,\"message\":\"Invalid Request: API key required\"}}"
+   },
+   "npm": {
+    "package": "@postman/postman-mcp-server",
+    "version": "2.13.0",
+    "official": true,
+    "env": [
+     "POSTMAN_API_KEY"
+    ],
+    "args": []
+   },
+   "api": {
+    "baseUrl": "https://api.getpostman.com",
+    "auth": "header",
+    "header": "X-Api-Key",
+    "envVar": "POSTMAN_API_KEY",
+    "keyLabel": "API key",
+    "keyHelp": "postman.com/settings/me/api-keys",
+    "docs": "https://learning.postman.com/docs/developer/postman-api/intro-api/"
+   },
+   "notes": "Remote MCP also accepts Postman API key as Bearer. npm supports --code/--full modes and --region eu."
+  },
+  {
+   "slug": "prisma",
+   "name": "Prisma",
+   "category": "dev",
+   "summary": "Create and manage Prisma Postgres databases, run migrations and inspect schemas.",
+   "remoteMcp": {
+    "url": "https://mcp.prisma.io/mcp",
+    "auth": "oauth",
+    "probe": "401 application/json www-authenticate: Bearer error=\"invalid_token\", error_description=\"Missing Authorization header\", resource_metadata=\"https://mcp.prisma.io/.well-known/oauth-protected-resource/mcp\""
+   },
+   "npm": {
+    "package": "prisma",
+    "version": "8.0.0-rc.22",
+    "official": true,
+    "env": [],
+    "args": [
+     "mcp"
+    ]
+   },
+   "api": {
+    "baseUrl": "https://api.prisma.io/v1",
+    "auth": "bearer",
+    "header": "Authorization",
+    "envVar": "PRISMA_SERVICE_TOKEN",
+    "keyLabel": "Service token",
+    "keyHelp": "console.prisma.io > Workspace settings > Service tokens",
+    "docs": "https://www.prisma.io/docs/postgres/introduction/management-api"
+   },
+   "notes": "Local MCP is `npx -y prisma mcp` (Prisma CLI); npm 'latest' currently reports 8.0.0-rc.22. Management API for Prisma Postgres."
+  },
+  {
+   "slug": "producthunt",
+   "name": "Product Hunt",
+   "category": "marketing",
+   "summary": "Browse Product Hunt posts, launches, topics, collections, comments and makers.",
+   "remoteMcp": null,
+   "npm": null,
+   "api": {
+    "baseUrl": "https://api.producthunt.com/v2/api/graphql",
+    "auth": "bearer",
+    "header": "Authorization",
+    "envVar": "PRODUCTHUNT_TOKEN",
+    "keyLabel": "Developer token",
+    "keyHelp": "api.producthunt.com/v2/oauth/applications",
+    "docs": "https://api.producthunt.com/v2/docs"
+   },
+   "notes": "mcp.producthunt.com/mcp exists but its OAuth server is Cloudflare Access (producthunt.cloudflareaccess.com) = internal, not public; only community MCP servers exist. API is GraphQL v2."
+  },
+  {
+   "slug": "prospeo",
+   "name": "Prospeo",
+   "category": "crm",
+   "summary": "Find and verify B2B email addresses and mobile numbers, and enrich person and company data.",
+   "remoteMcp": {
+    "url": "https://mcp.prospeo.io",
+    "auth": "oauth",
+    "probe": "401 application/json www-authenticate: Bearer resource_metadata=\"https://mcp.prospeo.io/.well-known/oauth-protected-resource\" {\"error\":\"Missing or invalid authentication. Use Authorization: Bearer <token> or X-KEY: <your_api_key>\"}"
+   },
+   "npm": null,
+   "api": {
+    "baseUrl": "https://api.prospeo.io",
+    "auth": "header",
+    "header": "X-KEY",
+    "envVar": "PROSPEO_API_KEY",
+    "keyLabel": "API key",
+    "keyHelp": "Prospeo dashboard > API",
+    "docs": "https://prospeo.io/api-docs"
+   },
+   "notes": "MCP found by probing vendor subdomain root (/mcp path 404s); accepts OAuth or X-KEY API key. Vendor MCP docs page not located."
+  },
+  {
+   "slug": "pushrank",
+   "name": "PushRank",
+   "category": "seo",
+   "summary": "Manage SEO actions, topics and AI-written articles, and track Search Console and AI-search visibility for your site.",
+   "remoteMcp": {
+    "url": "https://ai.pushrank.io/mcp",
+    "auth": "oauth",
+    "probe": "401 application/json www-authenticate: Bearer resource_metadata=\"https://ai.pushrank.io/.well-known/oauth-protected-resource/mcp\" {\"error\":\"Unauthorized\"}"
+   },
+   "npm": null,
+   "api": null,
+   "notes": "PushRank = pushrank.io (pushrank.com is parked). MCP host taken from NEXT_PUBLIC_MCP_URL on app.pushrank.io/en/mcp, /mcp path confirmed by probe. No public REST API docs found."
+  },
+  {
+   "slug": "razorpay",
+   "name": "Razorpay",
+   "category": "payments",
+   "summary": "Create and manage Razorpay payments, orders, refunds, payment links, QR codes, settlements and payouts.",
+   "remoteMcp": {
+    "url": "https://mcp.razorpay.com/mcp",
+    "auth": "bearer",
+    "probe": "401 {\"error\":{\"code\":\"BAD_REQUEST_ERROR\",\"description\":\"Please provide your api key for authentication purposes\"}}"
+   },
+   "npm": null,
+   "api": {
+    "baseUrl": "https://api.razorpay.com/v1",
+    "auth": "basic",
+    "header": "Authorization",
+    "envVar": "RAZORPAY_KEY_ID",
+    "keyLabel": "Key ID + Key secret",
+    "keyHelp": "Razorpay Dashboard > Account & Settings > API Keys",
+    "docs": "https://razorpay.com/docs/api/"
+   },
+   "notes": "Remote MCP documented (razorpay.com/docs/build/llm-docs/mcp-server/remote.md): header 'Authorization: Basic base64(key_id:key_secret)'; OAuth also supported. Probe has no www-authenticate. Local server is Go (not npm). Also needs RAZORPAY_KEY_SECRET."
+  },
+  {
+   "slug": "reddit",
+   "name": "Reddit",
+   "category": "communication",
+   "summary": "Search Reddit, read subreddits, posts and comments, and submit posts or replies.",
+   "remoteMcp": null,
+   "npm": null,
+   "api": {
+    "baseUrl": "https://oauth.reddit.com",
+    "auth": "oauth",
+    "header": "Authorization",
+    "envVar": null,
+    "keyLabel": null,
+    "keyHelp": "reddit.com/prefs/apps",
+    "docs": "https://www.reddit.com/dev/api/"
+   },
+   "notes": "No official MCP. API requires OAuth2 (script/app credentials) and a descriptive User-Agent; docs URL returns 403 to curl (bot block)."
+  },
+  {
+   "slug": "remote",
+   "name": "Remote",
+   "category": "other",
+   "summary": "Query and manage Remote.com HR data: employees, countries, time off, payroll and employment details.",
+   "remoteMcp": {
+    "url": "https://mcp.remote.com/mcp",
+    "auth": "oauth",
+    "probe": "401 application/json www-authenticate: Bearer resource_metadata=\"https://mcp.remote.com/.well-known/oauth-protected-resource/mcp\" {\"code\":\"unauthenticated\"}"
+   },
+   "npm": null,
+   "api": {
+    "baseUrl": "https://gateway.remote.com/v1",
+    "auth": "bearer",
+    "header": "Authorization",
+    "envVar": "REMOTE_API_TOKEN",
+    "keyLabel": "API token (ra_live_…)",
+    "keyHelp": "Remote > Company > Integrations > Remote API",
+    "docs": "https://developer.remote.com/"
+   },
+   "notes": "Official MCP documented at developer.remote.com quick-start (sandbox: mcp.remote-sandbox.com/mcp). Sandbox REST base gateway.remote-sandbox.com."
+  },
+  {
+   "slug": "render",
+   "name": "Render",
+   "category": "dev",
+   "summary": "Manage Render services, deploys, environment variables, logs, metrics and Postgres/Key Value databases.",
+   "remoteMcp": {
+    "url": "https://mcp.render.com/mcp",
+    "auth": "bearer",
+    "probe": "401 www-authenticate: Bearer realm=\"https://mcp.render.com/mcp\", resource_metadata=\"https://mcp.render.com/.well-known/oauth-protected-resource/mcp\""
+   },
+   "npm": null,
+   "api": {
+    "baseUrl": "https://api.render.com/v1",
+    "auth": "bearer",
+    "header": "Authorization",
+    "envVar": "RENDER_API_KEY",
+    "keyLabel": "API key",
+    "keyHelp": "dashboard.render.com/u/settings#api-keys",
+    "docs": "https://api-docs.render.com/reference/introduction"
+   },
+   "notes": "Render docs (render.com/docs/mcp-server) use 'Authorization: Bearer <RENDER_API_KEY>' for the hosted MCP; OAuth metadata also advertised. Local server is Go binary, not npm."
+  },
+  {
+   "slug": "replicate",
+   "name": "Replicate",
+   "category": "ai",
+   "summary": "Search, run and manage AI models, predictions, deployments and trainings on Replicate.",
+   "remoteMcp": {
+    "url": "https://mcp.replicate.com/mcp",
+    "auth": "oauth",
+    "probe": "401 application/json www-authenticate: Bearer realm=\"OAuth\", error=\"invalid_token\", error_description=\"Missing or invalid access token\""
+   },
+   "npm": {
+    "package": "replicate-mcp",
+    "version": "0.9.0",
+    "official": true,
+    "env": [
+     "REPLICATE_API_TOKEN"
+    ],
+    "args": []
+   },
+   "api": {
+    "baseUrl": "https://api.replicate.com/v1",
+    "auth": "bearer",
+    "header": "Authorization",
+    "envVar": "REPLICATE_API_TOKEN",
+    "keyLabel": "API token",
+    "keyHelp": "replicate.com/account/api-tokens",
+    "docs": "https://replicate.com/docs/reference/http"
+   },
+   "notes": "Docs list https://mcp.replicate.com (root POST 404s; /mcp and /sse answer 401 OAuth). npm maintained by replicatebot (infra@replicate.com); env name per Replicate docs."
+  },
+  {
+   "slug": "replit",
+   "name": "Replit",
+   "category": "dev",
+   "summary": "Build, run and deploy apps in Replit workspaces.",
+   "remoteMcp": null,
+   "npm": null,
+   "api": null,
+   "notes": "No official MCP server or public REST API found (mcp.replit.com serves an HTML app page, not MCP)."
+  },
+  {
+   "slug": "resend",
+   "name": "Resend",
+   "category": "marketing",
+   "summary": "Send transactional and marketing emails, manage domains, audiences, contacts and broadcasts.",
+   "remoteMcp": {
+    "url": "https://mcp.resend.com/mcp",
+    "auth": "oauth",
+    "probe": "401 application/json www-authenticate: Bearer resource_metadata=\"https://mcp.resend.com/.well-known/oauth-protected-resource\" {\"jsonrpc\":\"2.0\",\"error\":{\"code\":-32000,\"message\":\"Unauthorized: provide credentials via Authorization: Bearer <token>\"}}"
+   },
+   "npm": {
+    "package": "resend-mcp",
+    "version": "2.25.0",
+    "official": true,
+    "env": [
+     "RESEND_API_KEY",
+     "SENDER_EMAIL_ADDRESS"
+    ],
+    "args": []
+   },
+   "api": {
+    "baseUrl": "https://api.resend.com",
+    "auth": "bearer",
+    "header": "Authorization",
+    "envVar": "RESEND_API_KEY",
+    "keyLabel": "API key",
+    "keyHelp": "resend.com/api-keys",
+    "docs": "https://resend.com/docs/api-reference"
+   },
+   "notes": "Remote MCP (launched 2026-07-07) defaults to OAuth, also accepts Bearer API key. npm repo github.com/resend/resend-mcp."
+  },
+  {
+   "slug": "ringover",
+   "name": "Ringover",
+   "category": "communication",
+   "summary": "Access Ringover calls, recordings, SMS, contacts, users and call analytics.",
+   "remoteMcp": null,
+   "npm": null,
+   "api": {
+    "baseUrl": "https://public-api.ringover.com/v2",
+    "auth": "header",
+    "header": "Authorization",
+    "envVar": "RINGOVER_API_KEY",
+    "keyLabel": "API key",
+    "keyHelp": "Ringover Dashboard > Developer > API key",
+    "docs": "https://developer.ringover.com/"
+   },
+   "notes": "No official MCP found. API key sent raw in Authorization header (no Bearer prefix)."
+  },
+  {
+   "slug": "sanity",
+   "name": "Sanity",
+   "category": "dev",
+   "summary": "Query and edit Sanity content with GROQ, manage documents, schemas, releases and datasets.",
+   "remoteMcp": {
+    "url": "https://mcp.sanity.io",
+    "auth": "oauth",
+    "probe": "401 application/json www-authenticate: Bearer error=\"invalid_token\", error_description=\"Missing Authorization header\", resource_metadata=\"https://mcp.sanity.io/.well-known/oauth-protected-resource\""
+   },
+   "npm": null,
+   "api": {
+    "baseUrl": "https://{projectId}.api.sanity.io/v2025-02-19",
+    "auth": "bearer",
+    "header": "Authorization",
+    "envVar": "SANITY_API_TOKEN",
+    "keyLabel": "API token",
+    "keyHelp": "sanity.io/manage > API > Tokens",
+    "docs": "https://www.sanity.io/docs/http-reference"
+   },
+   "notes": "@sanity/mcp-server (npm) is deprecated/archived in favor of remote mcp.sanity.io (OAuth)."
+  },
+  {
+   "slug": "screensdesign",
+   "name": "ScreensDesign",
+   "category": "dev",
+   "summary": "Search a library of top-grossing iOS app screens, onboarding flows and paywalls with revenue signals, and generate new screens.",
+   "remoteMcp": {
+    "url": "https://api.screensdesign.com/v1/mcp",
+    "auth": "oauth",
+    "probe": "401 application/json www-authenticate: Bearer realm=\"ScreensDesign MCP\", resource_metadata=\"https://api.screensdesign.com/v1/.well-known/oauth-protected-resource\" {\"detail\":\"Developer API key credentials were not provided.\"}"
+   },
+   "npm": null,
+   "api": null,
+   "notes": "Hosted MCP documented at screensdesign.com/mcp/ (Pro plan); OAuth or scoped API key. No public REST API docs found."
+  },
+  {
+   "slug": "segment",
+   "name": "Twilio Segment",
+   "category": "data",
+   "summary": "Manage Segment sources, destinations, tracking plans and workspace configuration through the Public API.",
+   "remoteMcp": null,
+   "npm": null,
+   "api": {
+    "baseUrl": "https://api.segmentapis.com",
+    "auth": "bearer",
+    "header": "Authorization",
+    "envVar": "SEGMENT_PUBLIC_API_TOKEN",
+    "keyLabel": "Public API token",
+    "keyHelp": "app.segment.com > Settings > Access Management > Tokens",
+    "docs": "https://docs.segmentapis.com"
+   },
+   "notes": "No official Segment MCP found (mcp.segment.com 502). Twilio's docs MCP (https://mcp.twilio.com/docs, 200, no auth) only searches docs incl. Segment; not action-capable."
+  },
+  {
+   "slug": "semrush",
+   "name": "Semrush",
+   "category": "seo",
+   "summary": "Pull keyword, domain, backlink and traffic analytics for SEO and competitive research.",
+   "remoteMcp": {
+    "url": "https://mcp.semrush.com/v1/mcp",
+    "auth": "oauth",
+    "probe": "401  www-authenticate: Bearer resource_metadata=\"https://mcp.semrush.com/.well-known/oauth-protected-resource\""
+   },
+   "npm": null,
+   "api": {
+    "baseUrl": "https://api.semrush.com",
+    "auth": "query",
+    "header": "key",
+    "envVar": "SEMRUSH_API_KEY",
+    "keyLabel": "API key",
+    "keyHelp": "semrush.com > Subscription info > API units",
+    "docs": "https://developer.semrush.com/api/"
+   },
+   "notes": "Official remote MCP uses OAuth. npm semrush-mcp is community (superseoworld), not listed. API key passed as ?key= query param."
+  },
+  {
+   "slug": "sentry",
+   "name": "Sentry",
+   "category": "dev",
+   "summary": "Search and triage issues, errors, events, releases and projects in Sentry.",
+   "remoteMcp": {
+    "url": "https://mcp.sentry.dev/mcp",
+    "auth": "oauth",
+    "probe": "401  www-authenticate: Bearer realm=\"OAuth\", resource_metadata=\"https://mcp.sentry.dev/.well-known/oauth-protected-resource/mcp\""
+   },
+   "npm": {
+    "package": "@sentry/mcp-server",
+    "version": "0.42.0",
+    "official": true,
+    "env": [
+     "SENTRY_ACCESS_TOKEN"
+    ],
+    "args": [
+     "--access-token=<token>"
+    ]
+   },
+   "api": {
+    "baseUrl": "https://sentry.io/api/0",
+    "auth": "bearer",
+    "header": "Authorization",
+    "envVar": "SENTRY_AUTH_TOKEN",
+    "keyLabel": "Auth token",
+    "keyHelp": "sentry.io > Settings > Auth Tokens",
+    "docs": "https://docs.sentry.io/api/"
+   },
+   "notes": "npm package also supports --host / SENTRY_HOST for self-hosted."
+  },
+  {
+   "slug": "shopify",
+   "name": "Shopify",
+   "category": "ecommerce",
+   "summary": "Manage store products, collections, orders, customers, inventory and discounts, and run analytics queries.",
+   "remoteMcp": {
+    "url": "https://mcp.shopify.com/mcp",
+    "auth": "oauth",
+    "probe": "200 application/json {\"result\":{\"protocolVersion\":\"2025-06-18\",...,\"serverInfo\":{\"name\":\"shopify-mcp-server\",..."
+   },
+   "npm": {
+    "package": "@shopify/dev-mcp",
+    "version": "1.16.0",
+    "official": true,
+    "env": [],
+    "args": []
+   },
+   "api": {
+    "baseUrl": "https://{shop}.myshopify.com/admin/api",
+    "auth": "header",
+    "header": "X-Shopify-Access-Token",
+    "envVar": "SHOPIFY_ACCESS_TOKEN",
+    "keyLabel": "Admin API access token",
+    "keyHelp": "Shopify admin > Settings > Apps and sales channels > Develop apps",
+    "docs": "https://shopify.dev/docs/api/admin-graphql"
+   },
+   "notes": "mcp.shopify.com answers initialize/tools/list without auth but publishes OAuth metadata (authorization_servers https://mcp.shopify.com/auth) for store data. @shopify/dev-mcp is a docs/schema dev server (no store access, no env). Admin API base is per-store."
+  },
+  {
+   "slug": "similarweb",
+   "name": "Similarweb",
+   "category": "analytics",
+   "summary": "Get website traffic, engagement, ranking and competitive intelligence data for any domain.",
+   "remoteMcp": {
+    "url": "https://mcp.similarweb.com",
+    "auth": "bearer",
+    "probe": "401 application/json www-authenticate: Bearer error=\"invalid_request\", error_description=\"Authentication required. Provide either 'api-key' header or 'Authorization: Bearer <token>' header.\""
+   },
+   "npm": null,
+   "api": {
+    "baseUrl": "https://api.similarweb.com",
+    "auth": "header",
+    "header": "api-key",
+    "envVar": "SIMILARWEB_API_KEY",
+    "keyLabel": "API key",
+    "keyHelp": "Similarweb account > API management",
+    "docs": "https://developers.similarweb.com"
+   },
+   "notes": "Probed at https://mcp.similarweb.com/mcp; docs give https://mcp.similarweb.com. Accepts api-key header or Bearer. Requires a plan with API access."
+  },
+  {
+   "slug": "slack",
+   "name": "Slack",
+   "category": "communication",
+   "summary": "Read and send messages, search conversations, and manage channels and users in a Slack workspace.",
+   "remoteMcp": {
+    "url": "https://mcp.slack.com/mcp",
+    "auth": "oauth",
+    "probe": "401 application/json www-authenticate: Bearer resource_metadata=\"https://mcp.slack.com/.well-known/oauth-protected-resource\" {\"jsonrpc\":\"2.0\",\"id\":null,\"error\":{\"code\":-32001,\"message\":\"missing_token\"}}"
+   },
+   "npm": null,
+   "api": {
+    "baseUrl": "https://slack.com/api",
+    "auth": "bearer",
+    "header": "Authorization",
+    "envVar": "SLACK_BOT_TOKEN",
+    "keyLabel": "Bot token (xoxb-)",
+    "keyHelp": "api.slack.com/apps > OAuth & Permissions",
+    "docs": "https://docs.slack.dev/reference/methods"
+   },
+   "notes": "@modelcontextprotocol/server-slack (SLACK_BOT_TOKEN, SLACK_TEAM_ID) is deprecated and not Slack-owned, so npm left null."
+  },
+  {
+   "slug": "smartsheet",
+   "name": "Smartsheet",
+   "category": "productivity",
+   "summary": "Read and update sheets, rows, columns, workspaces and reports in Smartsheet.",
+   "remoteMcp": {
+    "url": "https://mcp.smartsheet.com",
+    "auth": "bearer",
+    "probe": "401 text/plain {\"errorCode\":1002,\"message\":\"Your Access Token is invalid.\",...} (with dummy Bearer; no www-authenticate)"
+   },
+   "npm": null,
+   "api": {
+    "baseUrl": "https://api.smartsheet.com/2.0",
+    "auth": "bearer",
+    "header": "Authorization",
+    "envVar": "SMARTSHEET_API_TOKEN",
+    "keyLabel": "API access token",
+    "keyHelp": "Smartsheet > Account > Personal Settings > API Access",
+    "docs": "https://developers.smartsheet.com/api/smartsheet/introduction"
+   },
+   "notes": "Vendor docs list https://mcp.smartsheet.com (EU .eu, AU .au) with Bearer API token; requires Business/Enterprise/AWM plan. @smartsheet/smar-mcp 1.6.1 is official but deprecated on npm, so npm null."
+  },
+  {
+   "slug": "solana",
+   "name": "Solana",
+   "category": "dev",
+   "summary": "Look up Solana developer documentation, SDK and program guidance for building on Solana.",
+   "remoteMcp": {
+    "url": "https://mcp.solana.com/mcp",
+    "auth": "none",
+    "probe": "200 text/event-stream event: message data: {\"result\":{\"protocolVersion\":\"2025-06-18\",...,\"serverInfo\":{\"name\":\"solana-mcp\",\"version\":\"2.0.0\"}..."
+   },
+   "npm": {
+    "package": "@solana/mcp",
+    "version": "0.1.0",
+    "official": true,
+    "env": [],
+    "args": []
+   },
+   "api": null,
+   "notes": "Solana Foundation's MCP is a developer/docs assistant, not a wallet. @solana/mcp (solana-foundation/solana-mcp) appears to proxy the hosted server (SOLANA_MCP_URL optional). Public JSON-RPC (https://api.mainnet-beta.solana.com) needs no key, so api null."
+  },
+  {
+   "slug": "sourcegraph",
+   "name": "Sourcegraph",
+   "category": "dev",
+   "summary": "Search code across repositories, read files and navigate symbols with Sourcegraph code search.",
+   "remoteMcp": {
+    "url": "https://sourcegraph.com/.api/mcp/v1",
+    "auth": "oauth",
+    "probe": "401 text/plain www-authenticate: Bearer resource_metadata=\"https://sourcegraph.com/.well-known/oauth-protected-resource/.api/mcp/v1\", scope=\"mcp\""
+   },
+   "npm": null,
+   "api": {
+    "baseUrl": "https://sourcegraph.com/.api",
+    "auth": "header",
+    "header": "Authorization",
+    "envVar": "SRC_ACCESS_TOKEN",
+    "keyLabel": "Access token",
+    "keyHelp": "Sourcegraph > User settings > Access tokens",
+    "docs": "https://sourcegraph.com/docs/api"
+   },
+   "notes": "Self-hosted instances expose the same path at https://<instance>/.api/mcp/v1. API uses 'Authorization: token <TOKEN>' (GraphQL at /.api/graphql). No official npm MCP found."
+  },
+  {
+   "slug": "square",
+   "name": "Square",
+   "category": "payments",
+   "summary": "Manage payments, orders, catalog, customers, invoices and inventory in a Square seller account.",
+   "remoteMcp": {
+    "url": "https://mcp.squareup.com/mcp",
+    "auth": "oauth",
+    "probe": "401 application/json www-authenticate: Bearer realm=\"OAuth\", resource_metadata=\"https://mcp.squareup.com/.well-known/oauth-protected-resource/mcp\", error=\"invalid_token\""
+   },
+   "npm": {
+    "package": "square-mcp-server",
+    "version": "0.1.2",
+    "official": true,
+    "env": [
+     "ACCESS_TOKEN",
+     "SANDBOX"
+    ],
+    "args": []
+   },
+   "api": {
+    "baseUrl": "https://connect.squareup.com/v2",
+    "auth": "bearer",
+    "header": "Authorization",
+    "envVar": "SQUARE_ACCESS_TOKEN",
+    "keyLabel": "Access token",
+    "keyHelp": "developer.squareup.com/apps > Credentials",
+    "docs": "https://developer.squareup.com/reference/square"
+   },
+   "notes": "SSE variant https://mcp.squareup.com/sse also returns OAuth 401. npm square-mcp-server published by block-oss-releases (Block, Square's parent)."
+  },
+  {
+   "slug": "strapi",
+   "name": "Strapi",
+   "category": "dev",
+   "summary": "Create, read, update, publish and unpublish content entries in a Strapi CMS instance.",
+   "remoteMcp": null,
+   "npm": null,
+   "api": {
+    "baseUrl": null,
+    "auth": "bearer",
+    "header": "Authorization",
+    "envVar": "STRAPI_API_TOKEN",
+    "keyLabel": "API token",
+    "keyHelp": "Strapi admin > Settings > API Tokens",
+    "docs": "https://docs.strapi.io/cms/api/rest"
+   },
+   "notes": "Self-hosted: official built-in MCP (Strapi 5.49+ GA) served at https://<instance>/mcp when server.mcp.enabled=true, auth with Admin tokens; no vendor-hosted URL. REST base is https://<instance>/api."
+  },
+  {
+   "slug": "stripe",
+   "name": "Stripe",
+   "category": "payments",
+   "summary": "Manage customers, payments, invoices, subscriptions, products and refunds in Stripe.",
+   "remoteMcp": {
+    "url": "https://mcp.stripe.com",
+    "auth": "oauth",
+    "probe": "401 application/json www-authenticate: Bearer resource_metadata=\"https://mcp.stripe.com/.well-known/oauth-protected-resource\" {\"error\":\"Unauthorized...\",\"error_code\":\"missing_api_key\"}"
+   },
+   "npm": {
+    "package": "@stripe/mcp",
+    "version": "0.3.3",
+    "official": true,
+    "env": [
+     "STRIPE_SECRET_KEY"
+    ],
+    "args": [
+     "--api-key=<STRIPE_SECRET_KEY>"
+    ]
+   },
+   "api": {
+    "baseUrl": "https://api.stripe.com/v1",
+    "auth": "bearer",
+    "header": "Authorization",
+    "envVar": "STRIPE_SECRET_KEY",
+    "keyLabel": "Secret key",
+    "keyHelp": "dashboard.stripe.com/apikeys",
+    "docs": "https://docs.stripe.com/api"
+   },
+   "notes": "Remote MCP supports OAuth or a restricted API key as Bearer."
+  },
+  {
+   "slug": "supabase",
+   "name": "Supabase",
+   "category": "dev",
+   "summary": "Manage Supabase projects, run SQL, inspect tables, migrations, edge functions and logs.",
+   "remoteMcp": {
+    "url": "https://mcp.supabase.com/mcp",
+    "auth": "oauth",
+    "probe": "401 application/json www-authenticate: Bearer resource_metadata=\"https://mcp.supabase.com/.well-known/oauth-protected-resource/mcp\" {\"message\":\"No access token provided\"}"
+   },
+   "npm": {
+    "package": "@supabase/mcp-server-supabase",
+    "version": "0.13.0",
+    "official": true,
+    "env": [
+     "SUPABASE_ACCESS_TOKEN"
+    ],
+    "args": [
+     "--project-ref=<ref>",
+     "--read-only"
+    ]
+   },
+   "api": {
+    "baseUrl": "https://api.supabase.com/v1",
+    "auth": "bearer",
+    "header": "Authorization",
+    "envVar": "SUPABASE_ACCESS_TOKEN",
+    "keyLabel": "Personal access token",
+    "keyHelp": "supabase.com/dashboard/account/tokens",
+    "docs": "https://supabase.com/docs/reference/api/introduction"
+   },
+   "notes": "API entry is the Management API; project data APIs are at https://<ref>.supabase.co."
+  },
+  {
+   "slug": "surveymonkey",
+   "name": "SurveyMonkey",
+   "category": "marketing",
+   "summary": "Create surveys, list collectors and fetch survey responses and results.",
+   "remoteMcp": {
+    "url": "https://mcp.surveymonkey.com/mcp",
+    "auth": "oauth",
+    "probe": "401 application/json www-authenticate: Bearer resource_metadata=\"https://mcp.surveymonkey.com/.well-known/oauth-protected-resource\" {\"error\": \"authentication_required\",...}"
+   },
+   "npm": null,
+   "api": {
+    "baseUrl": "https://api.surveymonkey.com/v3",
+    "auth": "bearer",
+    "header": "Authorization",
+    "envVar": "SURVEYMONKEY_ACCESS_TOKEN",
+    "keyLabel": "Access token",
+    "keyHelp": "developer.surveymonkey.com/apps",
+    "docs": "https://developer.surveymonkey.com/api/v3/"
+   },
+   "notes": "Remote MCP URL found by probing the vendor domain (not confirmed in vendor docs)."
+  },
+  {
+   "slug": "tally",
+   "name": "Tally",
+   "category": "marketing",
+   "summary": "Create and edit forms, browse the workspace and fetch form submissions in Tally.",
+   "remoteMcp": {
+    "url": "https://api.tally.so/mcp",
+    "auth": "oauth",
+    "probe": "401 text/plain www-authenticate: Bearer resource_metadata=\"https://api.tally.so/.well-known/oauth-protected-resource/mcp\", scope=\"mcp\""
+   },
+   "npm": null,
+   "api": {
+    "baseUrl": "https://api.tally.so",
+    "auth": "bearer",
+    "header": "Authorization",
+    "envVar": "TALLY_API_KEY",
+    "keyLabel": "API key",
+    "keyHelp": "tally.so > Settings > API keys",
+    "docs": "https://developers.tally.so"
+   },
+   "notes": "MCP also accepts 'Authorization: Bearer <API key>' per Tally docs. Free on all plans."
+  },
+  {
+   "slug": "tokportal",
+   "name": "TokPortal",
+   "category": "marketing",
+   "summary": "Operate managed TikTok, Instagram and YouTube accounts: create accounts, upload and schedule video bundles, warm accounts and read analytics.",
+   "remoteMcp": {
+    "url": "https://app.tokportal.com/api/ext/mcp",
+    "auth": "oauth",
+    "probe": "401 application/json www-authenticate: Bearer resource_metadata=\"https://app.tokportal.com/.well-known/oauth-protected-resource\" {\"jsonrpc\":\"2.0\",\"id\":null,\"error\":{\"code\":-32001,\"message\":\"Unauthorized\"}}"
+   },
+   "npm": {
+    "package": "tokportal-mcp",
+    "version": "1.17.1",
+    "official": true,
+    "env": [
+     "TOKPORTAL_API_KEY"
+    ],
+    "args": []
+   },
+   "api": {
+    "baseUrl": "https://app.tokportal.com/api/ext",
+    "auth": "header",
+    "header": "X-API-Key",
+    "envVar": "TOKPORTAL_API_KEY",
+    "keyLabel": "API key (sk_...)",
+    "keyHelp": "app.tokportal.com/developer/api-keys",
+    "docs": "https://developers.tokportal.com"
+   },
+   "notes": "Remote MCP accepts OAuth or 'X-API-Key: sk_...' header. npm repo github.com/tokportal/tokportal-mcp."
+  },
+  {
+   "slug": "trendtrack",
+   "name": "TrendTrack",
+   "category": "ecommerce",
+   "summary": "Research e-commerce brands and Shopify stores: look up shops, ads, traffic and track competitor brands.",
+   "remoteMcp": {
+    "url": "https://api.trendtrack.io/v1/mcp",
+    "auth": "oauth",
+    "probe": "401 application/json www-authenticate: Bearer realm=\"OAuth\", resource_metadata=\"https://api.trendtrack.io/.well-known/oauth-protected-resource/v1/mcp\", scope=\"trendtrack:identity.read ...\""
+   },
+   "npm": null,
+   "api": {
+    "baseUrl": "https://api.trendtrack.io",
+    "auth": "bearer",
+    "header": "Authorization",
+    "envVar": "TRENDTRACK_API_KEY",
+    "keyLabel": "API key",
+    "keyHelp": "app.trendtrack.io/workspace/settings/api",
+    "docs": "https://docs.trendtrack.io"
+   },
+   "notes": "MCP supports OAuth or API key (docs). No npm package found."
+  },
+  {
+   "slug": "trivago",
+   "name": "trivago",
+   "category": "other",
+   "summary": "Search hotels and accommodations and compare prices across booking sites.",
+   "remoteMcp": {
+    "url": "https://mcp.trivago.com/mcp",
+    "auth": "none",
+    "probe": "200 application/json {\"jsonrpc\":\"2.0\",\"id\":1,\"result\":{...,\"serverInfo\":{\"name\":\"trivago Accommodation Search\",\"version\":\"0.5.0\"}}}"
+   },
+   "npm": null,
+   "api": null,
+   "notes": "Remote MCP is free and needs no auth. No public API-key REST API."
+  },
+  {
+   "slug": "typeform",
+   "name": "Typeform",
+   "category": "marketing",
+   "summary": "Create and update forms, manage workspaces and webhooks, and retrieve form responses.",
+   "remoteMcp": {
+    "url": "https://api.typeform.com/mcp",
+    "auth": "oauth",
+    "probe": "401 application/json www-authenticate: Bearer resource_metadata=\"https://api.typeform.com/.well-known/oauth-protected-resource\" scope=\"accounts:read ... forms:write responses:read ...\" {\"error\":\"not authorized\"}"
+   },
+   "npm": null,
+   "api": {
+    "baseUrl": "https://api.typeform.com",
+    "auth": "bearer",
+    "header": "Authorization",
+    "envVar": "TYPEFORM_ACCESS_TOKEN",
+    "keyLabel": "Personal access token",
+    "keyHelp": "admin.typeform.com > Account > Personal tokens",
+    "docs": "https://www.typeform.com/developers/"
+   },
+   "notes": "EU accounts: https://api.eu.typeform.com/mcp or https://api.typeform.eu/mcp. Streamable HTTP only (no SSE)."
+  },
+  {
+   "slug": "uber",
+   "name": "Uber",
+   "category": "other",
+   "summary": "Get ride options, fare and ETA estimates between two locations (booking handed off to the Uber app).",
+   "remoteMcp": {
+    "url": "https://mcp.uber.com/claude/rides-3p/mcp",
+    "auth": "none",
+    "probe": "200 application/json {\"jsonrpc\":\"2.0\",\"id\":1,\"result\":{...,\"serverInfo\":{\"name\":\"Uber MCP Server - claude-rides-3p-demand-mcp\",\"version\":\"0.0.1\"}...}}"
+   },
+   "npm": null,
+   "api": null,
+   "notes": "Endpoint path is Claude-partner specific (rides-3p); tools/list works without auth. Uber's rider APIs are restricted/OAuth partner access, so api null."
+  },
+  {
+   "slug": "udemy",
+   "name": "Udemy",
+   "category": "other",
+   "summary": "Search and recommend Udemy Business courses and learning content inside AI workflows.",
+   "remoteMcp": {
+    "url": "https://api.udemy.com/mcp",
+    "auth": "oauth",
+    "probe": "401  www-authenticate: Bearer realm=\"https://api.udemy.com/mcp\", resource_metadata=\"https://api.udemy.com/.well-known/oauth-protected-resource/mcp\""
+   },
+   "npm": null,
+   "api": null,
+   "notes": "Remote MCP for Udemy Business customers (OAuth). Udemy Business REST API is per-organization (org subdomain, client id/secret) so api left null."
+  },
+  {
+   "slug": "unipile",
+   "name": "Unipile",
+   "category": "communication",
+   "summary": "Send and read LinkedIn, WhatsApp, Instagram, Telegram and email messages, and manage connected accounts via one API.",
+   "remoteMcp": {
+    "url": "https://developer.unipile.com/mcp",
+    "auth": "none",
+    "probe": "200 text/event-stream event: message data: {\"result\":{\"protocolVersion\":\"2025-06-18\",...,\"serverInfo\":{\"name\":\"Unipile\",\"version\":\"1.0\"}},...}"
+   },
+   "npm": null,
+   "api": {
+    "baseUrl": "https://{DSN}/api/v1",
+    "auth": "header",
+    "header": "X-API-KEY",
+    "envVar": "UNIPILE_API_KEY",
+    "keyLabel": "Access token",
+    "keyHelp": "dashboard.unipile.com > Access tokens",
+    "docs": "https://developer.unipile.com"
+   },
+   "notes": "MCP handshake needs no auth; API calls require passing X-API-KEY header in the MCP client config. API base uses the account-specific DSN shown in the dashboard. No official npm MCP (only @unipile/sdk)."
+  },
+  {
+   "slug": "viator",
+   "name": "Viator",
+   "category": "other",
+   "summary": "Search tours, activities and attractions by destination, with details, availability and pricing.",
+   "remoteMcp": {
+    "url": "https://exp-app-mcp.prod.ep.viator.com/mcp",
+    "auth": "none",
+    "probe": "200 application/json {\"jsonrpc\":\"2.0\",\"id\":1,\"result\":{...,\"serverInfo\":{\"name\":\"experiences-mcp\",\"version\":\"1.0.0\"},...}}"
+   },
+   "npm": null,
+   "api": {
+    "baseUrl": "https://api.viator.com/partner",
+    "auth": "header",
+    "header": "exp-api-key",
+    "envVar": "VIATOR_API_KEY",
+    "keyLabel": "Partner API key",
+    "keyHelp": "partnerresources.viator.com (affiliate sign-up)",
+    "docs": "https://docs.viator.com/partner-api/"
+   },
+   "notes": "MCP initialize works without auth (a directory claims OAuth). Partner API access requires approved affiliate/merchant partnership."
+  },
+  {
+   "slug": "vocci",
+   "name": "Vocci",
+   "category": "productivity",
+   "summary": "Bring conversations captured by the Vocci AI note-taking ring into AI tools as notes and transcripts.",
+   "remoteMcp": null,
+   "npm": null,
+   "api": null,
+   "notes": "Vocci (vocci.ai) is a wearable AI ring; pricing mentions a 'Vocci MCP Server' but no public endpoint/API docs found (developer program is invite-only)."
+  },
+  {
+   "slug": "waalaxy",
+   "name": "Waalaxy",
+   "category": "marketing",
+   "summary": "Read LinkedIn prospect lists and campaigns and import prospects into Waalaxy lists and campaigns.",
+   "remoteMcp": {
+    "url": "https://stargate.prod.aws.waalaxy.com/api/mcp",
+    "auth": "oauth",
+    "probe": "401 application/json www-authenticate: Bearer resource_metadata=\"https://stargate.prod.aws.waalaxy.com/.well-known/oauth-protected-resource\" {\"jsonrpc\":\"2.0\",\"error\":{\"code\":-32000,\"message\":\"Unauthorized\"},\"id\":null}"
+   },
+   "npm": null,
+   "api": null,
+   "notes": "Official MCP (docs.waalaxy.com/mcp-server), OAuth 2.1 with magic link; Advanced/Business plans only. No public API-key REST API confirmed."
+  },
+  {
+   "slug": "webex",
+   "name": "Webex",
+   "category": "communication",
+   "summary": "Send and manage messages, spaces, memberships and meetings in Cisco Webex.",
+   "remoteMcp": {
+    "url": "https://mcp.webexapis.com/mcp/webex-messaging",
+    "auth": "oauth",
+    "probe": "401 application/json www-authenticate: Bearer realm=\"mcp\", resource_metadata=\"https://mcp.webexapis.com/.well-known/oauth-protected-resource/mcp/webex-messaging\" {\"jsonrpc\":\"2.0\",\"id\":null,\"error\":{\"code\":-32001,...}}"
+   },
+   "npm": null,
+   "api": {
+    "baseUrl": "https://webexapis.com/v1",
+    "auth": "bearer",
+    "header": "Authorization",
+    "envVar": "WEBEX_ACCESS_TOKEN",
+    "keyLabel": "Access token",
+    "keyHelp": "developer.webex.com > Getting started (personal token) or bot token",
+    "docs": "https://developer.webex.com/docs/api/getting-started"
+   },
+   "notes": "Meetings server at https://mcp.webexapis.com/mcp/webex-meeting. Admin must enable MCP in Control Hub; requires spark:mcp scope (OAuth or WCIT token)."
+  },
+  {
+   "slug": "webflow",
+   "name": "Webflow",
+   "category": "dev",
+   "summary": "Manage Webflow sites, pages, CMS collections and items, and publish changes.",
+   "remoteMcp": {
+    "url": "https://mcp.webflow.com/mcp",
+    "auth": "oauth",
+    "probe": "401 application/json www-authenticate: Bearer realm=\"OAuth\", resource_metadata=\"https://mcp.webflow.com/.well-known/oauth-protected-resource/mcp\", error=\"invalid_token\""
+   },
+   "npm": {
+    "package": "webflow-mcp-server",
+    "version": "1.0.0",
+    "official": true,
+    "env": [
+     "WEBFLOW_TOKEN"
+    ],
+    "args": []
+   },
+   "api": {
+    "baseUrl": "https://api.webflow.com/v2",
+    "auth": "bearer",
+    "header": "Authorization",
+    "envVar": "WEBFLOW_TOKEN",
+    "keyLabel": "Site API token",
+    "keyHelp": "Webflow site settings > Apps & Integrations > API access",
+    "docs": "https://developers.webflow.com/data/reference"
+   },
+   "notes": "npm package maintained by webflow-bot (tech@webflow.com)."
+  },
+  {
+   "slug": "windsor",
+   "name": "Windsor.ai",
+   "category": "analytics",
+   "summary": "Query unified marketing and ads performance data (spend, impressions, clicks, conversions) across connected sources.",
+   "remoteMcp": {
+    "url": "https://mcp.windsor.ai/",
+    "auth": "oauth",
+    "probe": "401  www-authenticate: Bearer scope=\"create delete\", resource_metadata=\"https://mcp.windsor.ai/.well-known/oauth-protected-resource\""
+   },
+   "npm": null,
+   "api": {
+    "baseUrl": "https://connectors.windsor.ai",
+    "auth": "query",
+    "header": "api_key",
+    "envVar": "WINDSOR_API_KEY",
+    "keyLabel": "API key",
+    "keyHelp": "onboard.windsor.ai (account > API key)",
+    "docs": "https://windsor.ai/api-documentation/"
+   },
+   "notes": "Remote MCP URL found by probing the vendor domain. API: https://connectors.windsor.ai/{connector}?api_key=...&fields=..."
+  },
+  {
+   "slug": "wispr-flow",
+   "name": "Wispr Flow",
+   "category": "productivity",
+   "summary": "Read Wispr Flow Notetaker meeting summaries, transcripts, scratchpad notes, tasks and calendar events.",
+   "remoteMcp": {
+    "url": "https://api.wisprflow.ai/connect/mcp",
+    "auth": "oauth",
+    "probe": "401 application/json www-authenticate: Bearer resource_metadata=\"https://api.wisprflow.ai/.well-known/oauth-protected-resource\", scope=\"openid offline_access\" {\"error\":\"invalid_token\"}"
+   },
+   "npm": null,
+   "api": null,
+   "notes": "Requires Notetaker + Cloud Sync enabled. No public developer REST API found."
+  },
+  {
+   "slug": "wix",
+   "name": "Wix",
+   "category": "ecommerce",
+   "summary": "Manage Wix sites, stores, products, bookings, contacts and content.",
+   "remoteMcp": {
+    "url": "https://mcp.wix.com/mcp",
+    "auth": "oauth",
+    "probe": "401 application/json www-authenticate: Bearer realm=\"OAuth\", error=\"invalid_token\", ..., resource_metadata=\"https://mcp.wix.com/.well-known/oauth-protected-resource/mcp\""
+   },
+   "npm": {
+    "package": "@wix/mcp",
+    "version": "1.0.93",
+    "official": true,
+    "env": [],
+    "args": []
+   },
+   "api": {
+    "baseUrl": "https://www.wixapis.com",
+    "auth": "header",
+    "header": "Authorization",
+    "envVar": "WIX_API_KEY",
+    "keyLabel": "API key",
+    "keyHelp": "Wix account > API Keys Manager (also send wix-site-id or wix-account-id header)",
+    "docs": "https://dev.wix.com/docs/rest"
+   },
+   "notes": "@wix/mcp is published by Wix CI (no env; flags like --tools/--portals)."
+  },
+  {
+   "slug": "wordpress",
+   "name": "WordPress",
+   "category": "marketing",
+   "summary": "Create, edit and publish posts and pages, and manage media, comments and site settings.",
+   "remoteMcp": {
+    "url": "https://public-api.wordpress.com/wpcom/v2/mcp/v1",
+    "auth": "oauth",
+    "probe": "401 application/json www-authenticate: Bearer resource_metadata=\"https://public-api.wordpress.com/.well-known/oauth-protected-resource?resource=wpcom/v2/mcp/v1\" {\"code\":\"rest_unauthorized\",...}"
+   },
+   "npm": {
+    "package": "@automattic/mcp-wordpress-remote",
+    "version": "0.5.1",
+    "official": true,
+    "env": [
+     "WP_API_URL",
+     "WP_API_USERNAME",
+     "WP_API_PASSWORD"
+    ],
+    "args": []
+   },
+   "api": {
+    "baseUrl": "https://{site}/wp-json/wp/v2",
+    "auth": "basic",
+    "header": "Authorization",
+    "envVar": "WORDPRESS_APP_PASSWORD",
+    "keyLabel": "Application password",
+    "keyHelp": "WP admin > Users > Profile > Application Passwords",
+    "docs": "https://developer.wordpress.org/rest-api/"
+   },
+   "notes": "Remote MCP is WordPress.com (enable under account 'AI and MCP'); URL found by probing, not seen in vendor docs. npm package (Automattic) bridges to self-hosted sites running the WordPress MCP plugin; also supports JWT_TOKEN."
+  },
+  {
+   "slug": "workos",
+   "name": "WorkOS",
+   "category": "dev",
+   "summary": "Manage WorkOS organizations, users, SSO connections, directories and audit logs.",
+   "remoteMcp": {
+    "url": "https://mcp.workos.com/mcp",
+    "auth": "oauth",
+    "probe": "401 application/json www-authenticate: Bearer error=\"unauthorized\", error_description=\"Authorization needed\", resource_metadata=\"https://mcp.workos.com/.well-known/oauth-protected-resource/mcp\""
+   },
+   "npm": null,
+   "api": {
+    "baseUrl": "https://api.workos.com",
+    "auth": "bearer",
+    "header": "Authorization",
+    "envVar": "WORKOS_API_KEY",
+    "keyLabel": "API key",
+    "keyHelp": "dashboard.workos.com > API Keys",
+    "docs": "https://workos.com/docs/reference"
+   },
+   "notes": "Remote MCP URL found by probing the vendor domain (not confirmed in vendor docs)."
+  },
+  {
+   "slug": "wrike",
+   "name": "Wrike",
+   "category": "productivity",
+   "summary": "Create and update tasks, projects, folders and comments, and query work in Wrike.",
+   "remoteMcp": null,
+   "npm": null,
+   "api": {
+    "baseUrl": "https://www.wrike.com/api/v4",
+    "auth": "bearer",
+    "header": "Authorization",
+    "envVar": "WRIKE_ACCESS_TOKEN",
+    "keyLabel": "Permanent access token",
+    "keyHelp": "Wrike > Apps & Integrations > API",
+    "docs": "https://developers.wrike.com"
+   },
+   "notes": "Vendor docs give remote MCP https://mcp.wrike.com/v2 (OAuth or PAT as Bearer), but probe returned '401 text/plain Unauthorized' with no www-authenticate, so not counted as verified."
+  },
+  {
+   "slug": "x",
+   "name": "X (Twitter)",
+   "category": "marketing",
+   "summary": "Post, search and read tweets, look up users and manage engagement on X.",
+   "remoteMcp": {
+    "url": "https://api.x.com/mcp",
+    "auth": "oauth",
+    "probe": "401 application/problem+json www-authenticate: Bearer resource_metadata=\"https://api.x.com/.well-known/oauth-protected-resource\" {\"title\":\"Unauthorized\",...}"
+   },
+   "npm": null,
+   "api": {
+    "baseUrl": "https://api.x.com/2",
+    "auth": "bearer",
+    "header": "Authorization",
+    "envVar": "X_BEARER_TOKEN",
+    "keyLabel": "Bearer token",
+    "keyHelp": "developer.x.com > Projects & Apps > Keys and tokens",
+    "docs": "https://docs.x.com/x-api/introduction"
+   },
+   "notes": "Official XMCP (github.com/xdevplatform/xmcp) is Python, run locally; hosted api.x.com/mcp reported by third parties and confirmed by probe. Docs MCP at https://docs.x.com/mcp. User-context writes need OAuth 2.0."
+  },
+  {
+   "slug": "youtube",
+   "name": "YouTube",
+   "category": "marketing",
+   "summary": "Search videos and channels and read video, playlist, comment and channel data.",
+   "remoteMcp": null,
+   "npm": null,
+   "api": {
+    "baseUrl": "https://www.googleapis.com/youtube/v3",
+    "auth": "query",
+    "header": "key",
+    "envVar": "YOUTUBE_API_KEY",
+    "keyLabel": "API key",
+    "keyHelp": "console.cloud.google.com > APIs & Services > Credentials",
+    "docs": "https://developers.google.com/youtube/v3/docs"
+   },
+   "notes": "No official Google-hosted YouTube MCP found (mcp.youtube.com 502); only community servers. Uploads/account actions require OAuth."
+  },
+  {
+   "slug": "zapier",
+   "name": "Zapier",
+   "category": "productivity",
+   "summary": "Run actions across thousands of apps connected to the user's Zapier account.",
+   "remoteMcp": {
+    "url": "https://mcp.zapier.com/api/mcp/mcp",
+    "auth": "bearer",
+    "probe": "401 application/json www-authenticate: Bearer realm=\"Zapier MCP\", error=\"invalid_token\" {\"jsonrpc\":\"2.0\",\"id\":null,\"error\":{\"code\":-31996,\"message\":\"Expected Bearer token for MCP authentication\"}}"
+   },
+   "npm": null,
+   "api": null,
+   "notes": "Generate the MCP server token/URL at mcp.zapier.com. No general-purpose API-key REST API for running actions."
+  },
+  {
+   "slug": "zernio",
+   "name": "Zernio",
+   "category": "marketing",
+   "summary": "Schedule and publish social posts across 15+ platforms, manage comments, DMs, ads and analytics.",
+   "remoteMcp": {
+    "url": "https://mcp.zernio.com/mcp",
+    "auth": "oauth",
+    "probe": "401  www-authenticate: Bearer resource_metadata=\"https://mcp.zernio.com/.well-known/oauth-protected-resource/mcp\""
+   },
+   "npm": null,
+   "api": {
+    "baseUrl": "https://zernio.com/api/v1",
+    "auth": "bearer",
+    "header": "Authorization",
+    "envVar": "ZERNIO_API_KEY",
+    "keyLabel": "API key",
+    "keyHelp": "zernio.com dashboard > API keys",
+    "docs": "https://docs.zernio.com"
+   },
+   "notes": "npm zernio-mcp is community (Eyalm321); official SDK is @zernio/node."
+  },
+  {
+   "slug": "ziprecruiter",
+   "name": "ZipRecruiter",
+   "category": "other",
+   "summary": "Search live job listings by title, company, location, salary and work style.",
+   "remoteMcp": {
+    "url": "https://api.ziprecruiter.com/mcp",
+    "auth": "none",
+    "probe": "200 application/json {\"result\":{\"protocolVersion\":\"2025-06-18\",...,\"serverInfo\":{\"name\":\"jobseeker-mcp\",\"version\":\"1.0.0\"}},\"jsonrpc\":\"2.0\",\"id\":1}"
+   },
+   "npm": null,
+   "api": null,
+   "notes": "Hosted jobseeker MCP answers without auth; reportedly rate-limited. No public job-search REST API."
+  },
+  {
+   "slug": "zoominfo",
+   "name": "ZoomInfo",
+   "category": "crm",
+   "summary": "Search and enrich company and contact B2B data, intent signals and org charts.",
+   "remoteMcp": {
+    "url": "https://mcp.zoominfo.com/mcp",
+    "auth": "oauth",
+    "probe": "401 application/vnd.api+json www-authenticate: Bearer resource_metadata=\"https://mcp.zoominfo.com/.well-known/oauth-protected-resource/mcp\" {\"detail\":\"The Authorization token is required...\"}"
+   },
+   "npm": null,
+   "api": {
+    "baseUrl": "https://api.zoominfo.com",
+    "auth": "bearer",
+    "header": "Authorization",
+    "envVar": "ZOOMINFO_ACCESS_TOKEN",
+    "keyLabel": "Access token (JWT)",
+    "keyHelp": "Obtain via POST /authenticate with ZoomInfo API credentials (admin portal)",
+    "docs": "https://api-docs.zoominfo.com/"
+   },
+   "notes": "Remote MCP URL found by probing the vendor domain. REST API uses short-lived JWT from username + password/private key, not a static key."
+  }
+ ]
+}

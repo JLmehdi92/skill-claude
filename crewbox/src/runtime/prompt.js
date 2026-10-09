@@ -4,6 +4,7 @@ import { listAgents } from '../agents.js';
 import { listAgentConnectors } from '../catalog.js';
 import { listSecretNames } from '../secrets.js';
 import { getSetting } from '../db.js';
+import { brainPrompt } from '../brain.js';
 
 const LANGS = { fr: 'French', en: 'English' };
 
@@ -23,6 +24,9 @@ export function buildSystemPrompt(agent, { trigger = 'chat', mcpErrors = [], dep
   const parts = [];
   parts.push(`You are ${agent.name} (@${agent.handle}), an AI coworker in a Crewbox workspace running on the user's own machine.${agent.description ? ` Your job: ${agent.description}` : ''}`);
   parts.push(`<soul>\n${agent.soul?.trim() || 'No soul written yet. Work out what the user needs, do it well, and suggest writing down who you are once your job is clear.'}\n</soul>`);
+
+  const brain = brainPrompt();
+  if (brain) parts.push(`## Your company (the Brain)\nWhat the owner's business is about. Read it before you work and act consistently with it. When you learn something durable about the company (a new offer, a price change, a customer segment), propose an update with brain_propose; never assume the change is made until the owner accepts it.\n\n${brain}`);
 
   const lang = LANGS[getSetting('language', 'fr')];
   const rules = [

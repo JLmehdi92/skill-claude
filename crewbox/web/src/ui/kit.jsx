@@ -49,7 +49,7 @@ export const Select = ({ children, className = '', ...props }) => <select classN
 export function Toggle({ checked, onChange, label }) {
   return (
     <label className={`toggle ${checked ? 'on' : ''}`}>
-      <input type="checkbox" checked={checked} onChange={(e) => onChange(e.target.checked)} />
+      <input type="checkbox" role="switch" checked={checked} aria-checked={checked} onChange={(e) => onChange(e.target.checked)} />
       <span className="knob" />
       <span>{label}</span>
     </label>

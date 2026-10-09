@@ -1,7 +1,17 @@
 import { memo, useId } from 'react';
 import { BW, BH, DEPTH, roundedRhombus, roundedHalfWidth, shade } from './iso.js';
+import { t } from '../lib/i18n.js';
 
 const ERROR = '#e05a5a';
+const AMBER = '#f5a524';
+// The status line under a block, as on Rerun's board.
+const STATUS_LINE = {
+  running: () => t('working'),
+  waiting: (n) => (n > 1 ? t('waiting for you · {n}', { n }) : t('waits for you')),
+  error: () => t('in error'),
+  locked: () => t('apps to connect'),
+};
+const CYAN = '#22d3ee';
 const HW = roundedHalfWidth(BW);
 const TOP = roundedRhombus(BW, BH, undefined, 0, -DEPTH);
 const BOTTOM = roundedRhombus(BW, BH, undefined, 0, 0);
@@ -42,15 +52,15 @@ function Eyes({ status, color }) {
       </g>
     );
   }
-  if (status === 'off') {
+  if (status === 'locked') {
     return (
       <g transform={FACE} fill="rgba(255,255,255,0.16)">
         {EYES.map((u) => <rect key={u} x={u - 2.3} y={EYE_V - 0.6} width={4.6} height={1.2} rx={0.6} transform={`rotate(24 ${u} ${EYE_V})`} />)}
       </g>
     );
   }
-  if (status === 'sleep') {
-    // Asleep until its next scheduled task: eyes closed, softly glowing in its colour; it peeks now and then.
+  if (status === 'off') {
+    // Switched off: asleep, eyes closed and softly glowing in its colour; it stirs now and then.
     const glow = shade(color, 0.55);
     return (
       <g transform={FACE}>
@@ -70,7 +80,7 @@ function Eyes({ status, color }) {
         {EYES.map((u) => (
           <g key={u}>
             <circle cx={u} cy={EYE_V} r={EYE_R} fill="#f4f5f8" stroke="rgba(0,0,0,0.35)" strokeWidth={0.3} />
-            <circle className="rb-pupil" cx={u + 0.5} cy={EYE_V + (status === 'waiting' ? -0.7 : 0.4)} r={EYE_R * 0.5} fill="#16161b" />
+            <circle className="rb-pupil" cx={u + 0.5} cy={EYE_V + (status === 'waiting' ? -0.9 : 0.4)} r={EYE_R * 0.5} fill="#16161b" />
           </g>
         ))}
       </g>
@@ -93,9 +103,9 @@ function Lock() {
  * task, hopping with darting eyes while it works, looking up under a bubble when it needs you, red
  * with crossed eyes on error, a dim ghost with a lock when switched off.
  */
-function Block({ agent, color, status, at, index, pulse, thought, onOpen }) {
+function Block({ agent, color, status, at, index, pulse, thought, onOpen, waitingCards = 0 }) {
   const id = useId().replace(/:/g, '');
-  const off = status === 'off';
+  const off = status === 'locked'; // drawn as a ghost
   const err = status === 'error';
   const top = err ? ERROR : color;
   const name = fit(agent.name);
@@ -129,9 +139,9 @@ function Block({ agent, color, status, at, index, pulse, thought, onOpen }) {
         </linearGradient>
       </defs>
       <g className="rb-in">
-        {!off ? <path d={SHADOW} fill={top} opacity={err ? 0.5 : 0.42} filter="url(#rb-glow)" className="rb-shadow" /> : null}
-        {status === 'running' ? <ellipse className="rb-orbit" cx={0} cy={0} rx={BW * 0.74} ry={BW * 0.37} fill="none" stroke={shade(color, 0.35)} strokeWidth={0.9} strokeDasharray="5 4" /> : null}
-        {status === 'waiting' ? <path className="rb-wait-ring" d={roundedRhombus(BW * 1.15, BH * 1.15)} fill="none" stroke="#fbbf24" strokeWidth={1} /> : null}
+        {!off ? <path d={SHADOW} fill={status === 'running' ? AMBER : status === 'waiting' ? CYAN : top} opacity={err ? 0.5 : status === 'off' ? 0.22 : 0.42} filter="url(#rb-glow)" className="rb-shadow" /> : null}
+        {status === 'running' ? <ellipse className="rb-orbit" cx={0} cy={0} rx={BW * 0.74} ry={BW * 0.37} fill="none" stroke={AMBER} strokeWidth={0.9} strokeDasharray="5 4" /> : null}
+        {status === 'waiting' ? <path className="rb-wait-ring" d={roundedRhombus(BW * 1.15, BH * 1.15)} fill="none" stroke={CYAN} strokeWidth={1} /> : null}
         {pulse ? <path key={pulse.n} className={`rb-ripple ${pulse.error ? 'bad' : ''}`} d={roundedRhombus(BW, BH)} fill="none" stroke={pulse.error ? '#f87171' : shade(color, 0.45)} strokeWidth={1.2} /> : null}
 
         <g className="rb-lift">
@@ -151,10 +161,15 @@ function Block({ agent, color, status, at, index, pulse, thought, onOpen }) {
         </g>
 
         {off ? <Lock /> : null}
+        {STATUS_LINE[status] ? (
+          <text className={`rb-status s-${status}`} x={0} y={BH / 2 + 7.5} textAnchor="middle" fontSize={4.6} fontWeight={600}>
+            {STATUS_LINE[status](waitingCards)}
+          </text>
+        ) : null}
         {status === 'waiting' ? (
           <g className="rb-bubble" transform={`translate(0,${-DEPTH - BH / 2 - 11})`}><g>
-            <path d="M-6.2,-6.2h12.4a2.8,2.8 0 0 1 2.8,2.8v5.6a2.8,2.8 0 0 1 -2.8,2.8h-4.2l-2,2.6l-2,-2.6h-4.2a2.8,2.8 0 0 1 -2.8,-2.8v-5.6a2.8,2.8 0 0 1 2.8,-2.8z" fill="#fbbf24" />
-            <text x={0} y={2.6} textAnchor="middle" fontSize={8} fontWeight={800} fill="#1a1200">!</text>
+            <path d="M-6.2,-6.2h12.4a2.8,2.8 0 0 1 2.8,2.8v5.6a2.8,2.8 0 0 1 -2.8,2.8h-4.2l-2,2.6l-2,-2.6h-4.2a2.8,2.8 0 0 1 -2.8,-2.8v-5.6a2.8,2.8 0 0 1 2.8,-2.8z" fill={CYAN} />
+            <text x={0} y={2.6} textAnchor="middle" fontSize={8} fontWeight={800} fill="#05232a">?</text>
           </g></g>
         ) : null}
         {thought ? (

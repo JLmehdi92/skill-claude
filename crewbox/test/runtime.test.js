@@ -168,7 +168,7 @@ test('skills: written by the coworker, app skills are read-only', async () => {
   const s = await call('get_skill', { agentId: agent.agentId, slug: 'weekly-report' });
   assert.equal(s.files[0].path, 'references/format.md');
   assert.equal((await call('read_skill_file', { agentId: agent.agentId, slug: 'weekly-report', path: 'references/format.md' })).content, '# Format');
-  const app = await call('attach_connector', { agentId: agent.agentId, slug: 'stripe' });
+  const app = await call('attach_connector', { agentId: agent.agentId, slug: 'stripe', method: 'apiKey' });
   assert.equal(app.status, 'active'); // STRIPE_SECRET_KEY was provided earlier
   await assert.rejects(call('upsert_skill', { agentId: agent.agentId, name: 'x', slug: 'app-stripe', body: 'y' }), /read-only/);
   await assert.rejects(call('detach_connector', { agentId: agent.agentId, slug: 'stripe' }), /confirm/);

@@ -107,7 +107,7 @@ export function openDb() {
   db.exec('PRAGMA journal_mode = WAL; PRAGMA foreign_keys = ON; PRAGMA busy_timeout = 5000;');
   db.exec(SCHEMA);
   // Additive migrations for databases created by earlier versions.
-  for (const sql of ['ALTER TABLE sessions ADD COLUMN engine_session TEXT', 'ALTER TABLE agents ADD COLUMN color TEXT']) {
+  for (const sql of ['ALTER TABLE sessions ADD COLUMN engine_session TEXT', 'ALTER TABLE agents ADD COLUMN color TEXT', 'ALTER TABLE mcp_servers ADD COLUMN spec TEXT', 'ALTER TABLE mcp_servers ADD COLUMN auth TEXT']) {
     try { db.exec(sql); } catch { /* already applied */ }
   }
   return db;

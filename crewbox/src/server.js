@@ -10,6 +10,11 @@ import { callTool, listTools } from './service.js';
 import { fireTrigger, isPassiveVisit, BODY_MAX } from './automations.js';
 import { getShare } from './templates.js';
 import { agentConfig } from './agents.js';
+import { emit } from './bus.js';
+import { finishSignIn } from './connectors/oauth.js';
+import { findApp } from './catalog.js';
+import { getServer } from './mcp.js';
+import { secretVars } from './secrets.js';
 
 const PUBLIC_DIR = path.join(path.dirname(fileURLToPath(import.meta.url)), '..', 'web', 'dist');
 // The UI token proves a request comes from the page this server rendered (blocks CSRF and
@@ -59,6 +64,8 @@ export function createServer() {
       if (p.startsWith('/api/t/')) return handleTrigger(req, res, p);
       if (p === '/api/mcp/account') return handleMcp(req, res);
       if (p.startsWith('/p/')) return handlePublished(res, p.slice(3));
+      if (p === '/oauth/callback') return handleOAuthCallback(res, url);
+      if (p.startsWith('/icons/')) return handleIcon(res, p.slice(7));
       if (p.startsWith('/s/')) {
         const t = getShare(p.slice(3));
         return t ? send(res, 200, t) : send(res, 404, { error: 'Not found' });
@@ -186,3 +193,45 @@ async function rpc(m) {
 }
 
 export const mcpUrl = () => `${PUBLIC_URL}/api/mcp/account`;
+
+/* ---- app sign-in (OAuth) callback ---- */
+async function handleOAuthCallback(res, url) {
+  const page = (ok, msg) => send(res, ok ? 200 : 400, `<!doctype html><meta charset="utf-8"><title>Crewbox</title><body style="font:16px system-ui;background:#0a0a0a;color:#eee;display:grid;place-items:center;height:100vh;margin:0"><div style="text-align:center"><p style="font-size:40px;margin:0">${ok ? '✓' : '✕'}</p><p>${msg}</p><p style="color:#888">Tu peux fermer cette fenêtre.</p></div><script>try{window.opener&&window.opener.postMessage({type:'crewbox:oauth',ok:${ok}},'*')}catch(e){};setTimeout(()=>window.close(),${ok ? 1200 : 6000})</script>`, { 'content-type': 'text/html; charset=utf-8' });
+  const err = url.searchParams.get('error');
+  if (err) return page(false, `Connexion refusée : ${String(url.searchParams.get('error_description') || err).replace(/[<>&]/g, '')}`);
+  try {
+    const r = await finishSignIn(url.searchParams.get('state'), url.searchParams.get('code'), (agentId, slug) => {
+      const s = getServer(agentId, slug);
+      return { url: s?.url, name: s?.name || slug };
+    }, (agentId) => secretVars(agentId));
+    emit('agents', { id: r.agentId });
+    emit('app_connected', { agentId: r.agentId, slug: r.slug });
+    return page(true, `${String(r.name).replace(/[<>&]/g, '')} est connecté.`);
+  } catch (e) {
+    return page(false, String(e.message).replace(/[<>&]/g, ''));
+  }
+}
+
+/* ---- app icons: the vendor favicon, cached on this machine, or a letter when offline ---- */
+const ICON_DIR = path.join(paths.home, 'icons');
+async function handleIcon(res, slug) {
+  slug = slug.replace(/\.(png|svg)$/, '').replace(/[^a-z0-9-]/g, '');
+  const app = findApp(slug);
+  const letter = () => {
+    const hue = [...slug].reduce((n, c) => n + c.charCodeAt(0), 0) % 360;
+    const ch = (app?.name || slug || '?').trim()[0].toUpperCase().replace(/[<>&]/g, '');
+    return send(res, 200, `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><rect width="64" height="64" rx="16" fill="hsl(${hue} 55% 42%)"/><text x="32" y="42" font-family="system-ui,sans-serif" font-size="30" font-weight="700" text-anchor="middle" fill="#fff">${ch}</text></svg>`, { 'content-type': 'image/svg+xml', 'cache-control': 'public, max-age=3600' });
+  };
+  if (!app?.domain) return letter();
+  const file = path.join(ICON_DIR, `${slug}.png`);
+  if (fs.existsSync(file)) return send(res, 200, fs.readFileSync(file), { 'content-type': 'image/png', 'cache-control': 'public, max-age=86400' });
+  if (process.env.CREWBOX_OFFLINE_ICONS) return letter();
+  try {
+    const r = await fetch(`https://www.google.com/s2/favicons?domain=${encodeURIComponent(app.domain)}&sz=64`, { signal: AbortSignal.timeout(6000) });
+    const buf = Buffer.from(await r.arrayBuffer());
+    if (!r.ok || buf.length < 200) return letter();
+    fs.mkdirSync(ICON_DIR, { recursive: true });
+    fs.writeFileSync(file, buf);
+    return send(res, 200, buf, { 'content-type': r.headers.get('content-type') || 'image/png', 'cache-control': 'public, max-age=86400' });
+  } catch { return letter(); }
+}

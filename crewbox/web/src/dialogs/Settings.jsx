@@ -6,6 +6,7 @@ import { Button, AsyncButton, Field, Input, Select, Segmented, SectionHead, Empt
 import Icon from '../ui/icons.jsx';
 import { confirmDialog, prompt } from './Prompt.jsx';
 import { t } from '../lib/i18n.js';
+import { AutopilotPanel } from './Autopilot.jsx';
 
 function ConnectionEditor({ conn, cat, done }) {
   const { safe, refresh } = useApp();
@@ -128,8 +129,8 @@ function SettingsBody({ initial }) {
   const [tab, setTab] = useState(initial || 'providers');
   return (
     <div className="stack">
-      <Segmented value={tab} onChange={setTab} options={[['providers', t('AI providers')], ['api', t('API & MCP')], ['secrets', t('Workspace secrets')]]} />
-      {tab === 'providers' ? <Providers /> : tab === 'api' ? <ApiKeys /> : <WorkspaceSecrets />}
+      <Segmented value={tab} onChange={setTab} options={[['providers', t('AI providers')], ['autopilot', t('Autopilot')], ['api', t('API & MCP')], ['secrets', t('Workspace secrets')]]} />
+      {tab === 'providers' ? <Providers /> : tab === 'autopilot' ? <AutopilotPanel /> : tab === 'api' ? <ApiKeys /> : <WorkspaceSecrets />}
     </div>
   );
 }

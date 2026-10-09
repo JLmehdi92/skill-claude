@@ -6,6 +6,7 @@ import { resolveRunsOn, getConnection, listConnections } from './providers/index
 import { listSkills } from './skills.js';
 import { closeFileDb } from './sqlite-tools.js';
 import { emit } from './bus.js';
+import { listServers } from './mcp.js';
 
 export const TOOL_FAMILIES = [
   'filesystem', 'shared', 'shell', 'web', 'memory', 'db', 'sharedDb', 'skills', 'schedule', 'trigger',
@@ -82,6 +83,8 @@ export function summary(r) {
     schedules: q.get('SELECT COUNT(*) AS n FROM schedules WHERE agent_id = ? AND enabled = 1', r.id).n,
     triggers: q.get('SELECT COUNT(*) AS n FROM triggers WHERE agent_id = ? AND enabled = 1', r.id).n,
     apps: q.get('SELECT COUNT(*) AS n FROM mcp_servers WHERE agent_id = ? AND enabled = 1', r.id).n,
+    appsPending: listServers(r.id).filter((s) => s.enabled && s.status !== 'active').length,
+    waitingCards: q.get("SELECT COUNT(*) AS n FROM pauses WHERE agent_id = ? AND status = 'pending'", r.id).n,
   };
 }
 
@@ -93,7 +96,8 @@ export function agentStatus(id) {
 }
 
 export function listAgents({ spaceId } = {}) {
-  const rows = spaceId ? q.all('SELECT * FROM agents WHERE space_id = ? ORDER BY created_at DESC', spaceId) : q.all('SELECT * FROM agents ORDER BY created_at DESC');
+  // The workspace assistant (Foreman) lives outside the Boxes: it is not a coworker of the board.
+  const rows = spaceId ? q.all('SELECT * FROM agents WHERE space_id = ? ORDER BY created_at DESC', spaceId) : q.all("SELECT * FROM agents WHERE space_id != '__system__' ORDER BY created_at DESC");
   return rows.map(summary);
 }
 
@@ -146,8 +150,9 @@ export function createAgent(args) {
   if (setup && (typeof setup.required !== 'boolean' || (setup.required && !setup.prompt))) throw new Error('setup needs a boolean "required", and a "prompt" when required is true.');
   const spaces = listSpaces();
   let space = spaceId;
+  // Without a Box, the coworker joins the first one (the main Box), as from the home prompt bar.
   if (!space) {
-    if (spaces.length !== 1) throw new Error(`Several Boxes, pass spaceId: ${spaces.map((s) => `${s.id} (${s.name})`).join(', ')}`);
+    if (!spaces.length) throw new Error('No Box yet: create one first.');
     space = spaces[0].id;
   } else if (!spaces.some((s) => s.id === space)) throw new Error(`Unknown spaceId. Boxes: ${spaces.map((s) => `${s.id} (${s.name})`).join(', ')}`);
   const conn = resolveConnectionArgs(args);

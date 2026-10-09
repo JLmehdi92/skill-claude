@@ -18,7 +18,7 @@ export default function DockNav() {
     { separator: true },
     { icon: <Icon name="inbox" size={22} />, label: t('To handle'), badge: overview?.pendingPauses || undefined, onClick: () => openInbox(ctx) },
     { icon: <Icon name="bell" size={22} />, label: t('Notifications'), badge: overview?.unread || undefined, onClick: () => openNotifications(ctx) },
-    { icon: <Icon name="book" size={22} />, label: t('Knowledge base'), onClick: () => openKnowledge(ctx) },
+    { icon: <Icon name="brain" size={22} />, label: t('Brain'), badge: overview?.brainProposals || undefined, onClick: () => openKnowledge(ctx) },
     { icon: <Icon name="gear" size={22} />, label: t('Settings'), onClick: () => openSettings(openModal) },
     { separator: true },
     { icon: <Icon name="plus" size={22} />, label: t('New coworker'), className: 'dock-accent', onClick: () => openNewAgent(ctx) },

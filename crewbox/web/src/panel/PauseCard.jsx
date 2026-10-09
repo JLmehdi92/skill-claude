@@ -5,6 +5,7 @@ import BorderGlow from '../reactbits/BorderGlow.jsx';
 import { Button, AsyncButton, Input, Field, Toggle } from '../ui/kit.jsx';
 import Icon from '../ui/icons.jsx';
 import { t } from '../lib/i18n.js';
+import ConnectApp from './ConnectApp.jsx';
 
 const KIND = () => ({
   question: ['question', t('A question for you')],
@@ -82,17 +83,11 @@ function SecretItem({ item, value, set }) {
   );
 }
 
-function ConnectorItem({ item, value, set }) {
-  const app = item.app || {};
+function ConnectorItem({ item, value, set, agentId }) {
   return (
     <div className="pause-q">
-      <strong>{app.name || item.input.slug}</strong>
-      <p className="muted">{item.input.reason || app.description}</p>
-      {(app.secrets || []).map((s) => (
-        <Field key={s.name} label={s.label} hint={`${s.name}${s.help ? ` · ${s.help}` : ''}`}>
-          <Input type="password" autoComplete="off" value={value.values?.[s.name] || ''} onChange={(e) => set({ ...value, values: { ...(value.values || {}), [s.name]: e.target.value } })} />
-        </Field>
-      ))}
+      {item.input.reason ? <p className="muted">{item.input.reason}</p> : null}
+      {!value.skip ? <ConnectApp asCard agentId={agentId} slug={item.input.slug} value={value} onChange={(v) => set({ ...v, skip: false })} /> : null}
       <Toggle checked={!!value.skip} onChange={(v) => set({ ...value, skip: v })} label={t('Skip for now')} />
     </div>
   );
@@ -116,7 +111,7 @@ export default function PauseCard({ pause, onAnswered }) {
         <header className="pause-head"><span className="pause-icon"><Icon name={icon} size={18} /></span><h4>{title}</h4></header>
         {pause.payload.items.map((it) => {
           const C = ITEMS[it.kind];
-          return C ? <div className="pause-item" key={it.toolUseId}><C item={it} value={answers[it.toolUseId] || {}} set={(v) => setAnswers((a) => ({ ...a, [it.toolUseId]: v }))} /></div> : null;
+          return C ? <div className="pause-item" key={it.toolUseId}><C item={it} agentId={pause.agent_id} value={answers[it.toolUseId] || {}} set={(v) => setAnswers((a) => ({ ...a, [it.toolUseId]: v }))} /></div> : null;
         })}
         <div className="row end">
           <Button size="sm" onClick={safe(async () => { await api('cancel_run', { runId: pause.run_id }); refreshSoon(); onAnswered?.(null); })}>{t('Cancel run')}</Button>

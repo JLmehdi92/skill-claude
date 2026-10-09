@@ -4,7 +4,7 @@ import { agentConfig, listAgents } from '../agents.js';
 import { resolveRunsOn, chat, costUsd } from '../providers/index.js';
 import { agentMcpTools, callMcpTool } from '../mcp.js';
 import { setSecret } from '../secrets.js';
-import { attachConnector, findApp } from '../catalog.js';
+import { attachConnector, findApp, appDetails } from '../catalog.js';
 import { notify } from '../notifications.js';
 import { emit } from '../bus.js';
 import { builtinTools, validateInput, resultText } from './tools.js';
@@ -372,7 +372,7 @@ function createPause(agent, ctx, items) {
   for (const it of items) {
     if (it.kind === 'connector') {
       const app = findApp(it.input.slug);
-      it.app = { slug: app.slug, name: app.name, description: app.description, secrets: app.secrets };
+      it.app = { slug: app.slug, name: app.name, description: app.description, secrets: app.secrets, methods: appDetails(app.slug).methods };
     }
   }
   const id = uid('pse_');
@@ -505,10 +505,10 @@ async function resolveItem(it, a, agent, session, ctx, getKit) {
     case 'connector': {
       if (a.skip) return result(`The user skipped connecting ${it.input.slug}.`, true);
       for (const [k, v] of Object.entries(a.values || {})) if (v) setSecret(agent.id, k, v);
-      const st = attachConnector(agent.id, it.input.slug);
+      const st = attachConnector(agent.id, it.input.slug, { method: a.method });
       return result(st.status === 'active'
         ? `${st.name} is connected. Its tools (mcp__${it.input.slug.replace(/-/g, '_')}__*) are available from your next step.`
-        : `${st.name} is installed but still needs: ${st.missingSecrets.join(', ')}.`, st.status !== 'active');
+        : st.status === 'needs_auth' ? `${st.name} is installed; the owner still has to sign in to it.` : `${st.name} is installed but still needs: ${st.missingSecrets.join(', ')}.`, st.status !== 'active');
     }
     default: return result('Unsupported card.', true);
   }
