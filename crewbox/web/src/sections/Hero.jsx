@@ -95,7 +95,7 @@ export default function Hero() {
         <div className="eyebrow hero-reveal">
           <ShinyText text={t('Your AI team · runs on your own machine')} speed={2.6} color="#b9b3d6" shineColor="#ffffff" />
         </div>
-        <h1 className="hero-title">
+        <h1 className="hero-title" aria-label={`${t('Your recurring work,')} ${t('done while you sleep.')}`}>
           <SplitText text={t('Your recurring work,')} tag="span" className="line" delay={28} duration={1.1} from={{ opacity: 0, y: 60, rotateX: -50 }} to={{ opacity: 1, y: 0, rotateX: 0 }} />
           <SplitText text={t('done while you sleep.')} tag="span" className="line accent" delay={28} duration={1.1} from={{ opacity: 0, y: 60, rotateX: -50 }} to={{ opacity: 1, y: 0, rotateX: 0 }} />
         </h1>

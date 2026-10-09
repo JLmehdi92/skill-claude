@@ -10,6 +10,7 @@ import { Avatar, StatusBadge, Button, Segmented } from '../ui/kit.jsx';
 import Icon from '../ui/icons.jsx';
 import { openNewAgent } from '../dialogs/NewAgent.jsx';
 import { prompt } from '../dialogs/Prompt.jsx';
+import { openInbox } from '../dialogs/Inbox.jsx';
 
 const World = lazy(() => import('../world/World.jsx'));
 const VIEW_KEY = 'crewbox.boardView';
@@ -81,17 +82,17 @@ export default function Board() {
         <div>
           <span className="kicker">{t('01 · Headquarters')}</span>
           <SplitText text={t('Your crew, live.')} tag="h2" splitType="words" delay={80} from={{ opacity: 0, y: 50 }} to={{ opacity: 1, y: 0 }} textAlign="left" />
-          <p className="lede">{t('Every Box is an island, every coworker a little robot. Watch them work, see who needs you, and click one to talk to it.')}</p>
+          <p className="lede">{t('You are the core. Every Box is a nebula orbiting you, every coworker a living entity whose shape tells what it is doing. When one needs you, a signal travels all the way to you.')}</p>
         </div>
         <div className="row wrap">
-          <Segmented value={view} onChange={choose} options={[['world', t('3D world')], ['list', t('List')]]} />
+          <Segmented value={view} onChange={choose} options={[['world', t('Constellation')], ['list', t('List')]]} />
           <Button size="sm" icon="plus" onClick={newBox}>{t('New Box')}</Button>
         </div>
       </header>
 
       {view === 'world' && overview ? (
         <Suspense fallback={<div className="world world-loading"><span className="loader" /><p>{t('Building the world…')}</p></div>}>
-          <World overview={overview} onOpen={(a) => openAgent(a.id, a.status === 'waiting' ? 'handle' : 'chat')} onAdd={(spaceId) => openNewAgent(ctx, spaceId)} onRename={renameBox} />
+          <World overview={overview} onOpen={(a) => openAgent(a.id, a.status === 'waiting' ? 'handle' : 'chat')} onAdd={(spaceId) => openNewAgent(ctx, spaceId)} onRename={renameBox} onInbox={() => openInbox(ctx)} />
         </Suspense>
       ) : (
         <ListView spaces={spaces} agents={agents} ctx={ctx} renameBox={renameBox} newBox={newBox} />

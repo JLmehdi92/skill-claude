@@ -54,4 +54,4 @@ Pourquoi REA n'a pas « tout » révélé : le front public est un site marketin
 - Comptes multiples, sièges, rôles, facturation, crédits de modèle, marketplace payante, programme d'experts.
 - Notifications par e-mail (tout arrive dans l'application).
 - OAuth géré et proxy d'appels pour les apps.
-- Le board isométrique : remplacé volontairement par un QG en 3D différent (îles flottantes, robots animés selon leur état, faisceaux entre coworkers), plus une vue liste.
+- Le board isométrique : remplacé volontairement par un concept différent, la Constellation (toi au centre, Boxes en nébuleuses, coworkers en entités liquides dont la forme dit l'état, synapses et signaux vers toi), plus une vue liste.

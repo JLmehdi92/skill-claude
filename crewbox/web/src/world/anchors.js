@@ -21,7 +21,7 @@ export function projectLabels(camera, size) {
     if (v.z > 1 || v.z < -1) { el.style.visibility = 'hidden'; continue; }
     const x = (v.x * 0.5 + 0.5) * size.width;
     const y = (-v.y * 0.5 + 0.5) * size.height;
-    const s = clamp(24 / dist, 0.5, 1.15);
+    const s = clamp(24 / dist, 0.62, 1.15);
     el.style.visibility = 'visible';
     el.style.transform = `translate3d(${x.toFixed(1)}px, ${y.toFixed(1)}px, 0) translate(-50%, -50%) scale(${s.toFixed(3)})`;
     el.style.zIndex = String(10000 - Math.round(dist * 10));

@@ -2,7 +2,7 @@
 
 Crewbox est un clone local et auto-hébergé de [Rerun](https://rerun.build) : des **coworkers IA** qui font votre travail récurrent (relances de factures, prospection, tri du support, rapports…), sur un **cron** ou un **webhook**, avec leurs **skills**, leur **mémoire**, leurs **bases SQLite**, leurs **apps (MCP)**, et qui **s'arrêtent pour vous demander** avant toute action risquée.
 
-Tout tourne sur votre machine : une seule commande Node, aucune base externe, données dans `~/.crewbox`. Vos coworkers peuvent tourner sur **votre abonnement Claude (Pro / Max)**. L'interface est **en français par défaut** (bouton FR / EN en haut à droite), avec un **QG en 3D** où chaque Box est une île et chaque coworker un petit robot, animée avec **GSAP**, **Lenis**, **React Bits** et **three.js** (voir [Design](#design)).
+Tout tourne sur votre machine : une seule commande Node, aucune base externe, données dans `~/.crewbox`. Vos coworkers peuvent tourner sur **votre abonnement Claude (Pro / Max)**. L'interface est **en français par défaut** (bouton FR / EN en haut à droite), avec un **QG en 3D, la Constellation** : tu es le noyau au centre, chaque Box est une nébuleuse en orbite et chaque coworker une entité liquide dont la forme dit ce qu'elle fait, animée avec **GSAP**, **Lenis**, **React Bits** et **three.js** (voir [Design](#design)).
 
 > Comment ce clone a été obtenu (REA + documentation publique), et ce qui diffère de l'original : voir [`docs/REVERSE_ENGINEERING.md`](docs/REVERSE_ENGINEERING.md).
 
@@ -51,7 +51,7 @@ Ou collez le jeton dans **Réglages → Fournisseurs d'IA → Abonnement Claude*
 ### Tests
 
 - `npm test` : 25 tests de bout en bout du serveur (`node:test`, sans réseau ni clé, l'abonnement est testé contre une fausse API).
-- `npm run test:e2e` : 15 scénarios **Playwright** dans un vrai Chromium (desktop + mobile) contre un serveur jetable : français par défaut et bascule EN, création d'un coworker, QG 3D (un robot par coworker, HUD, ticker), vue liste, chat en streaming, carte de question, approbation shell, tous les onglets, bibliothèque rerun.build et installation avec configuration guidée, connexion par abonnement, clé API. Écrits selon les pratiques d'[everything-claude-code](https://github.com/affaan-m/everything-claude-code) (agent `e2e-runner`, skills `e2e-testing` et `browser-qa` dans `../.claude/`) : Page Object Model, sélecteurs `data-testid`, et une fixture qui **fait échouer le test à la moindre erreur console ou exception de page**. Rapport HTML dans `e2e-report/`.
+- `npm run test:e2e` : 22 scénarios **Playwright** dans un vrai Chromium (desktop + mobile) contre un serveur jetable : français par défaut et bascule EN, création d'un coworker, Constellation (une entité par coworker, vol vers l'entité, noyau qui ouvre « À traiter », légende, noms masquables, cadrage mobile), vue liste, chat en streaming, carte de question, approbation shell, tous les onglets, bibliothèque rerun.build et installation avec configuration guidée, connexion par abonnement, clé API, et **accessibilité** (axe-core WCAG 2.2 AA en FR et EN, panneau, parcours au clavier avec focus visible partout). Écrits selon les pratiques d'[everything-claude-code](https://github.com/affaan-m/everything-claude-code) (agent `e2e-runner`, skills `e2e-testing` et `browser-qa` dans `../.claude/`) : Page Object Model, sélecteurs `data-testid`, et une fixture qui **fait échouer le test à la moindre erreur console ou exception de page**. Rapport HTML dans `e2e-report/`.
 
 ## Fournisseurs d'IA
 
@@ -118,16 +118,21 @@ Puis, dans Claude Code : « Crée un coworker qui surveille les pages de prix de
 
 L'interface (`web/`) est une app React 19 construite avec Vite, pensée comme un site primé plutôt qu'un tableau de bord générique : thème sombre, verre dépoli, typographie Bricolage Grotesque, et surtout du **mouvement**.
 
-### Le QG en 3D
+### Le QG en 3D : la Constellation
 
-La section « QG » n'est pas une grille de cartes : c'est un petit monde (`web/src/world/`, react-three-fiber + drei + postprocessing). Chaque **Box est une île flottante**, chaque **coworker un robot** à visière dont les yeux suivent la souris et clignent, et dont le corps dit ce qu'il fait :
+La section « QG » n'est ni une grille de cartes ni un plateau isométrique : c'est une constellation (`web/src/world/`, react-three-fiber + shaders GLSL + postprocessing) organisée **autour de toi**.
 
-- **prêt** : il respire doucement ; **au travail** : il sautille, un anneau holographique tourne autour de lui, des étincelles montent, son antenne clignote vite ;
-- **a besoin de vous** : une balise ambrée flotte au-dessus de lui, une onde se propage au sol et son nom reste affiché ;
-- **erreur** : il a des glitchs rouges ; **éteint** : yeux fermés, gris ;
-- chaque appel d'outil le fait **flasher**, chaque tâche planifiée est un **satellite** en orbite, et quand un coworker en appelle un autre (`@handle`, délégation), un **faisceau lumineux** part de l'un vers l'autre.
-
-Le ciel suit l'heure réelle (« Équipe de nuit » étoilée après 20 h), un **ticker** en direct raconte ce que fait l'équipe, la caméra tourne seule et **plonge vers un robot** quand vous cliquez dessus avant d'ouvrir son panneau. Les étiquettes sont du DOM projeté sur la scène (accessibles, traduites). Une **vue liste** reste disponible, et le monde est chargé à la demande pour ne pas alourdir la page.
+- **Toi, le noyau** : au centre, un gyroscope de lumière. Tous les coworkers y sont reliés par une **synapse**. Quand l'un d'eux t'attend, le noyau vire à l'ambre et bat comme un cœur, des **paquets ambrés filent le long de sa synapse jusqu'à toi**, et un clic sur le noyau ouvre « À traiter ».
+- **Chaque Box est une nébuleuse** : un disque de poussière à deux bras qui tourne lentement, en orbite autour du noyau.
+- **Chaque coworker est une entité vivante** : une coque liquide irisée (bruit simplex dans un shader) autour d'un cœur lumineux, avec un anneau. Sa forme et ses couleurs lui sont propres (tirées de son @handle), et son **comportement montre son état** :
+  - **prête** : elle respire, calme ;
+  - **au travail** : elle bouillonne et tourne vite, et de l'énergie cyan lui arrive depuis le noyau. Ce qu'elle fait s'affiche sous son nom (« ⚡ web_search », « demande à Sam ») ;
+  - **t'attend** : battement de cœur, teinte ambrée, et un **signal lumineux** qui monte vers le ciel, visible de loin ;
+  - **erreur** : des tranches rouges qui buggent ; **éteinte** : obsidienne figée.
+- Ses **lunes** sont ses tâches planifiées, ses **éclats** ses apps connectées. Chaque appel d'outil envoie une **onde de choc**, et quand un coworker en sollicite un autre, une **comète** traverse l'espace de l'un à l'autre.
+- Au survol, les autres entités s'estompent (mode focus) et une fiche s'affiche. Au clic, la caméra **plonge vers l'entité** puis ouvre son panneau.
+- En dessous, un radar à anneaux concentriques avec un balayage lent. Le ciel suit l'heure réelle (« Équipe de nuit » après 20 h), un fil en direct raconte ce que fait l'équipe, et un bouton **?** affiche la légende.
+- Le cadrage s'adapte à l'écran (téléphone, tablette, desktop), on peut pincer pour zoomer sur écran tactile, et `prefers-reduced-motion` coupe la rotation automatique. Une **vue liste** reste disponible.
 
 ### Français et anglais
 
@@ -162,7 +167,7 @@ src/
   catalog.js        bibliothèque d'apps
   skills.js memory.js sqlite-tools.js secrets.js templates.js builder.js notifications.js
 web/                interface React + Vite (sections, panneau, dialogues, composants React Bits)
-  src/world/        QG 3D : îles, robots, faisceaux, projection des étiquettes
+  src/world/        Constellation : noyau, nébuleuses, entités (shaders), synapses, comètes, étiquettes projetées
   src/lib/i18n.js   traduction FR / EN
 scripts/ensure-ui.js  construit l'interface au démarrage si elle manque ou a changé
 templates/          templates fournis (+ rerun/ : les 94 templates de rerun.build)

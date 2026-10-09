@@ -49,7 +49,9 @@ export default function Templates() {
   useEffect(() => { setShown(PAGE); }, [cat, query]);
 
   useGSAP(() => {
-    gsap.fromTo('.tpl-card', { y: 40, opacity: 0 }, { y: 0, opacity: 1, duration: 0.7, ease: 'expo.out', stagger: 0.04, overwrite: true });
+    const cards = root.current?.querySelectorAll('.tpl-card');
+    if (!cards?.length) return;
+    gsap.fromTo(cards, { y: 40, opacity: 0 }, { y: 0, opacity: 1, duration: 0.7, ease: 'expo.out', stagger: 0.04, overwrite: true });
   }, { scope: root, dependencies: [cat, query, shown, templates.length] });
 
   const install = async (tp) => {
@@ -69,16 +71,16 @@ export default function Templates() {
       </header>
 
       <div className="tpl-toolbar">
-        <div className="tpl-search"><Icon name="sparkles" size={16} /><Input placeholder={t('Search: invoices, leads, Shopify, SEO…')} value={query} onChange={(e) => setQuery(e.target.value)} /></div>
+        <div className="tpl-search"><Icon name="sparkles" size={16} /><Input aria-label={t('Search templates')} placeholder={t('Search: invoices, leads, Shopify, SEO…')} value={query} onChange={(e) => setQuery(e.target.value)} /></div>
         <div className="row wrap">
           <span className="muted small">{t('Install into')}</span>
-          <div style={{ width: 180 }}><Select value={box} onChange={(e) => setBox(e.target.value)}>{overview?.spaces.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}</Select></div>
+          <div style={{ width: 180 }}><Select aria-label={t('Install into')} value={box} onChange={(e) => setBox(e.target.value)}>{overview?.spaces.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}</Select></div>
           <button className="link-btn" onClick={() => installFromLink(ctx, box)}><Icon name="link" size={14} /> {t('Share link')}</button>
         </div>
       </div>
-      <div className="cat-chips" role="tablist">
-        <button className={`cat-chip ${cat === 'all' ? 'on' : ''}`} onClick={() => setCat('all')}>{t('All')} <b>{templates.length}</b></button>
-        {cats.map(([c, n]) => <button key={c} className={`cat-chip ${cat === c ? 'on' : ''}`} onClick={() => setCat(c)}><Icon name={catIcon(c)} size={13} />{catLabel(c)} <b>{n}</b></button>)}
+      <div className="cat-chips" role="group" aria-label={t('Categories')}>
+        <button className={`cat-chip ${cat === 'all' ? 'on' : ''}`} aria-pressed={cat === 'all'} onClick={() => setCat('all')}>{t('All')} <b>{templates.length}</b></button>
+        {cats.map(([c, n]) => <button key={c} className={`cat-chip ${cat === c ? 'on' : ''}`} aria-pressed={cat === c} onClick={() => setCat(c)}><Icon name={catIcon(c)} size={13} />{catLabel(c)} <b>{n}</b></button>)}
       </div>
 
       <div className="tpl-grid" data-testid="template-grid">

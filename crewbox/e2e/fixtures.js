@@ -9,7 +9,8 @@ export const test = base.extend({
     const errors = [];
     page.on('pageerror', (e) => errors.push(`pageerror: ${e.message}`));
     page.on('console', (m) => { if (m.type() === 'error' && !IGNORED.some((r) => r.test(m.text()))) errors.push(`console: ${m.text()}`); });
-    page.on('requestfailed', (r) => { if (!r.url().includes('/api/events')) errors.push(`requestfailed: ${r.url()} ${r.failure()?.errorText}`); });
+    // A request cancelled by a navigation (reload, goto) reports ERR_ABORTED: that is the test moving on, not the app failing.
+    page.on('requestfailed', (r) => { if (!r.url().includes('/api/events') && r.failure()?.errorText !== 'net::ERR_ABORTED') errors.push(`requestfailed: ${r.url()} ${r.failure()?.errorText}`); });
     await use(page);
     if (errors.length) await testInfo.attach('errors', { body: errors.join('\n'), contentType: 'text/plain' });
     expect(errors, 'no console errors, page errors or failed requests').toEqual([]);

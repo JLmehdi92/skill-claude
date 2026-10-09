@@ -87,6 +87,8 @@ const SplitText = ({
         wordsClass: 'split-word',
         charsClass: 'split-char',
         reduceWhiteSpace: false,
+        // aria-label is only valid on headings; elsewhere keep the real text readable (Crewbox a11y fix).
+        aria: /^h[1-6]$/.test(tag) ? 'auto' : 'none',
         onSplit: self => {
           assignTargets(self);
           const tween = gsap.fromTo(
