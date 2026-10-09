@@ -5,7 +5,6 @@ import { HomePage } from './pages/HomePage.js';
 // WCAG 2.2 AA through axe-core. A clean run is necessary, not sufficient: keyboard checks follow.
 const scan = (page) => new AxeBuilder({ page })
   .withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'wcag22aa'])
-  .exclude('.world canvas')
   .analyze();
 const summary = (v) => v.map((x) => `${x.id} (${x.impact}) × ${x.nodes.length}: ${x.nodes.slice(0, 3).map((n) => n.target.join(' ')).join(', ')}`);
 
@@ -14,8 +13,8 @@ test.describe('Accessibility', () => {
     test(`home page has no serious WCAG AA violation (${lang})`, async ({ page }) => {
       const home = new HomePage(page);
       await home.goto(lang);
-      await home.useView('Constellation');
-      await expect(page.getByTestId('core')).toBeVisible({ timeout: 20_000 });
+      await home.useView(lang === 'fr' ? 'Plateau' : 'Board');
+      await expect(page.getByTestId('rb-orb')).toBeVisible();
       const { violations } = await scan(page);
       const serious = violations.filter((v) => ['serious', 'critical'].includes(v.impact));
       expect(summary(serious), 'serious or critical axe violations').toEqual([]);

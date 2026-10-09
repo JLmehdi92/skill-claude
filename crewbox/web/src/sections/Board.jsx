@@ -1,4 +1,4 @@
-import { lazy, Suspense, useRef, useState } from 'react';
+import { useRef, useState } from 'react';
 import { useGSAP } from '@gsap/react';
 import { gsap, ScrollTrigger } from '../lib/smooth.js';
 import { api } from '../lib/api.js';
@@ -10,11 +10,12 @@ import { Avatar, StatusBadge, Button, Segmented } from '../ui/kit.jsx';
 import Icon from '../ui/icons.jsx';
 import { openNewAgent } from '../dialogs/NewAgent.jsx';
 import { prompt } from '../dialogs/Prompt.jsx';
-import { openInbox } from '../dialogs/Inbox.jsx';
+import { openInbox, openNotifications } from '../dialogs/Inbox.jsx';
 
-const World = lazy(() => import('../world/World.jsx'));
+import IsoBoard from '../board/IsoBoard.jsx';
+import { scrollTo } from '../lib/smooth.js';
+
 const VIEW_KEY = 'crewbox.boardView';
-const canWebGL = (() => { try { const c = document.createElement('canvas'); return !!(c.getContext('webgl2') || c.getContext('webgl')); } catch { return false; } })();
 
 function ListView({ spaces, agents, ctx, renameBox, newBox }) {
   const { openAgent, safe, refresh } = ctx;
@@ -62,7 +63,7 @@ function ListView({ spaces, agents, ctx, renameBox, newBox }) {
 export default function Board() {
   const ctx = useApp();
   const { overview, openAgent, safe, refresh, openModal } = ctx;
-  const [view, setView] = useState(() => { try { return localStorage.getItem(VIEW_KEY) || (canWebGL ? 'world' : 'list'); } catch { return 'world'; } });
+  const [view, setView] = useState(() => { try { return localStorage.getItem(VIEW_KEY) === 'list' ? 'list' : 'board'; } catch { return 'board'; } });
   const spaces = overview?.spaces || [];
   const agents = overview?.agents || [];
   const choose = (v) => { setView(v); try { localStorage.setItem(VIEW_KEY, v); } catch { /* ignore */ } };
@@ -82,18 +83,27 @@ export default function Board() {
         <div>
           <span className="kicker">{t('01 · Headquarters')}</span>
           <SplitText text={t('Your crew, live.')} tag="h2" splitType="words" delay={80} from={{ opacity: 0, y: 50 }} to={{ opacity: 1, y: 0 }} textAlign="left" />
-          <p className="lede">{t('You are the core. Every Box is a nebula orbiting you, every coworker a living entity whose shape tells what it is doing. When one needs you, a signal travels all the way to you.')}</p>
+          <p className="lede">{t('Every Box is a floor, every coworker a block that lives on it. Watch them work, see who needs you, and click one to talk to it.')}</p>
         </div>
         <div className="row wrap">
-          <Segmented value={view} onChange={choose} options={[['world', t('Constellation')], ['list', t('List')]]} />
+          <Segmented value={view} onChange={choose} options={[['board', t('Board view')], ['list', t('List')]]} />
           <Button size="sm" icon="plus" onClick={newBox}>{t('New Box')}</Button>
         </div>
       </header>
 
-      {view === 'world' && overview ? (
-        <Suspense fallback={<div className="world world-loading"><span className="loader" /><p>{t('Building the world…')}</p></div>}>
-          <World overview={overview} onOpen={(a) => openAgent(a.id, a.status === 'waiting' ? 'handle' : 'chat')} onAdd={(spaceId) => openNewAgent(ctx, spaceId)} onRename={renameBox} onInbox={() => openInbox(ctx)} />
-        </Suspense>
+      {view === 'board' && overview ? (
+        <IsoBoard
+          overview={overview}
+          onOpen={(a) => openAgent(a.id, a.status === 'waiting' ? 'handle' : 'chat')}
+          onAdd={(spaceId) => openNewAgent(ctx, spaceId || undefined)}
+          onRename={renameBox}
+          onNewBox={newBox}
+          onInbox={() => openInbox(ctx)}
+          onNotifications={() => openNotifications(ctx)}
+          onTemplates={() => scrollTo('#templates')}
+          onAsk={() => openNewAgent(ctx)}
+          onList={() => choose('list')}
+        />
       ) : (
         <ListView spaces={spaces} agents={agents} ctx={ctx} renameBox={renameBox} newBox={newBox} />
       )}

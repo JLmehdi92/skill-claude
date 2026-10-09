@@ -43,6 +43,7 @@ Pourquoi REA n'a pas « tout » révélé : le front public est un site marketin
 | SQLite privée + partagée, propriétaire de table, navigateur de tables, export CSV/JSON | Identique | ✅ |
 | Fichiers privés + dossier partagé + publication `/p/<slug>` | Identique (CSP sandbox) | ✅ |
 | Délégation (4 sous-coworkers) et `@handle` | Identique | ✅ |
+| Board isométrique (Boxes en plateaux, coworkers en blocs à yeux, HUD) | Reproduit d'après une capture de l'app (le code du board n'est servi qu'aux comptes connectés) : mêmes proportions, couleurs et HUD ; états et animations reconstitués | ✅ |
 | Créer un coworker en décrivant le job | « Describe the job » : un appel au modèle rédige soul, skills, planning et apps | ✅ |
 | Templates, export, liens de partage | Identique (marketplace locale, sans paiement) ; les 94 templates publics de rerun.build importés, corps des skills reconstitués depuis les descriptions publiques | ✅ |
 | API MCP (50 outils) | 39 outils publics aux mêmes noms et formes (+ outils locaux pour l'UI) | ✅ hors outils d'auteur de templates |
@@ -54,4 +55,3 @@ Pourquoi REA n'a pas « tout » révélé : le front public est un site marketin
 - Comptes multiples, sièges, rôles, facturation, crédits de modèle, marketplace payante, programme d'experts.
 - Notifications par e-mail (tout arrive dans l'application).
 - OAuth géré et proxy d'appels pour les apps.
-- Le board isométrique : remplacé volontairement par un concept différent, la Constellation (toi au centre, Boxes en nébuleuses, coworkers en entités liquides dont la forme dit l'état, synapses et signaux vers toi), plus une vue liste.

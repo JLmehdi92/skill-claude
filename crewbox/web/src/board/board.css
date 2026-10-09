@@ -1,0 +1,151 @@
+/* ============ isometric board ============ */
+.rb-board {
+  --rb-font: -apple-system, BlinkMacSystemFont, 'Inter', 'Segoe UI', system-ui, sans-serif;
+  /* full-bleed, minus a classic scrollbar when there is one (--rb-sbw is measured by the board) */
+  position: relative; width: calc(100vw - var(--rb-sbw, 0px)); margin-left: calc(50% - 50vw + var(--rb-sbw, 0px) / 2); height: 100svh; min-height: 520px;
+  background: #0a0a0a; overflow: hidden; font-family: var(--rb-font); color: #f2f2f2; isolation: isolate;
+}
+.rb-svg { position: absolute; inset: 0; width: 100%; height: 100%; display: block; touch-action: pan-y; cursor: grab; user-select: none; -webkit-user-select: none; -webkit-tap-highlight-color: transparent; }
+.rb-svg:active { cursor: grabbing; }
+.rb-svg text { font-family: var(--rb-font); user-select: none; }
+
+/* floor */
+.rb-tile-name { cursor: pointer; transition: filter 0.2s; outline: none; }
+.rb-tile-name:hover, .rb-tile-name:focus-visible { filter: brightness(1.7); }
+.rb-add { opacity: 0; cursor: pointer; transition: opacity 0.25s; outline: none; }
+.rb-tile:hover .rb-add, .rb-add:focus-visible { opacity: 1; }
+.rb-add:hover path:first-child { fill: rgba(255, 255, 255, 0.07); }
+
+/* blocks */
+.rb-block { cursor: pointer; outline: none; }
+.rb-in { animation: rb-drop 0.75s cubic-bezier(0.2, 1.5, 0.4, 1) backwards; animation-delay: var(--delay, 0ms); }
+.rb-lift { transition: transform 0.28s cubic-bezier(0.2, 1.4, 0.4, 1); }
+.rb-block:hover .rb-lift, .rb-block:focus-visible .rb-lift { transform: translateY(-3.5px); }
+.rb-block:focus-visible .rb-name rect { stroke: #a5b4fc; stroke-width: 0.9; }
+.rb-shadow { transition: opacity 0.3s; }
+.rb-block:hover .rb-shadow { opacity: 0.65; }
+
+.st-running .rb-hop { animation: rb-hop 0.95s ease-in-out infinite; }
+.st-running .rb-shadow { animation: rb-glow 1.9s ease-in-out infinite; }
+.st-sleep .rb-shadow { animation: rb-glow 4.5s ease-in-out infinite; }
+.st-error .rb-hop { animation: rb-shake 3.4s ease-in-out infinite; }
+.rb-orbit { animation: rb-dash 1.1s linear infinite; }
+.rb-wait-ring, .rb-ripple { transform-box: fill-box; transform-origin: center; }
+.rb-wait-ring { animation: rb-ring 1.7s ease-out infinite; }
+.rb-ripple { animation: rb-ripple 1.3s ease-out forwards; }
+.rb-flash { opacity: 0; animation: rb-flash 0.7s ease-out; pointer-events: none; }
+
+.rb-eyes-open, .rb-eyes-closed, .rb-eyes-peek { transform-box: fill-box; transform-origin: center; }
+.rb-eyes-open { animation: rb-blink 4.6s infinite; animation-delay: var(--delay, 0ms); }
+.rb-look .rb-pupil { animation: rb-look 2.6s steps(1) infinite; }
+.rb-eyes-peek { opacity: 0; animation: rb-peek 8s infinite; animation-delay: var(--delay, 0ms); }
+.rb-eyes-closed { animation: rb-peek-closed 8s infinite; animation-delay: var(--delay, 0ms); }
+
+.rb-bubble > g { animation: rb-bob 1.5s ease-in-out infinite; }
+.rb-thought { animation: rb-fade-in 0.35s ease-out; pointer-events: none; }
+.rb-beam { animation: rb-dash 0.7s linear infinite, rb-beam 2.8s ease-out forwards; }
+
+@keyframes rb-drop { from { transform: translateY(-34px); opacity: 0; } 60% { opacity: 1; } }
+@keyframes rb-hop { 0%, 100% { transform: translateY(0); } 38%, 52% { transform: translateY(-3.4px); } 70% { transform: translateY(0.4px); } }
+@keyframes rb-glow { 0%, 100% { opacity: 0.35; } 50% { opacity: 0.75; } }
+@keyframes rb-shake { 0%, 86%, 100% { transform: translateX(0); } 88% { transform: translateX(-1.1px); } 90% { transform: translateX(1.1px); } 92% { transform: translateX(-0.8px); } 94% { transform: translateX(0.6px); } }
+@keyframes rb-dash { to { stroke-dashoffset: -18; } }
+@keyframes rb-ring { from { transform: scale(0.95); opacity: 0.9; } to { transform: scale(1.45); opacity: 0; } }
+@keyframes rb-ripple { from { transform: scale(1); opacity: 1; } to { transform: scale(2.1); opacity: 0; } }
+@keyframes rb-flash { from { opacity: 0.55; } to { opacity: 0; } }
+@keyframes rb-blink { 0%, 93%, 100% { transform: scaleY(1); } 95.5% { transform: scaleY(0.08); } }
+@keyframes rb-look { 0% { transform: translate(0, 0); } 30% { transform: translate(1px, -0.2px); } 55% { transform: translate(-0.9px, 0.3px); } 80% { transform: translate(0.4px, -0.6px); } }
+@keyframes rb-peek { 0%, 84%, 97%, 100% { opacity: 0; } 86%, 95% { opacity: 1; } }
+@keyframes rb-peek-closed { 0%, 84%, 97%, 100% { opacity: 1; } 86%, 95% { opacity: 0; } }
+@keyframes rb-bob { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-2.4px); } }
+@keyframes rb-fade-in { from { opacity: 0; } }
+@keyframes rb-beam { 0% { opacity: 0; } 12% { opacity: 1; } 75% { opacity: 1; } 100% { opacity: 0; } }
+
+/* HUD */
+.rb-hud { position: absolute; z-index: 5; display: flex; gap: 9px; pointer-events: none; }
+.rb-hud > * { pointer-events: auto; }
+.rb-top-left { top: 16px; left: 16px; align-items: flex-start; }
+.rb-bottom-left { left: 16px; bottom: calc(18px + env(safe-area-inset-bottom)); align-items: center; gap: 0; }
+.rb-pill, .rb-round, .rb-zoom { background: #161616; border: 1.5px solid rgba(255, 255, 255, 0.2); color: #f2f2f2; font: 500 16px/1 var(--rb-font); letter-spacing: -0.01em; }
+.rb-pill { height: 40px; border-radius: 999px; display: inline-flex; align-items: center; gap: 10px; cursor: pointer; transition: transform 0.2s, border-color 0.2s, background 0.2s; }
+.rb-pill:hover, .rb-round:hover { border-color: rgba(255, 255, 255, 0.34); }
+button.rb-pill:active, .rb-round:active { transform: scale(0.97); }
+/* the +/search pill is a container (its menu is positioned from the bar): it never moves under a finger */
+.rb-actions:hover { border-color: rgba(255, 255, 255, 0.2); }
+.rb-workspace { padding: 0 16px 0 7px; gap: 8px; }
+.rb-workspace .rb-logo { width: 24px; height: 24px; margin-right: 1px; }
+.rb-workspace span { flex: 1; text-align: left; }
+.rb-workspace > svg:last-child { color: rgba(255, 255, 255, 0.55); }
+.rb-logo { flex: none; }
+.rb-light { padding: 0 18px 0 14px; color: #141414; background: linear-gradient(180deg, #f6f6f6, #d7d7d7); border-color: rgba(255, 255, 255, 0.8); box-shadow: inset 0 -2px 0 rgba(0, 0, 0, 0.07), 0 6px 20px -8px rgba(0, 0, 0, 0.8); }
+.rb-light:hover { border-color: #fff; background: linear-gradient(180deg, #fff, #e2e2e2); }
+
+.rb-zoom { top: 16px; right: 16px; width: 40px; flex-direction: column; align-items: center; gap: 0; padding: 2px 0; border-radius: 999px; }
+.rb-zoom button { width: 38px; height: 34px; display: grid; place-items: center; background: none; border: 0; color: rgba(255, 255, 255, 0.72); cursor: pointer; border-radius: 12px; }
+.rb-zoom button:hover { color: #fff; }
+.rb-sep { width: 18px; height: 1px; background: rgba(255, 255, 255, 0.18); margin: 4px 0; }
+
+.rb-round { position: relative; width: 40px; height: 40px; border-radius: 50%; display: grid; place-items: center; cursor: pointer; color: #ececec; }
+.rb-dot { position: absolute; top: 5px; right: 5px; width: 9px; height: 9px; border-radius: 50%; background: #ff3b3b; box-shadow: 0 0 0 1.5px #161616; }
+.rb-dot.amber { position: static; background: #fbbf24; box-shadow: 0 0 8px #fbbf24; margin-left: -4px; }
+.rb-progress { margin-left: 8px; padding: 0 16px 0 9px; gap: 9px; border-color: rgba(160, 150, 215, 0.42); }
+.rb-progress span { font-variant-numeric: tabular-nums; }
+.rb-progress-arc { transition: stroke-dasharray 0.6s; }
+.rb-progress.spin svg { animation: rb-spin 1.1s linear infinite; }
+@keyframes rb-spin { to { transform: rotate(360deg); } }
+.rb-actions { margin-left: 18px; padding: 0 6px; gap: 4px; cursor: default; }
+.rb-actions button { width: 28px; height: 28px; border-radius: 50%; display: grid; place-items: center; border: 0; background: none; color: rgba(255, 255, 255, 0.62); cursor: pointer; }
+.rb-actions button:hover { color: #fff; background: rgba(255, 255, 255, 0.06); }
+.rb-actions > button { margin-right: 1px; }
+
+/* the button stays put (easy to tap); only the glossy ball inside floats */
+.rb-orb { position: absolute; z-index: 5; right: 16px; bottom: calc(14px + env(safe-area-inset-bottom)); width: 48px; height: 48px; border-radius: 50%; border: 0; padding: 0; background: none; cursor: pointer; }
+.rb-orb-ball {
+  position: absolute; inset: 0; border-radius: 50%;
+  background: radial-gradient(ellipse 30% 17% at 42% 16%, rgba(255, 255, 255, 0.95), rgba(255, 255, 255, 0) 100%), radial-gradient(circle at 38% 34%, #6f57ff 0, #4f33f0 34%, #3a1fd6 62%, #2510a0 100%);
+  box-shadow: inset -3px -5px 10px rgba(14, 4, 70, 0.6), inset 2px 2px 6px rgba(255, 255, 255, 0.3), 0 0 0 1px rgba(255, 255, 255, 0.35), 0 8px 16px -8px rgba(91, 70, 240, 0.7);
+  animation: rb-float 3.6s ease-in-out infinite;
+}
+.rb-orb-ball::before { content: ''; position: absolute; inset: 0; border-radius: 50%; background: linear-gradient(112deg, transparent 56%, rgba(190, 180, 255, 0.75) 61%, rgba(255, 255, 255, 0.2) 64%, transparent 70%); mix-blend-mode: screen; }
+.rb-orb::after { content: ''; position: absolute; left: 6px; right: 6px; bottom: -14px; height: 12px; border-radius: 50%; background: radial-gradient(ellipse, rgba(110, 90, 255, 0.55), transparent 70%); filter: blur(3px); animation: rb-orb-shadow 3.6s ease-in-out infinite; }
+.rb-orb:hover .rb-orb-ball { filter: brightness(1.12); }
+.rb-orb:focus-visible { outline: 2px solid #a5b4fc; outline-offset: 3px; }
+.rb-orb-visor { position: absolute; left: 7px; top: 15px; width: 25px; height: 14px; border-radius: 6px; background: #0b0a1d; transform: rotate(-14deg); display: flex; align-items: center; justify-content: center; gap: 4px; box-shadow: inset 0 1px 2px rgba(255, 255, 255, 0.25); }
+.rb-orb-visor i { width: 4.5px; height: 4.5px; border-radius: 50%; background: #e9e7ff; box-shadow: 0 0 4px #c4bcff; animation: rb-orb-blink 5s infinite; }
+@keyframes rb-float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-3px); } }
+@keyframes rb-orb-shadow { 0%, 100% { opacity: 0.9; transform: scale(1); } 50% { opacity: 0.6; transform: scale(0.88); } }
+@keyframes rb-orb-blink { 0%, 92%, 100% { transform: scaleY(1); } 95% { transform: scaleY(0.1); } }
+
+/* menus */
+.rb-menu-wrap { position: relative; }
+.rb-menu { position: absolute; z-index: 8; top: 48px; left: 0; min-width: 230px; padding: 6px; border-radius: 18px; background: #161616; border: 1.5px solid rgba(255, 255, 255, 0.16); box-shadow: 0 24px 60px -12px rgba(0, 0, 0, 0.9); display: flex; flex-direction: column; animation: rb-pop 0.22s cubic-bezier(0.2, 1.3, 0.4, 1); }
+.rb-menu button { display: flex; align-items: center; gap: 10px; width: 100%; height: 38px; padding: 0 12px; border: 0; border-radius: 12px; background: none; color: #ececec; font: 500 14.5px var(--rb-font); cursor: pointer; text-align: left; }
+.rb-menu button:hover, .rb-menu button:focus-visible { background: rgba(255, 255, 255, 0.07); }
+.rb-menu button em { margin-left: auto; font-style: normal; color: rgba(255, 255, 255, 0.4); font-size: 13px; }
+.rb-menu hr { border: 0; height: 1px; background: rgba(255, 255, 255, 0.08); margin: 4px 6px; }
+.rb-menu-title { padding: 8px 12px 4px; font-size: 12px; color: rgba(255, 255, 255, 0.45); text-transform: uppercase; letter-spacing: 0.06em; }
+.rb-menu-dot { width: 8px; height: 8px; border-radius: 2px; transform: rotate(45deg) skew(-10deg, -10deg); border: 1.2px solid rgba(255, 255, 255, 0.5); }
+.rb-search { top: auto; bottom: 48px; width: min(320px, calc(100vw - 32px)); }
+.rb-search input { height: 40px; border-radius: 12px; border: 1.5px solid rgba(255, 255, 255, 0.14); background: #0e0e0e; color: #f2f2f2; padding: 0 12px; font: 15px var(--rb-font); outline: none; margin-bottom: 4px; }
+.rb-search input:focus { border-color: rgba(124, 108, 255, 0.7); }
+.rb-search-list { display: flex; flex-direction: column; max-height: 300px; overflow: auto; }
+.rb-search-list p { padding: 10px 12px; color: rgba(255, 255, 255, 0.45); font-size: 14px; }
+.rb-search-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.rb-swatch { width: 12px; height: 12px; flex: none; border-radius: 3px; transform: rotate(45deg) scale(0.85); }
+.rb-scrim { position: absolute; inset: 0; z-index: 4; }
+@keyframes rb-pop { from { opacity: 0; transform: translateY(6px) scale(0.97); } }
+
+.rb-hint { position: absolute; z-index: 5; left: 50%; bottom: calc(84px + env(safe-area-inset-bottom)); transform: translateX(-50%); padding: 8px 14px; border-radius: 999px; background: rgba(22, 22, 22, 0.9); border: 1px solid rgba(255, 255, 255, 0.14); font-size: 13px; color: rgba(255, 255, 255, 0.8); white-space: nowrap; pointer-events: none; animation: rb-fade-in 0.4s ease-out, rb-hint-out 0.5s ease-in 5s forwards; }
+@keyframes rb-hint-out { to { opacity: 0; } }
+
+@media (prefers-reduced-motion: reduce) {
+  .rb-board *, .rb-board *::before, .rb-board *::after { animation: none !important; transition: none !important; }
+}
+
+/* the page dock steps aside while the board fills the screen */
+.dock-wrap { transition: transform 0.45s cubic-bezier(0.2, 1, 0.3, 1), opacity 0.3s; }
+body.rb-immersive .dock-wrap { transform: translateY(160%); opacity: 0; pointer-events: none; }
+body.rb-immersive .dock-wrap .dock { pointer-events: none; }
+/* the search popover anchors on the bottom bar, so it always fits a phone screen */
+.rb-actions .rb-menu-wrap { position: static; }
+.rb-search { left: 0; }

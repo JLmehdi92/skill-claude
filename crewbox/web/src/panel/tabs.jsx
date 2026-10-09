@@ -11,6 +11,7 @@ import SpotlightCard from '../reactbits/SpotlightCard.jsx';
 import CountUp from '../reactbits/CountUp.jsx';
 import { NotificationList } from '../dialogs/Inbox.jsx';
 import { t } from '../lib/i18n.js';
+import { COLORS } from '../board/iso.js';
 
 /** Load data for a tab and reload it on matching server events. */
 function useLoad(fn, deps, events = ['agents', 'run', 'pause']) {
@@ -410,7 +411,7 @@ export function RunsTab({ agent, openChat }) {
 export function SettingsTab({ agent }) {
   const ctx = useApp();
   const { overview, safe, toast, refresh, openModal, closeAgent } = ctx;
-  const [f, setF] = useState({ name: agent.name, handle: agent.handle, description: agent.description || '', soul: agent.soul || '', verbosity: agent.verbosity, spaceId: agent.spaceId, tools: agent.tools, selfImprovement: agent.selfImprovement, approvals: agent.approvals });
+  const [f, setF] = useState({ name: agent.name, handle: agent.handle, description: agent.description || '', soul: agent.soul || '', verbosity: agent.verbosity, spaceId: agent.spaceId, color: agent.color || null, tools: agent.tools, selfImprovement: agent.selfImprovement, approvals: agent.approvals });
   const set = (k, v) => setF({ ...f, [k]: v });
   const flags = (key) => (
     <div className="flag-grid">{Object.entries(f[key]).map(([k, v]) => <Toggle key={k} checked={v} label={k} onChange={(val) => set(key, { ...f[key], [k]: val })} />)}</div>
@@ -427,6 +428,12 @@ export function SettingsTab({ agent }) {
         <Field label={t('Answer length')}><Select value={f.verbosity} onChange={(e) => set('verbosity', e.target.value)}>{['minimal', 'concise', 'normal', 'detailed'].map((v) => <option key={v}>{v}</option>)}</Select></Field>
         <Field label={t('Box')}><Select value={f.spaceId} onChange={(e) => set('spaceId', e.target.value)}>{overview?.spaces.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}</Select></Field>
       </div>
+      <Field label={t('Colour on the board')}>
+        <div className="swatches" role="radiogroup" aria-label={t('Colour on the board')}>
+          <button type="button" role="radio" aria-checked={!f.color} className={`swatch auto ${f.color ? '' : 'on'}`} onClick={() => set('color', null)}>{t('Auto')}</button>
+          {COLORS.map((c) => <button key={c} type="button" role="radio" aria-checked={f.color === c} aria-label={c} className={`swatch ${f.color === c ? 'on' : ''}`} style={{ '--c': c }} onClick={() => set('color', c)} />)}
+        </div>
+      </Field>
       <SectionHead title={t('Capabilities')} sub={t('Families of tools. Turn off what it has no business doing.')} />
       {flags('tools')}
       <SectionHead title={t('Ask me before')} sub={t('appWrites = any app tool that is not read-only.')} />

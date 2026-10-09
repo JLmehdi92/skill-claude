@@ -69,9 +69,16 @@ export function agentConfig(id) {
   };
 }
 
+/** A board colour: a #rrggbb hex, or null for the automatic one. */
+function checkColor(c) {
+  if (c === undefined || c === null || c === '') return null;
+  if (!/^#[0-9a-f]{6}$/i.test(c)) throw new Error('color is a #rrggbb hex value.');
+  return c.toLowerCase();
+}
+
 export function summary(r) {
   return {
-    id: r.id, name: r.name, handle: r.handle, description: r.description, status: agentStatus(r.id), enabled: !!r.enabled, space_id: r.space_id, avatar: r.avatar, created_at: r.created_at,
+    id: r.id, name: r.name, handle: r.handle, description: r.description, status: agentStatus(r.id), enabled: !!r.enabled, space_id: r.space_id, avatar: r.avatar, color: r.color || null, created_at: r.created_at,
     schedules: q.get('SELECT COUNT(*) AS n FROM schedules WHERE agent_id = ? AND enabled = 1', r.id).n,
     triggers: q.get('SELECT COUNT(*) AS n FROM triggers WHERE agent_id = ? AND enabled = 1', r.id).n,
     apps: q.get('SELECT COUNT(*) AS n FROM mcp_servers WHERE agent_id = ? AND enabled = 1', r.id).n,
@@ -94,7 +101,7 @@ export function getAgent(id) {
   const a = agentConfig(id);
   const runsOn = resolveRunsOn({ connectionId: a.connection_id, model: a.model });
   return {
-    id: a.id, handle: a.handle, name: a.name, description: a.description, spaceId: a.space_id, enabled: a.enabled, avatar: a.avatar,
+    id: a.id, handle: a.handle, name: a.name, description: a.description, spaceId: a.space_id, enabled: a.enabled, avatar: a.avatar, color: a.color || null,
     soul: a.soul, provider: runsOn.provider, model: runsOn.model, verbosity: a.verbosity,
     runsOn: { connectionId: runsOn.connectionId || null, provider: runsOn.provider, model: runsOn.model, followsDefault: runsOn.followsDefault },
     tools: a.tools, selfImprovement: a.selfImprovement, approvals: a.approvals, setup: a.setup,
@@ -149,7 +156,7 @@ export function createAgent(args) {
     id, space_id: space, name, handle: handle ? uniqueHandle(handle) : uniqueHandle(name), description, soul,
     connection_id: conn.connection_id ?? null, model: conn.model ?? null, verbosity,
     tools: tools || {}, self_improvement: selfImprovement || {}, approvals: approvals || {}, setup: setup || null,
-    enabled: 1, avatar: args.avatar || null, created_at: now(), updated_at: now(),
+    enabled: 1, avatar: args.avatar || null, color: checkColor(args.color), created_at: now(), updated_at: now(),
   });
   ensureAgentDirs(id);
   emit('agents', { id });
@@ -175,6 +182,7 @@ export function updateAgent(id, args) {
     patch.space_id = args.spaceId; updated.push('spaceId');
   }
   if (args.enabled !== undefined) { patch.enabled = !!args.enabled; updated.push('enabled'); }
+  if (args.color !== undefined) { patch.color = checkColor(args.color); updated.push('color'); }
   if (args.tools) { patch.tools = { ...a.tools, ...args.tools }; updated.push('tools'); }
   if (args.selfImprovement) { patch.self_improvement = { ...a.selfImprovement, ...args.selfImprovement }; updated.push('selfImprovement'); }
   if (args.approvals) { patch.approvals = { ...a.approvals, ...args.approvals }; updated.push('approvals'); }

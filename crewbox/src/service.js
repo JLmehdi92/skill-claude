@@ -68,7 +68,7 @@ def('list_agents', { api: true, description: 'Lists the coworkers of the workspa
 def('get_agent', { api: true, description: 'The full picture of one coworker. Read this before changing anything.', input: { agentId: 'string!' }, run: (a) => agents.getAgent(a.agentId) });
 def('create_agent', {
   api: true, description: 'Creates a coworker and places it on the board.',
-  input: { name: 'string!', soul: 'string', description: 'string', spaceId: 'string', connectors: 'string[]', connectionId: 'string', provider: 'string', model: 'string', verbosity: 'string', tools: 'object', selfImprovement: 'object', approvals: 'object', setup: 'object', handle: 'string' },
+  input: { name: 'string!', soul: 'string', description: 'string', spaceId: 'string', color: 'string', connectors: 'string[]', connectionId: 'string', provider: 'string', model: 'string', verbosity: 'string', tools: 'object', selfImprovement: 'object', approvals: 'object', setup: 'object', handle: 'string' },
   run: (a) => {
     const ag = agents.createAgent(a);
     const connectors = (a.connectors || []).map((s) => catalog.attachConnector(ag.id, s)).map(({ slug, name, status }) => ({ slug, name, status }));
@@ -77,7 +77,7 @@ def('create_agent', {
 });
 def('update_agent', {
   api: true, description: 'Updates a coworker. Only what you pass changes.',
-  input: { agentId: 'string!', name: 'string', handle: 'string', spaceId: 'string', soul: 'string', description: 'string', connectionId: 'string', provider: 'string', model: 'any', verbosity: 'string', tools: 'object', selfImprovement: 'object', approvals: 'object', setup: 'any', enabled: 'boolean', avatar: 'string' },
+  input: { agentId: 'string!', name: 'string', handle: 'string', spaceId: 'string', soul: 'string', description: 'string', connectionId: 'string', provider: 'string', model: 'any', verbosity: 'string', tools: 'object', selfImprovement: 'object', approvals: 'object', setup: 'any', enabled: 'boolean', avatar: 'string', color: 'any' },
   run: (a) => { const r = agents.updateAgent(a.agentId, a); if (a.enabled !== undefined || a.spaceId !== undefined) auto.rearmAgent(r.agentId); return r; },
 });
 def('delete_agent', { api: true, confirm: true, description: 'Permanently deletes a coworker with its skills, scheduled tasks, memory and files.', input: { agentId: 'string!', confirm: 'boolean!' }, run: (a) => { const id = agentIdOf(a); for (const s of auto.listSchedules(id)) auto.deleteSchedule(id, s.slug); return agents.deleteAgent(id); } });

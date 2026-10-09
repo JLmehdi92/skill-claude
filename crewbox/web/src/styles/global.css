@@ -554,3 +554,10 @@ table.data tr:hover td { background: rgba(255, 255, 255, 0.025); }
 .world-hud.top-left { right: 276px; }
 .world-hint { white-space: normal; text-align: center; width: max-content; max-width: calc(100% - 48px); }
 @media (max-width: 720px) { .world-hud.top-left { right: 16px; } }
+
+.swatches { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.swatch { width: 28px; height: 28px; border-radius: 8px; border: 2px solid transparent; background: var(--c); cursor: pointer; transform: rotate(45deg) scale(0.82); transition: transform 0.2s, border-color 0.2s; }
+.swatch:hover { transform: rotate(45deg) scale(0.92); }
+.swatch.on { border-color: #fff; box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.15); }
+.swatch.auto { width: auto; height: 28px; transform: none; padding: 0 12px; border-radius: 999px; background: var(--surface-2); color: var(--text-2); border-color: var(--line-2); font: 600 12.5px var(--body); }
+.swatch.auto.on { border-color: var(--violet); color: var(--text); }

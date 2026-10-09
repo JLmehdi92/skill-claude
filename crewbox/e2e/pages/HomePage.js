@@ -5,7 +5,7 @@ export class HomePage {
     this.page = page;
     this.jobInput = page.getByTestId('job-input');
     this.createButton = page.getByTestId('create-coworker');
-    this.world = page.getByTestId('world');
+    this.board = page.getByTestId('board');
     this.templateGrid = page.getByTestId('template-grid');
     this.panel = page.getByTestId('agent-panel');
   }
