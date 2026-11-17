@@ -139,6 +139,12 @@ function Tile({ label, value, sub, live }: { label: string; value: string; sub?:
 
 function BudgetMeter({ stats, onSaved }: { stats: Stats; onSaved: () => void }) {
   const [editing, setEditing] = useState(false);
+  // Back from the form: focus returns to the button that opened it.
+  const [returning, setReturning] = useState(false);
+  const stopEditing = () => {
+    setEditing(false);
+    setReturning(true);
+  };
   const [value, setValue] = useState(stats.monthlyBudgetEur ? String(stats.monthlyBudgetEur) : "");
   const budget = stats.monthlyBudgetEur;
   const ratio = budget ? stats.month / budget : 0;
@@ -149,7 +155,7 @@ function BudgetMeter({ stats, onSaved }: { stats: Stats; onSaved: () => void }) 
     try {
       await api.setBudget(value.trim() && n > 0 ? n : null);
       toast.success(value.trim() && n > 0 ? "Budget enregistré" : "Budget retiré");
-      setEditing(false);
+      stopEditing();
       onSaved();
     } catch (e) {
       toast.error((e as Error).message);
@@ -182,7 +188,7 @@ function BudgetMeter({ stats, onSaved }: { stats: Stats; onSaved: () => void }) 
         <Button type="submit" variant="primary">
           Enregistrer
         </Button>
-        <Button onClick={() => setEditing(false)}>Annuler</Button>
+        <Button onClick={stopEditing}>Annuler</Button>
         <p className="w-full text-xs leading-relaxed text-faint">Une confirmation sera demandée avant toute génération qui dépasse ce montant. Laisse vide pour aucun budget.</p>
       </form>
     );
@@ -217,7 +223,7 @@ function BudgetMeter({ stats, onSaved }: { stats: Stats; onSaved: () => void }) 
       ) : (
         <p className="text-sm text-muted">Aucun budget mensuel défini.</p>
       )}
-      <Button size="sm" variant="ghost" onClick={() => setEditing(true)} className="mt-3 -ml-3 sm:-ml-3">
+      <Button size="sm" variant="ghost" onClick={() => setEditing(true)} autoFocus={returning} className="mt-3 -ml-3 sm:-ml-3">
         <PencilSimple size={16} />
         {budget ? "Modifier le budget" : "Définir un budget"}
       </Button>

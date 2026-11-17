@@ -128,7 +128,7 @@ function DrawerBody({
       <div className="flex h-14 shrink-0 items-center justify-between gap-3 border-b border-line pr-2 pl-4">
         <Drawer.Title className="flex min-w-0 items-center gap-2 text-[15px] font-medium">
           {gen.modelLabel}
-          <span className={cx("flex items-center gap-1.5 font-normal", gen.status === "failed" ? "text-danger" : "text-muted")}>
+          <span aria-live="polite" className={cx("flex items-center gap-1.5 font-normal", gen.status === "failed" ? "text-danger" : "text-muted")}>
             {isPending(gen.status) && <Tally />}
             {STATUS[gen.status]}
           </span>
@@ -187,7 +187,7 @@ function DrawerBody({
               Télécharger
             </a>
           )}
-          <Button size="sm" variant="ghost" onClick={() => onFavorite(gen)} aria-pressed={gen.favorite} className="max-sm:col-span-full">
+          <Button size="sm" variant="ghost" onClick={() => onFavorite(gen)} aria-label="Favori" aria-pressed={gen.favorite} className="max-sm:col-span-full">
             <Heart size={16} weight={gen.favorite ? "fill" : "regular"} className={gen.favorite ? "check-in text-fg" : undefined} key={String(gen.favorite)} />
             {gen.favorite ? "Favori" : "Ajouter aux favoris"}
           </Button>

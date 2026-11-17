@@ -268,6 +268,17 @@ export function Popover({
   );
 }
 
+/** Arrow keys move focus between the radios of a group (put it on the role="radiogroup" element). */
+export function onRadioArrows(e: React.KeyboardEvent<HTMLElement>) {
+  const step = { ArrowDown: 1, ArrowRight: 1, ArrowUp: -1, ArrowLeft: -1 }[e.key];
+  if (!step) return;
+  const radios = [...e.currentTarget.querySelectorAll<HTMLElement>("[role=radio]:not(:disabled)")];
+  const i = radios.indexOf(document.activeElement as HTMLElement);
+  if (i === -1) return;
+  e.preventDefault();
+  radios[(i + step + radios.length) % radios.length].focus();
+}
+
 export function MenuItem({
   selected,
   children,
@@ -278,7 +289,8 @@ export function MenuItem({
   return (
     <button
       type="button"
-      aria-pressed={selected}
+      // A choice (selected is set) is a radio: only the chosen one is a Tab stop, arrows move between them.
+      {...(selected === undefined ? {} : { role: "radio", "aria-checked": selected, tabIndex: selected ? 0 : -1 })}
       {...props}
       className={cx(
         "flex min-h-12 w-full items-center justify-between gap-6 rounded-control px-3 py-2 text-left text-[15px] transition-colors duration-150 disabled:cursor-not-allowed disabled:opacity-40 sm:min-h-9 sm:rounded-item sm:px-2.5 sm:text-[13px]",
@@ -288,7 +300,7 @@ export function MenuItem({
     >
       <span className="flex items-center gap-2.5">{children}</span>
       {hint && <span className="text-xs text-faint">{hint}</span>}
-      {selected && <Check size={16} weight="bold" className="check-in shrink-0 text-accent" />}
+      {selected && <Check size={16} weight="bold" aria-hidden className="check-in shrink-0 text-accent" />}
     </button>
   );
 }
@@ -312,7 +324,7 @@ export function Switch({ checked, onChange, label }: { checked: boolean; onChang
       >
         <span
           className={cx(
-            "absolute left-0.5 size-[18px] rounded-full shadow-thumb transition-transform duration-200 ease-[var(--ease-out)] group-active/switch:scale-x-115",
+            "absolute left-0.5 size-[18px] rounded-full shadow-thumb transition-transform duration-200 ease-[var(--ease-out)] group-active/switch:scale-x-115 motion-reduce:transition-none",
             checked ? "translate-x-4 bg-on-accent origin-right" : "bg-edge origin-left",
           )}
         />

@@ -26,7 +26,7 @@ import { kindOfFile } from "@/lib/models/media";
 import { getMode, inferMode, MODELS, summarizeMedia, validateRequest } from "@/lib/models/registry";
 import type { Field, MediaKind, MediaSlot, ModelDefinition, ModelMode, Params } from "@/lib/models/types";
 import type { Generation } from "@/lib/types";
-import { Button, Chip, ChipCaret, cx, fieldClass, Kbd, MenuItem, Modal, ModalActions, Popover, Segmented, Stepper, Switch } from "./ui";
+import { Button, Chip, ChipCaret, cx, fieldClass, Kbd, MenuItem, Modal, ModalActions, onRadioArrows, Popover, Segmented, Stepper, Switch } from "./ui";
 
 interface Attachment {
   id: string;
@@ -182,6 +182,8 @@ export const Composer = forwardRef<
         Object.keys(cleared).length ? "le lien web" : "",
       ].filter(Boolean);
       toast(`Mode ${next.label}`, {
+        // Long enough to read and reach "Annuler".
+        duration: 10_000,
         description: `${parts.join(" et ")} retiré${lost > 1 ? "s" : ""} : pas disponible${lost > 1 ? "s" : ""} dans ce mode.`,
         action: {
           label: "Annuler",
@@ -575,7 +577,7 @@ export const Composer = forwardRef<
                     <Kbd className="hidden border-on-accent/30 text-on-accent/80 sm:inline">⌘↵</Kbd>
                   </span>
                   <span className="swap flex items-center gap-2" data-on={buttonState === "sending"}>
-                    <CircleNotch size={16} weight="bold" className="animate-spin" />
+                    <CircleNotch size={16} weight="bold" className="animate-spin motion-reduce:animate-none" />
                     Envoi
                   </span>
                   <span className="swap flex items-center gap-2" data-on={buttonState === "launched"}>
@@ -770,7 +772,7 @@ function ModelMenu({ model }: { model: ModelDefinition }) {
       )}
     >
       {(close) => (
-        <div className="w-full sm:w-72">
+        <div className="w-full sm:w-72" role="radiogroup" aria-label="Modèle" onKeyDown={onRadioArrows}>
           {MODELS.map((m) => (
             <MenuItem key={m.id} selected={m.id === model.id} onClick={close} className="items-start">
               <span className="flex flex-col gap-0.5">
@@ -814,8 +816,10 @@ function FieldControl({ field, value, onChange }: { field: Field; value: unknown
         )}
       >
         {(close) => (
-          <div className="w-full sm:w-44">
-            <p className="px-3 pt-2 pb-1 text-xs text-faint sm:px-2.5">{field.label}</p>
+          <div className="w-full sm:w-44" role="radiogroup" aria-label={field.label} onKeyDown={onRadioArrows}>
+            <p aria-hidden className="px-3 pt-2 pb-1 text-xs text-faint sm:px-2.5">
+              {field.label}
+            </p>
             {field.options.map((o) => (
               <MenuItem
                 key={o.value}
@@ -851,12 +855,14 @@ function FieldControl({ field, value, onChange }: { field: Field; value: unknown
         {() => (
           <div className="w-full p-1 sm:w-64">
             <p className="px-1 pb-2 text-xs text-faint">Durée de la vidéo</p>
-            <div className="grid grid-cols-4 gap-1.5 sm:gap-1">
+            <div className="grid grid-cols-4 gap-1.5 sm:gap-1" role="radiogroup" aria-label="Durée de la vidéo" onKeyDown={onRadioArrows}>
               {DURATION_PRESETS.filter((d) => d === -1 || (d >= field.min && d <= field.max)).map((d) => (
                 <button
                   key={d}
                   type="button"
-                  aria-pressed={d === v}
+                  role="radio"
+                  aria-checked={d === v}
+                  tabIndex={d === v ? 0 : -1}
                   onClick={() => onChange(d)}
                   className={cx(
                     "pressable h-11 rounded-control text-sm sm:h-9 sm:rounded-item sm:text-[13px]",

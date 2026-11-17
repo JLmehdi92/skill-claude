@@ -111,9 +111,15 @@
 
 /* In the base layer so Tailwind utilities (e.g. focus:outline-none) can override it. */
 @layer base {
-  /* Keeps focused items clear of the sticky header. */
+  /* Keeps focused items clear of the sticky header, and on Créer of the fixed composer. */
   html {
     scroll-padding-top: 4.5rem;
+  }
+  html:has(#prompt) {
+    scroll-padding-bottom: 20rem;
+    @media (width >= 40rem) {
+      scroll-padding-bottom: 12rem;
+    }
   }
 
   html,
@@ -284,6 +290,11 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
+  [data-vaul-drawer],
+  [data-vaul-overlay] {
+    animation-duration: 1ms !important;
+    transition-duration: 1ms !important;
+  }
   .pressable:active:not(:disabled) {
     transform: none;
   }

@@ -104,6 +104,7 @@ export function GenerationCard({ gen, onOpen, onRetry }: { gen: Generation; onOp
         <button
           type="button"
           onClick={onRetry}
+          aria-label={`Relancer : ${gen.prompt.slice(0, 40)}`}
           className="pressable absolute top-2 right-2 flex h-11 items-center gap-1.5 rounded-full border border-line-strong bg-raised px-3.5 text-[13px] font-medium text-fg shadow-thumb hover:bg-hover sm:h-8 sm:px-3"
         >
           <ArrowClockwise size={14} weight="bold" />

@@ -44,3 +44,25 @@ test("modes: adding a reference from text mode switches to Référence", async (
   await page.keyboard.press("ArrowRight");
   await expect(page.getByRole("radio", { name: "Images clés" })).toHaveAttribute("aria-checked", "true");
 });
+
+test("menus: choices are radios, reachable with Tab and arrows", async ({ page }) => {
+  await page.goto("/");
+  await page.getByRole("button", { name: /^Durée/ }).click();
+  const group = page.getByRole("radiogroup", { name: "Durée de la vidéo" });
+  const checked = group.locator("[role=radio][aria-checked=true]");
+  await expect(checked).toHaveCount(1);
+  await expect(checked).toHaveText("5 s");
+
+  // One Tab stop for the whole group: the chosen value.
+  await page.keyboard.press("Tab");
+  await expect(checked).toBeFocused();
+  await page.keyboard.press("ArrowRight");
+  await expect(group.getByRole("radio", { name: "8 s", exact: true })).toBeFocused();
+  await page.keyboard.press("Enter");
+  await expect(group.getByRole("radio", { name: "8 s", exact: true })).toHaveAttribute("aria-checked", "true");
+  await page.keyboard.press("Escape");
+  await expect(page.getByRole("button", { name: /^Durée : 8 secondes/ })).toBeFocused();
+
+  await page.getByRole("button", { name: "Résolution : 720p" }).click();
+  await expect(page.getByRole("radiogroup", { name: "Résolution" }).getByRole("radio", { name: "720p", checked: true })).toBeVisible();
+});

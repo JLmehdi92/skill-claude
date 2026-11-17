@@ -19,7 +19,7 @@ test("generate, follow progress, open details and remix", async ({ page }) => {
   await expect(page.locator("#prompt")).toHaveValue(/@Image1/);
 
   await page.getByRole("button", { name: /^Durée/ }).click();
-  await page.getByRole("button", { name: "8 s", exact: true }).click();
+  await page.getByRole("radio", { name: "8 s", exact: true }).click();
   await page.keyboard.press("Escape");
   await expect(page.getByRole("button", { name: /^Durée : 8 secondes/ })).toBeVisible();
 
@@ -95,6 +95,7 @@ test("spending page tracks euros and enforces the monthly budget", async ({ page
 
 test("delete needs a deliberate hold, from the keyboard too", async ({ page }) => {
   await page.goto("/");
+  await expect(page.locator("article").first()).toBeVisible();
   const cards = await page.locator("article").count();
   await page.locator("article button").first().click();
   const hold = page.getByRole("dialog").getByRole("button", { name: "Maintenir pour supprimer" });
