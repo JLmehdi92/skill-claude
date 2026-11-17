@@ -48,7 +48,9 @@ export function Nav() {
   const pending = stats?.pendingCount ?? 0;
   useEffect(() => {
     if (!pending) return;
-    const t = setInterval(() => api.stats().then(setStats).catch(() => {}), 5000);
+    const t = setInterval(() => {
+      if (document.visibilityState === "visible") api.stats().then(setStats).catch(() => {});
+    }, 5000);
     return () => clearInterval(t);
   }, [pending]);
 

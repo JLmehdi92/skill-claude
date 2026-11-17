@@ -166,6 +166,7 @@ export function Popover({
   const [sheet, setSheet] = useState(false);
   const anchor = useRef<HTMLDivElement>(null);
   const panel = useRef<HTMLDivElement>(null);
+  const scrim = useRef<HTMLDivElement>(null);
   const id = useId();
 
   useEffect(() => {
@@ -189,6 +190,8 @@ export function Popover({
     panel.current?.focus({ preventScroll: true });
     const onDown = (e: PointerEvent) => {
       const t = e.target as Node;
+      // The sheet scrim closes on click instead, so the tap does not fall through to what lies under it.
+      if (t === scrim.current) return;
       if (!anchor.current?.contains(t) && !panel.current?.contains(t)) setOpen(false);
     };
     const onKey = (e: KeyboardEvent) => {
@@ -223,7 +226,7 @@ export function Popover({
       {open &&
         createPortal(
           <>
-            {sheet && <div aria-hidden className="fade-in fixed inset-0 z-50 bg-scrim" />}
+            {sheet && <div ref={scrim} aria-hidden className="fade-in fixed inset-0 z-50 bg-scrim" onClick={() => setOpen(false)} />}
             <div
               ref={panel}
               id={id}
@@ -350,13 +353,14 @@ export function Modal({ open, onClose, title, children }: { open: boolean; onClo
   });
   useEffect(() => {
     if (!open) return;
+    // Children use data-autofocus, not autoFocus: autoFocus would steal focus before we can remember the trigger.
     const before = document.activeElement as HTMLElement | null;
-    if (!box.current?.contains(document.activeElement)) box.current?.focus({ preventScroll: true });
+    (box.current?.querySelector<HTMLElement>("[data-autofocus]") ?? box.current)?.focus({ preventScroll: true });
     const onKey = (e: KeyboardEvent) => {
       if (e.key === "Escape") closeRef.current();
       if (e.key !== "Tab" || !box.current) return;
       // Keep Tab inside the dialog.
-      const items = box.current.querySelectorAll<HTMLElement>("button:not(:disabled), input:not(:disabled), a[href], [tabindex='0']");
+      const items = box.current.querySelectorAll<HTMLElement>("button:not(:disabled), input:not(:disabled), textarea:not(:disabled), select:not(:disabled), a[href], [tabindex='0']");
       if (!items.length) return;
       const first = items[0];
       const last = items[items.length - 1];

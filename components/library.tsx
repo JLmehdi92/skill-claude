@@ -218,7 +218,7 @@ function ImportModal({ open, onClose, onImported }: { open: boolean; onClose: ()
           id="task-id"
           value={taskId}
           onChange={(e) => setTaskId(e.target.value)}
-          autoFocus
+          data-autofocus
           className={cx(fieldClass, "mt-2 font-mono")}
         />
         {err && <p className="mt-2 text-sm text-danger">{err}</p>}

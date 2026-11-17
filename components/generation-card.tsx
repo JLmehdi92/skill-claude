@@ -4,7 +4,7 @@ import { useRef, useState } from "react";
 import { ArrowClockwise, Heart, Warning } from "@phosphor-icons/react";
 import { formatEur } from "@/lib/costs";
 import { isPending, type Generation } from "@/lib/types";
-import { Tally } from "./ui";
+import { Tally, cx } from "./ui";
 
 const RATIOS: Record<string, number> = { "16:9": 16 / 9, "9:16": 9 / 16, "1:1": 1, "4:3": 4 / 3, "3:4": 3 / 4 };
 
@@ -86,7 +86,13 @@ export function GenerationCard({ gen, onOpen, onRetry }: { gen: Generation; onOp
       </button>
 
       {gen.favorite && (
-        <span className="pointer-events-none absolute top-2 right-2 flex size-7 items-center justify-center rounded-full bg-raised text-fg shadow-thumb">
+        <span
+          className={cx(
+            "pointer-events-none absolute top-2 flex size-7 items-center justify-center rounded-full bg-raised text-fg shadow-thumb",
+            // Failed cards show Relancer top right.
+            gen.status === "failed" ? "left-2" : "right-2",
+          )}
+        >
           <Heart size={14} weight="fill" aria-hidden />
           <span className="sr-only">Favori</span>
         </span>
