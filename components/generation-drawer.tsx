@@ -249,7 +249,7 @@ function DrawerBody({
                   type="button"
                   onClick={() => copy(String(seed), "Seed")}
                   title="Copier le seed"
-                  className="-mx-1 mt-0.5 flex max-w-full items-center gap-1.5 rounded-item px-1 py-1 text-muted hover:bg-hover hover:text-fg"
+                  className="-mx-1 mt-0.5 flex min-h-11 max-w-full items-center gap-1.5 rounded-item px-1 text-muted hover:bg-hover hover:text-fg sm:min-h-8"
                 >
                   <span className="truncate">{seed}</span>
                   <CopyIcon done={copied === "Seed"} />
@@ -267,7 +267,7 @@ function DrawerBody({
                 <button
                   type="button"
                   onClick={() => copy(gen.kieTaskId!, "Identifiant")}
-                  className="-mx-1 mt-0.5 flex max-w-full items-center gap-1.5 rounded-item px-1 py-1 font-mono text-xs text-muted hover:bg-hover hover:text-fg"
+                  className="-mx-1 mt-0.5 flex min-h-11 max-w-full items-center gap-1.5 rounded-item px-1 font-mono text-xs text-muted hover:bg-hover hover:text-fg sm:min-h-8"
                 >
                   <span className="truncate">{gen.kieTaskId}</span>
                   <CopyIcon done={copied === "Identifiant"} />
@@ -289,14 +289,30 @@ function DrawerBody({
           onPointerLeave={() => clearTimeout(holdTimer.current)}
           onPointerCancel={() => clearTimeout(holdTimer.current)}
           onContextMenu={(e) => e.preventDefault()}
+          // Keyboard: hold Enter or Space, same 1.2 s as a finger, so deleting stays deliberate.
           onKeyDown={(e) => {
-            if (e.key === "Delete" || e.key === "Backspace") onDelete(gen);
+            if ((e.key !== "Enter" && e.key !== " ") || e.repeat) return;
+            e.preventDefault();
+            e.currentTarget.dataset.holding = "";
+            holdTimer.current = setTimeout(() => onDelete(gen), 1200);
           }}
+          onKeyUp={(e) => {
+            delete e.currentTarget.dataset.holding;
+            clearTimeout(holdTimer.current);
+          }}
+          onBlur={(e) => {
+            delete e.currentTarget.dataset.holding;
+            clearTimeout(holdTimer.current);
+          }}
+          aria-describedby="hold-hint"
         >
           <span aria-hidden className="hold-overlay absolute inset-0 bg-danger/15" />
           <span className="relative flex items-center justify-center gap-1.5">
             <Trash size={16} />
             Maintenir pour supprimer
+          </span>
+          <span id="hold-hint" className="sr-only">
+            Garde le doigt ou la touche Entrée enfoncé une seconde. Les fichiers sont effacés, le coût reste dans les dépenses.
           </span>
         </button>
       </div>

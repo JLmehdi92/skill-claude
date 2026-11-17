@@ -10,7 +10,7 @@ export function cx(...parts: (string | false | null | undefined)[]) {
 
 /** Text fields: 16px everywhere (no iOS zoom), 44px tall on phones, 3:1 boundary. */
 export const fieldClass =
-  "h-11 w-full rounded-control border border-edge bg-raised px-3.5 text-base text-fg placeholder:text-faint focus:border-accent focus:outline-none sm:h-9";
+  "h-11 w-full rounded-control border border-edge bg-raised px-3.5 text-base text-fg placeholder:text-faint focus:border-accent focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent sm:h-9";
 
 type Variant = "primary" | "secondary" | "ghost" | "danger";
 
@@ -54,7 +54,7 @@ export function Chip({ active, icon, className, ...props }: ButtonHTMLAttributes
       className={cx(
         "pressable group/chip inline-flex h-11 shrink-0 items-center justify-center gap-1.5 rounded-full border text-sm whitespace-nowrap sm:h-9 sm:text-[13px]",
         icon ? "w-11 sm:w-9" : "px-3",
-        active ? "border-accent/40 bg-accent-soft text-fg" : "border-line-strong bg-raised text-muted hover:bg-hover hover:text-fg",
+        active ? "border-accent bg-accent-soft text-fg" : "border-line-strong bg-raised text-muted hover:bg-hover hover:text-fg",
         className,
       )}
     />
@@ -64,7 +64,7 @@ export function Chip({ active, icon, className, ...props }: ButtonHTMLAttributes
 /** Caret for chips that open a menu: turns over while the menu is open. */
 export function ChipCaret() {
   return (
-    <svg aria-hidden viewBox="0 0 12 12" className="size-3 transition-transform duration-200 ease-[var(--ease-out)] group-data-open/chip:rotate-180">
+    <svg aria-hidden viewBox="0 0 12 12" className="size-3 transition-transform duration-200 ease-[var(--ease-out)] group-data-open/chip:rotate-180 motion-reduce:transition-none">
       <path d="M3 4.5 6 7.5 9 4.5" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
     </svg>
   );
@@ -153,9 +153,12 @@ export function Popover({
   children,
   side = "top",
   align = "start",
+  label,
   className,
 }: {
   trigger: (props: { open: boolean; toggle: () => void; id: string }) => ReactNode;
+  /** Accessible name of the panel. */
+  label: string;
   children: (close: () => void) => ReactNode;
   side?: "top" | "bottom";
   align?: "start" | "end";
@@ -212,6 +215,15 @@ export function Popover({
   }, [open, side, align]);
 
   const origin = `${side === "top" ? "bottom" : "top"} ${align === "start" ? "left" : "right"}`;
+  // Picking an item unmounts the panel: give focus back to the trigger instead of losing it to <body>.
+  const [refocus, setRefocus] = useState(0);
+  useEffect(() => {
+    if (refocus) anchor.current?.querySelector<HTMLElement>("button")?.focus({ preventScroll: true });
+  }, [refocus]);
+  const close = () => {
+    setOpen(false);
+    setRefocus((n) => n + 1);
+  };
   return (
     <div ref={anchor} className="shrink-0">
       {trigger({
@@ -231,7 +243,14 @@ export function Popover({
               ref={panel}
               id={id}
               role="dialog"
+              aria-label={label}
+              aria-modal={sheet || undefined}
               tabIndex={-1}
+              // Tabbing out of the panel closes it (it lives at the end of <body>, away from its trigger).
+              onBlur={(e) => {
+                const to = e.relatedTarget as Node | null;
+                if (to && !e.currentTarget.contains(to) && !anchor.current?.contains(to)) setOpen(false);
+              }}
               style={{ ...pos, ["--origin" as string]: origin }}
               className={cx(
                 "z-50 max-h-[70dvh] min-w-44 overflow-y-auto overscroll-contain border border-line-strong bg-raised shadow-float outline-none",
@@ -240,7 +259,7 @@ export function Popover({
                 className,
               )}
             >
-              {children(() => setOpen(false))}
+              {children(close)}
             </div>
           </>,
           document.body,
@@ -322,14 +341,15 @@ export function Stepper({
 }) {
   const [dir, setDir] = useState<1 | -1>(1);
   const step = (d: 1 | -1) => {
+    if ((d < 0 && value <= min) || (d > 0 && value >= max)) return;
     setDir(d);
     onChange(Math.min(max, Math.max(min, value + d)));
   };
   const btn =
-    "pressable flex size-11 items-center justify-center rounded-control border border-line-strong bg-raised text-fg hover:bg-hover disabled:cursor-not-allowed disabled:text-faint disabled:opacity-60";
+    "pressable flex size-11 items-center justify-center rounded-control border border-line-strong bg-raised text-fg hover:bg-hover aria-disabled:cursor-not-allowed aria-disabled:text-faint aria-disabled:opacity-60";
   return (
     <div className="flex items-center gap-2">
-      <button type="button" className={btn} onClick={() => step(-1)} disabled={value <= min} aria-label={less}>
+      <button type="button" className={btn} onClick={() => step(-1)} aria-disabled={value <= min} aria-label={less}>
         <Minus size={16} weight="bold" />
       </button>
       <output aria-live="polite" className="flex h-11 min-w-0 flex-1 items-center justify-center overflow-hidden text-base font-medium">
@@ -337,7 +357,7 @@ export function Stepper({
           {display}
         </span>
       </output>
-      <button type="button" className={btn} onClick={() => step(1)} disabled={value >= max} aria-label={more}>
+      <button type="button" className={btn} onClick={() => step(1)} aria-disabled={value >= max} aria-label={more}>
         <Plus size={16} weight="bold" />
       </button>
     </div>
@@ -388,7 +408,7 @@ export function Modal({ open, onClose, title, children }: { open: boolean; onClo
         aria-modal="true"
         aria-label={title}
         tabIndex={-1}
-        className="sheet-panel relative w-full max-w-md rounded-sheet border border-line-strong bg-raised p-5 shadow-float outline-none sm:p-6"
+        className="sheet-panel relative max-h-[85dvh] w-full max-w-md overflow-y-auto rounded-sheet border border-line-strong bg-raised p-5 shadow-float outline-none sm:p-6"
       >
         <h2 className="font-wide text-xl">{title}</h2>
         <div className="mt-3">{children}</div>

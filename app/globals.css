@@ -49,7 +49,7 @@
     --edge: #7c7f87;
     --fg: #ededeb;
     --muted: #b5b7bd;
-    --faint: #9c9ea5;
+    --faint: #a4a6ad;
     --accent: #8fa8ff;
     --accent-hover: #a9bcff;
     --on-accent: #0f1630;
@@ -111,6 +111,11 @@
 
 /* In the base layer so Tailwind utilities (e.g. focus:outline-none) can override it. */
 @layer base {
+  /* Keeps focused items clear of the sticky header. */
+  html {
+    scroll-padding-top: 4.5rem;
+  }
+
   html,
   body {
     background: var(--canvas);
@@ -272,7 +277,8 @@
   clip-path: inset(0 100% 0 0);
   transition: clip-path 200ms var(--ease-out);
 }
-.hold:active .hold-overlay {
+.hold:active .hold-overlay,
+.hold[data-holding] .hold-overlay {
   clip-path: inset(0 0 0 0);
   transition: clip-path 1.2s linear;
 }

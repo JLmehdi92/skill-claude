@@ -332,7 +332,11 @@ export const Composer = forwardRef<
       if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) {
         e.preventDefault();
         void submit();
-      } else if (e.key === "/" && !(e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement)) {
+      } else if (
+        e.key === "/" &&
+        !(e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) &&
+        !(e.target instanceof Element && e.target.closest("[role=dialog]"))
+      ) {
         e.preventDefault();
         textareaRef.current?.focus();
       }
@@ -451,7 +455,7 @@ export const Composer = forwardRef<
             e.preventDefault();
             void submit();
           }}
-          className="pointer-events-auto mx-auto max-w-[880px] rounded-sheet border border-line-strong bg-surface shadow-float transition-[border-color] duration-200 focus-within:border-accent/50"
+          className="pointer-events-auto mx-auto max-h-[85dvh] max-w-[880px] overflow-y-auto overscroll-contain rounded-sheet border border-line-strong bg-surface shadow-float transition-[border-color] duration-200 focus-within:border-accent/50"
         >
           {model.modes && mode && (
             <div className="flex flex-col gap-1.5 px-2 pt-2 sm:flex-row sm:items-center sm:gap-3">
@@ -714,6 +718,7 @@ function AddMenu({
     : [{ slots: model.mediaSlots }];
   return (
     <Popover
+      label="Ajouter une référence"
       trigger={({ open, toggle, id }) => (
         <Chip onClick={toggle} active={open} aria-expanded={open} aria-controls={id} aria-label="Ajouter une référence" icon>
           <Plus size={16} weight="bold" />
@@ -755,8 +760,9 @@ function AddMenu({
 function ModelMenu({ model }: { model: ModelDefinition }) {
   return (
     <Popover
+      label="Modèle"
       trigger={({ open, toggle }) => (
-        <Chip onClick={toggle} active={open} aria-expanded={open}>
+        <Chip onClick={toggle} active={open} aria-expanded={open} aria-label={`Modèle : ${model.label}`}>
           <Sparkle size={15} weight="fill" className="text-accent" />
           <span className="font-medium text-fg">{model.label}</span>
           <ChipCaret />
@@ -798,6 +804,7 @@ function FieldControl({ field, value, onChange }: { field: Field; value: unknown
     const Icon = field.key === "aspect_ratio" ? CornersOut : null;
     return (
       <Popover
+        label={field.label}
         trigger={({ open, toggle }) => (
           <Chip onClick={toggle} active={open} aria-expanded={open} aria-label={`${field.label} : ${current?.label}`}>
             {Icon && <Icon size={15} />}
@@ -832,6 +839,7 @@ function FieldControl({ field, value, onChange }: { field: Field; value: unknown
     const base = v === -1 ? 5 : v;
     return (
       <Popover
+        label="Durée de la vidéo"
         trigger={({ open, toggle }) => (
           <Chip onClick={toggle} active={open} aria-expanded={open} aria-label={`Durée : ${v === -1 ? "auto" : `${v} secondes`}`}>
             <Clock size={15} />
@@ -883,6 +891,7 @@ function AdvancedMenu({ fields, params, onChange }: { fields: Field[]; params: P
   return (
     <Popover
       align="end"
+      label="Réglages avancés"
       trigger={({ open, toggle }) => (
         <Chip onClick={toggle} active={open || changed} aria-expanded={open} aria-label="Réglages avancés">
           <SlidersHorizontal size={15} />

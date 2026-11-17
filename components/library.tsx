@@ -112,7 +112,7 @@ export function Library() {
                 searchRef.current?.focus();
               }}
               aria-label="Effacer la recherche"
-              className="pressable absolute top-1/2 right-0.5 flex size-10 -translate-y-1/2 items-center justify-center rounded-item text-muted hover:text-fg sm:size-9"
+              className="pressable absolute top-1/2 right-0.5 flex size-11 -translate-y-1/2 items-center justify-center rounded-item text-muted hover:text-fg sm:size-9"
             >
               <X size={16} weight="bold" />
             </button>
@@ -133,7 +133,11 @@ export function Library() {
       </div>
 
       <div className="mt-6">
-        {error && <p className="text-sm text-danger">{error}</p>}
+        {error && (
+          <p role="alert" className="text-sm text-danger">
+            {error}
+          </p>
+        )}
         {loading && items.length === 0 && (
           <div className="columns-2 gap-2 sm:columns-3 sm:gap-3 lg:columns-4 2xl:columns-5">
             {[9 / 16, 1, 16 / 9, 9 / 16].map((r, i) => (
@@ -221,7 +225,11 @@ function ImportModal({ open, onClose, onImported }: { open: boolean; onClose: ()
           data-autofocus
           className={cx(fieldClass, "mt-2 font-mono")}
         />
-        {err && <p className="mt-2 text-sm text-danger">{err}</p>}
+        {err && (
+          <p role="alert" className="mt-2 text-sm text-danger">
+            {err}
+          </p>
+        )}
         <ModalActions>
           <Button onClick={onClose}>Annuler</Button>
           <Button type="submit" variant="primary" disabled={busy || !taskId.trim()}>

@@ -264,7 +264,7 @@ function DailyChart({ daily }: { daily: Stats["daily"] }) {
   return (
     <div className="mt-4">
       <div ref={wrap} className="relative">
-        <svg width={width} height={height} role="img" aria-label="Dépenses quotidiennes sur 30 jours" className="block overflow-visible">
+        <svg width={width} height={height} role="group" aria-label="Dépenses quotidiennes sur 30 jours" className="block overflow-visible">
           {ticks.map((t) => (
             <g key={t}>
               <line x1={pad.left} x2={width - pad.right} y1={y(t)} y2={y(t)} stroke="var(--color-line)" strokeWidth={1} />
@@ -298,7 +298,8 @@ function DailyChart({ daily }: { daily: Stats["daily"] }) {
                   onPointerLeave={() => setHover(null)}
                   onFocus={() => setHover(i)}
                   onBlur={() => setHover(null)}
-                  className="outline-none"
+                  strokeWidth={2}
+                  className="outline-none focus-visible:stroke-accent"
                 />
               </g>
             );

@@ -29,7 +29,7 @@ Variables brutes dans `:root` (clair), redéfinies dans `@media (prefers-color-s
 | `edge` | `#7d8087` | `#7c7f87` | bord des champs, interrupteur éteint (3:1) |
 | `fg` | `#16181d` | `#ededeb` | texte |
 | `muted` | `#4d5057` | `#b5b7bd` | texte secondaire |
-| `faint` | `#5f626a` | `#9c9ea5` | méta, axes, placeholders |
+| `faint` | `#5f626a` | `#a4a6ad` | méta, axes, placeholders |
 | `accent` | `#1747d6` | `#8fa8ff` | action principale, focus, sélection, liens |
 | `accent-hover` | `#1139b0` | `#a9bcff` | survol de l'action |
 | `on-accent` | `#ffffff` | `#0f1630` | texte sur l'accent (le sombre éclaircit l'accent, donc texte foncé) |

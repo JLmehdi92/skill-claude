@@ -92,3 +92,21 @@ test("spending page tracks euros and enforces the monthly budget", async ({ page
   await modal.getByRole("button", { name: "Annuler" }).click();
   await expect(modal).toBeHidden();
 });
+
+test("delete needs a deliberate hold, from the keyboard too", async ({ page }) => {
+  await page.goto("/");
+  const cards = await page.locator("article").count();
+  await page.locator("article button").first().click();
+  const hold = page.getByRole("dialog").getByRole("button", { name: "Maintenir pour supprimer" });
+  await hold.focus();
+
+  // A quick press does nothing.
+  await page.keyboard.press("Enter");
+  await page.waitForTimeout(1500);
+  await expect(page.locator("article")).toHaveCount(cards);
+
+  await page.keyboard.down("Enter");
+  await expect(page.getByText("Génération supprimée")).toBeVisible({ timeout: 3_000 });
+  await page.keyboard.up("Enter");
+  await expect(page.locator("article")).toHaveCount(cards - 1);
+});

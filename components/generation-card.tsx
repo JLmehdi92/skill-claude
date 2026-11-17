@@ -1,7 +1,7 @@
 "use client";
 
 import { useRef, useState } from "react";
-import { ArrowClockwise, Heart, Warning } from "@phosphor-icons/react";
+import { ArrowClockwise, Heart, SpeakerHigh, Warning } from "@phosphor-icons/react";
 import { formatEur } from "@/lib/costs";
 import { isPending, type Generation } from "@/lib/types";
 import { Tally, cx } from "./ui";
@@ -38,7 +38,8 @@ export function GenerationCard({ gen, onOpen, onRetry }: { gen: Generation; onOp
         video.current.currentTime = 0;
       }}
     >
-      <button type="button" onClick={onOpen} className="block w-full rounded-panel text-left" aria-label={`Ouvrir : ${gen.prompt.slice(0, 60)}`}>
+      {/* No aria-label: the caption, status and cost inside name the button. Outline drawn inside: the card clips overflow. */}
+      <button type="button" onClick={onOpen} className="block w-full rounded-panel text-left focus-visible:outline-offset-[-3px]">
         <div className="relative w-full bg-sunken" style={{ aspectRatio: ratio }}>
           {gen.status === "success" && output?.kind === "video" && (
             <video
@@ -67,8 +68,9 @@ export function GenerationCard({ gen, onOpen, onRetry }: { gen: Generation; onOp
             />
           )}
           {gen.status === "success" && output?.kind === "audio" && (
-            <div className="absolute inset-0 flex items-center justify-center p-4">
-              <audio src={output.url} controls className="w-full" />
+            // No player inside a button: listening happens in the drawer.
+            <div className="absolute inset-0 flex items-center justify-center text-muted">
+              <SpeakerHigh size={32} aria-hidden />
             </div>
           )}
           {isPending(gen.status) && <PendingState gen={gen} />}

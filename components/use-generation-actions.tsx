@@ -28,8 +28,11 @@ export function useGenerationActions(opts: {
         notifyStatsChanged();
         toast.success(newSeed ? "Variante lancée" : "Génération relancée");
       } catch (err) {
-        if (err instanceof ApiError && err.status === 409) setConflict({ gen, budget: (err.body as { budget: BudgetConflict }).budget, newSeed });
-        else toast.error((err as Error).message);
+        if (err instanceof ApiError && err.status === 409) {
+          // Close the drawer first: its focus trap would make the modal unreachable.
+          setSelected(null);
+          setConflict({ gen, budget: (err.body as { budget: BudgetConflict }).budget, newSeed });
+        } else toast.error((err as Error).message);
       }
     },
     [upsert, setSelected],

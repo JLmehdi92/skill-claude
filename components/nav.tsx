@@ -62,7 +62,12 @@ export function Nav() {
   return (
     <header className="sticky top-0 z-40 border-b border-line bg-canvas pt-[env(safe-area-inset-top)]">
       <div className="mx-auto flex h-14 max-w-[1600px] items-center gap-2 px-3 sm:gap-4 sm:px-6">
-        <Link href="/" aria-label="Higgsfield local, accueil" className="flex shrink-0 items-center gap-2.5 rounded-item">
+        <Link
+          href="/"
+          aria-label="Higgsfield local, accueil"
+          // 44px touch area without widening the bar.
+          className="relative flex shrink-0 items-center gap-2.5 rounded-item after:absolute after:-inset-2 after:content-[''] lg:after:hidden"
+        >
           <BrandMark />
           <span className="font-wide hidden text-[17px] lg:inline">Higgsfield local</span>
         </Link>
@@ -122,9 +127,11 @@ export function Nav() {
           <Link
             href="/depenses"
             className="pressable flex h-11 items-center gap-2.5 rounded-full px-2 text-sm hover:bg-hover max-[359px]:hidden sm:h-9 sm:border sm:border-line-strong sm:px-3"
-            aria-label="Dépenses du mois"
           >
-            <span className="hidden text-muted md:inline">Ce mois</span>
+            <span className="sr-only">Dépenses du mois :</span>
+            <span aria-hidden className="hidden text-muted md:inline">
+              Ce mois
+            </span>
             <span className="font-medium">{stats ? formatEur(stats.month) : "..."}</span>
             {budget !== null && (
               <span className="hidden items-center gap-2 md:flex">
