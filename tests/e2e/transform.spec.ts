@@ -54,7 +54,7 @@ test("genjutsu: replacing a character takes no prompt, and undo restores the fil
   await expect(page.getByRole("button", { name: "Insérer @Image2 dans le prompt" })).toBeVisible();
 
   await page.getByRole("button", { name: /^Modèle :/ }).click();
-  await page.getByRole("radio", { name: /Remplacer un personnage/ }).click();
+  await page.getByRole("radio", { name: /Remplacer un personnage Wan/ }).click();
   // One image fits the character tile, the second one is removed with an undo.
   await expect(page.getByText("1 fichier retiré : pas accepté par ce modèle.")).toBeVisible();
   await expect(page.locator("#prompt")).toHaveCount(0);
@@ -67,7 +67,7 @@ test("genjutsu: replacing a character takes no prompt, and undo restores the fil
 
   // Back on the replace model, the video goes to its tile and the generation is sent without prompt.
   await page.getByRole("button", { name: /^Modèle :/ }).click();
-  await page.getByRole("radio", { name: /Remplacer un personnage/ }).click();
+  await page.getByRole("radio", { name: /Remplacer un personnage Wan/ }).click();
   chooser = page.waitForEvent("filechooser");
   await page.getByRole("button", { name: "Ajouter la vidéo, 10 Mo max" }).click();
   await (await chooser).setFiles(video);
@@ -131,4 +131,60 @@ test("motion gallery: a finished generation video can be added from its detail",
   await detail.getByRole("button", { name: "Ajouter aux mouvements" }).click();
   await expect(page.getByText("Ajoutée aux mouvements")).toBeVisible();
   await expect(detail.getByRole("button", { name: "Dans les mouvements" })).toHaveAttribute("aria-disabled", "true");
+});
+
+test("images: Nano Banana 2.1 makes an image, priced per image, without video presets", async ({ page }) => {
+  await page.goto("/");
+  await page.getByRole("button", { name: /^Modèle :/ }).click();
+  await expect(page.getByRole("group", { name: "Créer une image" })).toBeVisible();
+  await page.getByRole("radio", { name: /Nano Banana 2\.1/ }).click();
+  await expect(page.getByRole("button", { name: /^Préréglages/ })).toHaveCount(0);
+  await expect(page.getByRole("button", { name: "Enrichir" })).toHaveCount(0);
+  await page.locator("#prompt").fill("Portrait d'une femme aux cheveux roux, lumière de fenêtre");
+  await expect(page.getByText("4 crédits")).toBeVisible();
+  await page.getByRole("button", { name: /^Résolution/ }).click();
+  await page.getByRole("radio", { name: "4K" }).click();
+  await page.keyboard.press("Escape");
+  await expect(page.getByText("9 crédits")).toBeVisible();
+  await page.getByRole("button", { name: "Générer" }).click();
+  await expect(page.getByText("Génération lancée")).toBeVisible();
+  await expect(page.getByText("Nano Banana 2.1 : génération prête")).toBeVisible({ timeout: 30_000 });
+  await expect(page.locator("article").first().locator("img")).toBeVisible();
+});
+
+test("genjutsu pro: several character images, Seedance bills input and output seconds", async ({ page }) => {
+  await page.goto("/");
+  await page.getByRole("radio", { name: "Référence" }).click();
+  let chooser = page.waitForEvent("filechooser");
+  await page.getByRole("button", { name: "Ajouter une référence" }).click();
+  await page.getByRole("button", { name: /^Images/ }).click();
+  await (await chooser).setFiles([image, image]);
+  await expect(page.getByRole("button", { name: "Insérer @Image2 dans le prompt" })).toBeVisible();
+
+  await page.getByRole("button", { name: /^Modèle :/ }).click();
+  await page.getByRole("radio", { name: /Remplacer un personnage Pro/ }).click();
+  // Both images move to the character slot, which still has room.
+  await expect(page.getByRole("button", { name: /Personnage 1 : icon\.svg/ })).toBeVisible();
+  await expect(page.getByRole("button", { name: /Personnage 2 : icon\.svg/ })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Ajouter une image du personnage" })).toBeVisible();
+
+  chooser = page.waitForEvent("filechooser");
+  await page.getByRole("button", { name: "Ajouter la vidéo, 2 à 30 s" }).click();
+  await (await chooser).setFiles(video);
+  // 4 s in + 4 s out at 38 credits/s (720p).
+  await expect(page.getByText("304 crédits")).toBeVisible();
+  await page.getByRole("button", { name: "Générer" }).click();
+  await expect(page.getByText("Génération lancée")).toBeVisible();
+  await expect(page.getByText("Remplacer un personnage Pro : génération prête")).toBeVisible({ timeout: 30_000 });
+});
+
+test("a scene prompt is not sent as a Genjutsu instruction, and comes back afterwards", async ({ page }) => {
+  await page.goto("/");
+  await page.locator("#prompt").fill("Un chat sur une plage au coucher du soleil");
+  await page.getByRole("button", { name: /^Modèle :/ }).click();
+  await page.getByRole("radio", { name: /Copier un mouvement/ }).click();
+  await expect(page.locator("#prompt")).toHaveValue("");
+  await page.getByRole("button", { name: /^Modèle :/ }).click();
+  await page.getByRole("radio", { name: /Nano Banana 2\.1/ }).click();
+  await expect(page.locator("#prompt")).toHaveValue("Un chat sur une plage au coucher du soleil");
 });

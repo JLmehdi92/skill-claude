@@ -143,6 +143,15 @@ describe("generation service (mock kie)", () => {
     expect(done.credits).toBe(80); // no creditsConsumed from kie: 720P x 5 s estimate
   });
 
+  it("generates an image and keeps it as its own thumbnail", async () => {
+    const res = await svc.submitGeneration("nano-banana-2-1", { prompt: "Un chat roux", resolution: "2K", aspect_ratio: "1:1" }, []);
+    if (!res.ok) throw new Error("submit failed");
+    const done = await waitDone(res.generation.id);
+    expect(done).toMatchObject({ status: "success", category: "image", credits: 6 });
+    expect(done.outputs[0].kind).toBe("image");
+    expect(done.thumbUrl).toBe(done.outputs[0].url);
+  });
+
   it("refuses a per-second model when the video length cannot be read", async () => {
     const before = svc.listGenerations().items.length;
     const files = [

@@ -105,6 +105,7 @@ export const Composer = forwardRef<
   const [showEnhanced, setShowEnhanced] = useState(false);
   const [galleryOpen, setGalleryOpen] = useState(false);
   const pickSeq = useRef(0);
+  const scenePrompt = useRef("");
   // Announces a model switch (also said by the toast when files were removed).
   const [announce, setAnnounce] = useState("");
   const say = (text: string) => {
@@ -149,7 +150,8 @@ export const Composer = forwardRef<
   const metas = useMemo(() => attachments.map((a) => ({ slot: a.slot, size: a.file.size, duration: a.duration })), [attachments]);
   const media = useMemo(() => summarizeMedia(metas), [metas]);
   // Presets and "Enrichir" only shape prompt-driven models. A model without prompt gets "" (the text stays for later).
-  const promptDriven = model.promptUse === undefined;
+  // Preset suffixes describe camera and motion: video only.
+  const promptDriven = model.promptUse === undefined && model.category === "video";
   const sentPrompt = useMemo(() => {
     if (model.promptUse === "none") return "";
     if (!promptDriven) return String(params.prompt);
@@ -246,8 +248,10 @@ export const Composer = forwardRef<
       else removed.push(a);
     }
     const nsfw = next.fields.some((f) => f.key === "nsfw_checker") ? { nsfw_checker: nsfwDefault } : {};
+    // A scene prompt must not become a Genjutsu instruction: it is kept aside and comes back on a prompt-driven model.
+    if (prevModel.promptUse === undefined) scenePrompt.current = String(prevParams.prompt);
     setModel(next);
-    setParams({ ...next.defaults, ...nsfw, prompt: prevParams.prompt, mode: nextMode?.id });
+    setParams({ ...next.defaults, ...nsfw, prompt: next.promptUse === undefined ? scenePrompt.current : "", mode: nextMode?.id });
     rememberMode(nextMode?.id);
     commitAttachments(kept);
     setServerErrors([]);
@@ -585,39 +589,44 @@ export const Composer = forwardRef<
           )}
 
           {frameSlots.length > 0 && (
-            <ul className="flex gap-2 px-3 pt-3 pb-1" aria-label={keyframes ? "Images clés" : "Fichiers d'entrée"}>
+            <ul className="flex flex-wrap gap-2 px-3 pt-3 pb-1" aria-label={keyframes ? "Images clés" : "Fichiers d'entrée"}>
               {frameSlots.map((slot) => {
-                const a = attachments.find((x) => x.slot === slot.key);
+                const mine = attachments.filter((x) => x.slot === slot.key);
                 const needsFirst = keyframes && slot.key !== frameSlots[0].key && !attachments.some((x) => x.slot === frameSlots[0].key);
-                return a ? (
-                  <AttachmentThumb
-                    key={a.id}
-                    attachment={a}
-                    wide
-                    label={slot.shortLabel ?? slot.label}
-                    isTag={false}
-                    onInsert={() => {}}
-                    onRemove={() => removeAttachment(a.id)}
-                  />
-                ) : (
-                  <li key={slot.key}>
-                    <button
-                      type="button"
-                      onClick={() => pickSlot(slot)}
-                      disabled={needsFirst}
-                      aria-label={slot.addLabel ?? `Ajouter l'${slot.label.toLowerCase()}`}
-                      className="pressable flex w-[88px] flex-col items-center overflow-hidden rounded-control border border-dashed border-edge bg-raised text-muted hover:border-accent hover:text-fg disabled:cursor-not-allowed disabled:opacity-50"
-                    >
-                      <span className="flex size-16 items-center justify-center">
-                        <Plus size={18} />
-                      </span>
-                      <span className="w-full border-t border-dashed border-line-strong px-1 py-1 text-center text-xs">
-                        {slot.shortLabel ?? slot.label}
-                        {keyframes && slot.key !== frameSlots[0].key && <span className="block text-[11px] text-faint">option</span>}
-                      </span>
-                    </button>
-                  </li>
-                );
+                const name = slot.shortLabel ?? slot.label;
+                // Filled files first, then an empty tile while the slot has room (several images for Seedance).
+                return [
+                  ...mine.map((a, i) => (
+                    <AttachmentThumb
+                      key={a.id}
+                      attachment={a}
+                      wide
+                      label={mine.length > 1 ? `${name} ${i + 1}` : name}
+                      isTag={false}
+                      onInsert={() => {}}
+                      onRemove={() => removeAttachment(a.id)}
+                    />
+                  )),
+                  mine.length < slot.max && (
+                    <li key={`${slot.key}-add`}>
+                      <button
+                        type="button"
+                        onClick={() => pickSlot(slot)}
+                        disabled={needsFirst}
+                        aria-label={slot.addLabel ?? `Ajouter l'${slot.label.toLowerCase()}`}
+                        className="pressable flex w-[88px] flex-col items-center overflow-hidden rounded-control border border-dashed border-edge bg-raised text-muted hover:border-accent hover:text-fg disabled:cursor-not-allowed disabled:opacity-50"
+                      >
+                        <span className="flex size-16 items-center justify-center">
+                          <Plus size={18} />
+                        </span>
+                        <span className="w-full border-t border-dashed border-line-strong px-1 py-1 text-center text-xs">
+                          {name}
+                          {keyframes && slot.key !== frameSlots[0].key && <span className="block text-[11px] text-faint">option</span>}
+                        </span>
+                      </button>
+                    </li>
+                  ),
+                ];
               })}
               {frameSlots.some((s) => s.key === MOTION_SLOT) && (
                 <li className="self-end">

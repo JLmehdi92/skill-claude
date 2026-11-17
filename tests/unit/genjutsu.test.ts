@@ -2,6 +2,8 @@ import { describe, expect, it } from "vitest";
 import { kling30MotionControl as motion } from "@/lib/models/kling-3-0-motion-control";
 import { getModel, summarizeMedia, validateRequest, type FileMeta } from "@/lib/models/registry";
 import type { ModelDefinition } from "@/lib/models/types";
+import { nanoBanana21 as banana } from "@/lib/models/nano-banana-2-1";
+import { seedance25Replace as seedance } from "@/lib/models/seedance-2-5-replace";
 import { wan22AnimateReplace as replace } from "@/lib/models/wan-2-2-animate-replace";
 
 const file = (slot: string, over: Partial<FileMeta> = {}): FileMeta => ({ slot, size: 1000, ...over });
@@ -80,6 +82,62 @@ describe("Genjutsu : remplacer un personnage (Wan 2.2 Animate Replace)", () => {
       image_url: "https://x/i.png",
       resolution: "480p",
       nsfw_checker: false,
+    });
+  });
+});
+
+describe("Genjutsu : remplacer un personnage Pro (Seedance 2.5 edit)", () => {
+  it("is registered, takes up to 30 character images and an optional prompt", () => {
+    expect(getModel("seedance-2-5-replace")).toBe(seedance);
+    const images = Array.from({ length: 30 }, () => file("character"));
+    expect(errorsOf(seedance, {}, [...images, file("source_video", { duration: 6 })])).toEqual([]);
+    expect(errorsOf(seedance, {}, [...images, file("character"), file("source_video", { duration: 6 })]).join(" ")).toMatch(/30 fichier/);
+    expect(errorsOf(seedance, {})).toEqual(["Ajoute une image du personnage.", "Ajoute la vidéo à transformer."]);
+  });
+
+  it("keeps the source video between 2 and 30 s", () => {
+    expect(errorsOf(seedance, {}, [file("character"), file("source_video", { duration: 31 })])).toEqual(["La vidéo à transformer doit durer entre 2 et 30 s."]);
+  });
+
+  it("bills the input video plus the output of the same length", () => {
+    const media = summarizeMedia([file("character"), file("source_video", { duration: 10 })]);
+    expect(seedance.estimate({ ...seedance.defaults }, media).credits).toBe(760);
+    expect(seedance.estimate({ ...seedance.defaults, resolution: "480p" }, media).credits).toBe(340);
+    expect(seedance.estimate({ ...seedance.defaults, resolution: "1080p" }, media).credits).toBe(1900);
+    expect(seedance.estimate({ ...seedance.defaults }, {})).toEqual({ credits: 0, upperBound: false, perSecond: 76 });
+    // A 2 s input still gets a 4 s output.
+    expect(seedance.estimate({ ...seedance.defaults }, summarizeMedia([file("source_video", { duration: 2 })])).credits).toBe(228);
+  });
+
+  it("sends an edit task, with a default instruction when the prompt is empty", () => {
+    const urls = { character: ["https://x/a.png", "https://x/b.png"], source_video: ["https://x/v.mp4"] };
+    const input = seedance.buildInput({ ...seedance.defaults }, urls);
+    expect(input).toMatchObject({
+      reference_image_urls: urls.character,
+      reference_video_urls: urls.source_video,
+      omni_reference_task_type: "edit",
+      duration: -1,
+      resolution: "720p",
+      generate_audio: true,
+      nsfw_checker: false,
+    });
+    expect(input.prompt).toMatch(/^Replace the main person/);
+    expect(seedance.buildInput({ ...seedance.defaults, prompt: "Garde la robe rouge" }, urls).prompt).toBe("Garde la robe rouge");
+  });
+});
+
+describe("Nano Banana 2.1", () => {
+  it("prices per image by resolution and sends references", () => {
+    expect(getModel("nano-banana-2-1")).toBe(banana);
+    expect(banana.estimate({ ...banana.defaults, prompt: "x" }, {}).credits).toBe(4);
+    expect(banana.estimate({ ...banana.defaults, prompt: "x", resolution: "4K" }, {}).credits).toBe(9);
+    expect(errorsOf(banana, {})).toEqual(["Écris un prompt."]);
+    expect(banana.buildInput({ ...banana.defaults, prompt: "un chat" }, { reference_image: ["https://x/r.png"] })).toEqual({
+      prompt: "un chat",
+      image_input: ["https://x/r.png"],
+      aspect_ratio: "auto",
+      resolution: "1K",
+      output_format: "png",
     });
   });
 });

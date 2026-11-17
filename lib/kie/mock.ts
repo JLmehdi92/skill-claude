@@ -1,6 +1,7 @@
 import "server-only";
 import fs from "node:fs/promises";
 import path from "node:path";
+import { getModel } from "@/lib/models/registry";
 import type { KieClient, KieTask } from "./types";
 
 /**
@@ -30,7 +31,8 @@ export function mockKieClient(): KieClient {
         return { ...base, state: "generating", resultUrls: [], progress: Math.round((elapsed / SECONDS) * 100) };
       }
       if (outcome === "f") return { ...base, state: "fail", resultUrls: [], failMsg: "Échec simulé (mode mock)." };
-      return { ...base, state: "success", resultUrls: ["mock://sample.mp4"], completeTime: started + SECONDS * 1000 };
+      const sample = getModel(param?.model ?? "")?.category === "image" ? "mock://sample.png" : "mock://sample.mp4";
+      return { ...base, state: "success", resultUrls: [sample], completeTime: started + SECONDS * 1000 };
     },
 
     async uploadFile(_data, fileName) {
