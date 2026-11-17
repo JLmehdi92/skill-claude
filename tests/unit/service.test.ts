@@ -142,4 +142,30 @@ describe("generation service (mock kie)", () => {
     expect(done.status).toBe("success");
     expect(done.credits).toBe(80); // no creditsConsumed from kie: 720P x 5 s estimate
   });
+
+  it("refuses a per-second model when the video length cannot be read", async () => {
+    const before = svc.listGenerations().items.length;
+    const files = [
+      { slot: "character", name: "perso.png", mime: "image/png", data: Buffer.from("png") },
+      // Not a real video: ffprobe reads no duration, and the client sent none.
+      { slot: "motion_video", name: "geste.mp4", mime: "video/mp4", data: Buffer.from("mp4") },
+    ];
+    const res = await svc.submitGeneration("kling-3-0-motion-control", { prompt: "", resolution: "720p", character_orientation: "video" }, files);
+    expect(res).toEqual({ ok: false, status: 422, errors: ["Durée de la vidéo illisible. Réessaie avec un MP4."] });
+    expect(svc.listGenerations().items.length).toBe(before);
+  });
+
+  it("imports a Kling motion task with kie's mode as the resolution", async () => {
+    const { mockKieClient } = await import("@/lib/kie/mock");
+    const taskId = await mockKieClient().createTask("kling-3.0/motion-control", {
+      input_urls: ["https://x/i.png"],
+      video_urls: ["https://x/v.mp4"],
+      mode: "1080p",
+      character_orientation: "image",
+    });
+    const g = await svc.importTask(taskId);
+    expect(g.model).toBe("kling-3-0-motion-control");
+    expect(g.params).toMatchObject({ resolution: "1080p", character_orientation: "image" });
+    expect(g.params).not.toHaveProperty("mode");
+  });
 });

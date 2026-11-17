@@ -34,6 +34,7 @@ export const wan30Video: ModelDefinition = {
   kieModel: "wan/3-0-video",
   label: "Wan 3.0",
   vendor: "Alibaba",
+  group: "Créer une vidéo",
   category: "video",
   description: "Vidéo multimodale jusqu'à 30 s : texte, images, vidéos, audio et keyframes.",
   promptMaxLength: 20_000,

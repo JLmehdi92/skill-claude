@@ -1,6 +1,6 @@
 "use client";
 
-import { forwardRef, useCallback, useEffect, useImperativeHandle, useMemo, useRef, useState } from "react";
+import { forwardRef, useCallback, useEffect, useImperativeHandle, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import {
   Check,
@@ -128,6 +128,19 @@ export const Composer = forwardRef<
   const [selectedPresets, setSelectedPresets] = useState<string[]>([]);
   const [enhanceEnabled, setEnhanceEnabled] = useState(false);
   const [showEnhanced, setShowEnhanced] = useState(false);
+  // Announces a model switch (also said by the toast when files were removed).
+  const [announce, setAnnounce] = useState("");
+  const say = (text: string) => {
+    // Cleared first so the same text twice in a row is announced again.
+    setAnnounce("");
+    requestAnimationFrame(() => setAnnounce(text));
+  };
+  // Only one "Annuler" is ever live: a newer change, a removal or a remix makes the older undo stale.
+  const undoToast = useRef<string | number | undefined>(undefined);
+  const dropUndo = () => {
+    if (undoToast.current !== undefined) toast.dismiss(undoToast.current);
+    undoToast.current = undefined;
+  };
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const pendingSlot = useRef<MediaSlot | null>(null);
@@ -136,6 +149,17 @@ export const Composer = forwardRef<
     setParams((p) => ({ ...p, [key]: value }));
     setServerErrors([]);
   }, []);
+
+  // Caret position to restore once an inserted tag is in the DOM.
+  const pendingCaret = useRef<number | null>(null);
+  // Layout effect: runs right after the commit, before the next keystroke can land at the old caret.
+  useLayoutEffect(() => {
+    const el = textareaRef.current;
+    if (!el || pendingCaret.current === null) return;
+    el.focus();
+    el.setSelectionRange(pendingCaret.current, pendingCaret.current);
+    pendingCaret.current = null;
+  }, [params.prompt]);
 
   // Keep the textarea sized to its content.
   useEffect(() => {
@@ -147,8 +171,17 @@ export const Composer = forwardRef<
 
   const metas = useMemo(() => attachments.map((a) => ({ slot: a.slot, size: a.file.size, duration: a.duration })), [attachments]);
   const media = useMemo(() => summarizeMedia(metas), [metas]);
-  const check = useMemo(() => validateRequest(model, params, metas), [model, params, metas]);
-  const estimate = useMemo(() => model.estimate(params, media), [model, params, media]);
+  // Presets and "Enrichir" only shape prompt-driven models. A model without prompt gets "" (the text stays for later).
+  const promptDriven = model.promptUse === undefined;
+  const sentPrompt = useMemo(() => {
+    if (model.promptUse === "none") return "";
+    if (!promptDriven) return String(params.prompt);
+    const presets = selectedPresets.map(getPreset).filter((p): p is Preset => p !== undefined);
+    return enhancePrompt(String(params.prompt), { presets, enhance: enhanceEnabled });
+  }, [model.promptUse, promptDriven, params.prompt, selectedPresets, enhanceEnabled]);
+  const sent = useMemo(() => ({ ...params, prompt: sentPrompt }), [params, sentPrompt]);
+  const check = useMemo(() => validateRequest(model, sent, metas), [model, sent, metas]);
+  const estimate = useMemo(() => model.estimate(sent, media), [model, sent, media]);
   const estimateEur = creditsToEur(estimate.credits, usdEurRate);
 
   const visibleErrors = useMemo(() => {
@@ -169,6 +202,7 @@ export const Composer = forwardRef<
   const switchMode = (id: string): ModelMode | undefined => {
     const next = getMode(model, id);
     if (!next || next.id === params.mode) return next;
+    dropUndo();
     const prevMode = params.mode;
     const before = attachmentsRef.current;
     const removed = before.filter((a) => !next.slots.includes(a.slot));
@@ -187,7 +221,7 @@ export const Composer = forwardRef<
         removed.length ? `${removed.length} fichier${removed.length > 1 ? "s" : ""}` : "",
         Object.keys(cleared).length ? "le lien web" : "",
       ].filter(Boolean);
-      toast(`Mode ${next.label}`, {
+      undoToast.current = toast(`Mode ${next.label}`, {
         // Long enough to read and reach "Annuler".
         duration: 10_000,
         description: `${parts.join(" et ")} retiré${lost > 1 ? "s" : ""} : pas disponible${lost > 1 ? "s" : ""} dans ce mode.`,
@@ -206,6 +240,67 @@ export const Composer = forwardRef<
       });
     }
     return next;
+  };
+
+  /**
+   * Switches model. Files move to the new model's slot of the same kind when there is room;
+   * the others are taken out, with an "Annuler" toast that puts everything back.
+   */
+  const switchModel = (id: string) => {
+    const next = MODELS.find((m) => m.id === id);
+    if (!next || next.id === model.id) return;
+    dropUndo();
+    const prevModel = model;
+    const prevParams = params;
+    const before = attachmentsRef.current;
+    const kindOf = (key: string) => next.mediaSlots.find((s) => s.key === key)?.kind;
+    // With modes, the first one that takes these files (Wan: Référence), else the remembered one.
+    const nextMode = next.modes
+      ? ((before.length ? next.modes.find((m) => before.some((a) => m.slots.some((k) => kindOf(k) === a.kind))) : undefined) ?? getMode(next, savedMode(next)))
+      : undefined;
+    const open = nextMode ? nextMode.slots : next.mediaSlots.map((s) => s.key);
+    const kept: Attachment[] = [];
+    const removed: Attachment[] = [];
+    for (const a of before) {
+      const slot = next.mediaSlots.find(
+        (s) => open.includes(s.key) && s.kind === a.kind && a.file.size <= s.maxBytes && kept.filter((k) => k.slot === s.key).length < s.max,
+      );
+      if (slot) kept.push({ ...a, slot: slot.key });
+      else removed.push(a);
+    }
+    const nsfw = next.fields.some((f) => f.key === "nsfw_checker") ? { nsfw_checker: nsfwDefault } : {};
+    setModel(next);
+    setParams({ ...next.defaults, ...nsfw, prompt: prevParams.prompt, mode: nextMode?.id });
+    rememberMode(nextMode?.id);
+    commitAttachments(kept);
+    setServerErrors([]);
+    setTriedSubmit(false);
+
+    // The toast already says it when files were removed.
+    if (!removed.length) return say(`Modèle : ${next.label}`);
+    let restored = false;
+    const n = removed.length;
+    undoToast.current = toast(`Modèle ${next.label}`, {
+      duration: 10_000,
+      description: `${n} fichier${n > 1 ? "s" : ""} retiré${n > 1 ? "s" : ""} : pas accepté${n > 1 ? "s" : ""} par ce modèle.`,
+      action: {
+        label: "Annuler",
+        onClick: () => {
+          restored = true;
+          undoToast.current = undefined;
+          // Kept files are copies sharing the originals' URLs: revoke only files added since.
+          const restoredUrls = new Set(before.map((a) => a.url));
+          attachmentsRef.current.filter((a) => !restoredUrls.has(a.url)).forEach((a) => URL.revokeObjectURL(a.url));
+          setModel(prevModel);
+          setParams(prevParams);
+          rememberMode(prevParams.mode as string | undefined);
+          commitAttachments(before);
+          say(`Modèle : ${prevModel.label}`);
+        },
+      },
+      onDismiss: () => !restored && removed.forEach((a) => URL.revokeObjectURL(a.url)),
+      onAutoClose: () => !restored && removed.forEach((a) => URL.revokeObjectURL(a.url)),
+    });
   };
 
   /** Never fails silently: any unexpected error ends up in a toast. */
@@ -265,6 +360,8 @@ export const Composer = forwardRef<
   };
 
   const removeAttachment = (id: string) => {
+    // The removed file's URL may be shared with an undo snapshot.
+    dropUndo();
     const gone = attachmentsRef.current.find((a) => a.id === id);
     if (gone) URL.revokeObjectURL(gone.url);
     commitAttachments(attachmentsRef.current.filter((a) => a.id !== id));
@@ -285,12 +382,8 @@ export const Composer = forwardRef<
     const end = el?.selectionEnd ?? prompt.length;
     const before = prompt.slice(0, start);
     const insert = `${before && !before.endsWith(" ") ? " " : ""}${tag} `;
+    pendingCaret.current = start + insert.length;
     set("prompt", before + insert + prompt.slice(end));
-    requestAnimationFrame(() => {
-      el?.focus();
-      const pos = start + insert.length;
-      el?.setSelectionRange(pos, pos);
-    });
   };
 
   const submit = useCallback(
@@ -299,12 +392,9 @@ export const Composer = forwardRef<
       if (!check.ok || submitting) return;
       setSubmitting(true);
       setServerErrors([]);
-      const activePresets = selectedPresets.map(getPreset).filter((p): p is Preset => p !== undefined);
-      const finalPrompt = enhancePrompt(String(check.params.prompt), { presets: activePresets, enhance: enhanceEnabled });
-      const enhancedParams = { ...check.params, prompt: finalPrompt };
       const form = new FormData();
       form.set("model", model.id);
-      form.set("params", JSON.stringify(enhancedParams));
+      form.set("params", JSON.stringify(check.params));
       form.set("meta", JSON.stringify(attachments.map((a) => ({ slot: a.slot, duration: a.duration }))));
       for (const a of attachments) form.append("file", a.file, a.file.name);
       if (confirmOverBudget) form.set("confirmOverBudget", "1");
@@ -328,7 +418,7 @@ export const Composer = forwardRef<
         setSubmitting(false);
       }
     },
-    [attachments, check, enhanceEnabled, estimate.upperBound, estimateEur, model, onSubmitted, selectedPresets, submitting],
+    [attachments, check, estimate.upperBound, estimateEur, model, onSubmitted, submitting],
   );
 
   useEffect(() => {
@@ -345,6 +435,7 @@ export const Composer = forwardRef<
         void submit();
       } else if (
         e.key === "/" &&
+        textareaRef.current &&
         !(e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) &&
         !(e.target instanceof Element && e.target.closest("[role=dialog]"))
       ) {
@@ -396,7 +487,11 @@ export const Composer = forwardRef<
   useImperativeHandle(ref, () => ({
     async loadFrom(gen, opts = {}) {
       const def = MODELS.find((m) => m.id === gen.model) ?? model;
+      dropUndo();
       setModel(def);
+      // The saved prompt already includes any presets: applying them again would double them.
+      setSelectedPresets([]);
+      setEnhanceEnabled(false);
       const { seed_auto: seedAuto, ...saved } = gen.params;
       const keepSeed = opts.keepSeed ?? seedAuto !== true;
       const restoredMode = inferMode(def, saved as Params, gen.inputs.map((i) => i.slot));
@@ -421,6 +516,8 @@ export const Composer = forwardRef<
       requestAnimationFrame(() => textareaRef.current?.focus());
     },
     setPrompt(prompt) {
+      // An example prompt is useless on a model without prompt: back to the first prompt-driven one.
+      if (model.promptUse === "none") switchModel(MODELS[0].id);
       set("prompt", prompt);
       requestAnimationFrame(() => textareaRef.current?.focus());
     },
@@ -444,10 +541,14 @@ export const Composer = forwardRef<
   const hidden = new Set(mode?.hiddenFields ?? []);
   const mainFields = model.fields.filter((f) => !f.advanced && !hidden.has(f.key));
   const advancedFields = model.fields.filter((f) => f.advanced && !hidden.has(f.key));
-  const frameSlots = mode?.id === "keyframes" ? mode.slots.map((k) => slotByKey(k)!).filter(Boolean) : [];
-  const promptLength = String(params.prompt).length;
+  const keyframes = mode?.id === "keyframes";
+  const frameSlots = keyframes ? mode.slots.map((k) => slotByKey(k)!).filter(Boolean) : model.tiles ? model.mediaSlots : [];
+  const promptLength = model.promptUse === "none" ? 0 : String(params.prompt).length;
   const buttonState = submitting ? "sending" : launched ? "launched" : "idle";
-  const estimateLabel = `${estimate.upperBound ? "≤ " : "≈ "}${formatEur(estimateEur)}`;
+  const estimateLabel =
+    estimate.perSecond !== undefined
+      ? `${formatEur(creditsToEur(estimate.perSecond, usdEurRate))}/s`
+      : `${estimate.upperBound ? "≤ " : "≈ "}${formatEur(estimateEur)}`;
 
   return (
     <>
@@ -482,14 +583,15 @@ export const Composer = forwardRef<
           )}
 
           {frameSlots.length > 0 && (
-            <ul className="flex gap-2 px-3 pt-3 pb-1" aria-label="Images clés">
+            <ul className="flex gap-2 px-3 pt-3 pb-1" aria-label={keyframes ? "Images clés" : "Fichiers d'entrée"}>
               {frameSlots.map((slot) => {
                 const a = attachments.find((x) => x.slot === slot.key);
-                const needsFirst = slot.key !== frameSlots[0].key && !attachments.some((x) => x.slot === frameSlots[0].key);
+                const needsFirst = keyframes && slot.key !== frameSlots[0].key && !attachments.some((x) => x.slot === frameSlots[0].key);
                 return a ? (
                   <AttachmentThumb
                     key={a.id}
                     attachment={a}
+                    wide
                     label={slot.shortLabel ?? slot.label}
                     isTag={false}
                     onInsert={() => {}}
@@ -501,15 +603,15 @@ export const Composer = forwardRef<
                       type="button"
                       onClick={() => pickSlot(slot)}
                       disabled={needsFirst}
-                      aria-label={`Ajouter l'${slot.label.toLowerCase()}`}
-                      className="pressable flex w-[72px] flex-col items-center overflow-hidden rounded-control border border-dashed border-edge bg-raised text-muted hover:border-accent hover:text-fg disabled:cursor-not-allowed disabled:opacity-50"
+                      aria-label={slot.addLabel ?? `Ajouter l'${slot.label.toLowerCase()}`}
+                      className="pressable flex w-[88px] flex-col items-center overflow-hidden rounded-control border border-dashed border-edge bg-raised text-muted hover:border-accent hover:text-fg disabled:cursor-not-allowed disabled:opacity-50"
                     >
                       <span className="flex size-16 items-center justify-center">
                         <Plus size={18} />
                       </span>
                       <span className="w-full border-t border-dashed border-line-strong px-1 py-1 text-center text-xs">
                         {slot.shortLabel ?? slot.label}
-                        {slot.key !== frameSlots[0].key && <span className="block text-[11px] text-faint">option</span>}
+                        {keyframes && slot.key !== frameSlots[0].key && <span className="block text-[11px] text-faint">option</span>}
                       </span>
                     </button>
                   </li>
@@ -536,19 +638,25 @@ export const Composer = forwardRef<
             </ul>
           )}
 
-          <label htmlFor="prompt" className="sr-only">
-            Prompt
-          </label>
-          <textarea
-            id="prompt"
-            ref={textareaRef}
-            value={String(params.prompt)}
-            onChange={(e) => set("prompt", e.target.value)}
-            rows={2}
-            maxLength={model.promptMaxLength}
-            placeholder={mode?.placeholder ?? "Décris ta scène. Cite tes références avec @Image1, @Video1..."}
-            className="block max-h-[28vh] min-h-[64px] w-full resize-none bg-transparent px-4 pt-3 pb-2 text-base leading-relaxed text-fg placeholder:text-faint focus:outline-none sm:max-h-[32vh]"
-          />
+          {model.promptUse === "none" ? (
+            <p className="px-4 pt-3 pb-2 text-[15px] leading-relaxed text-muted">{model.placeholder}</p>
+          ) : (
+            <>
+              <label htmlFor="prompt" className="sr-only">
+                Prompt
+              </label>
+              <textarea
+                id="prompt"
+                ref={textareaRef}
+                value={String(params.prompt)}
+                onChange={(e) => set("prompt", e.target.value)}
+                rows={2}
+                maxLength={model.promptMaxLength}
+                placeholder={mode?.placeholder ?? model.placeholder ?? "Décris ta scène. Cite tes références avec @Image1, @Video1..."}
+                className="block max-h-[28vh] min-h-[64px] w-full resize-none bg-transparent px-4 pt-3 pb-2 text-base leading-relaxed text-fg placeholder:text-faint focus:outline-none sm:max-h-[32vh]"
+              />
+            </>
+          )}
 
           {visibleErrors.length > 0 && (
             <ul className="space-y-0.5 px-4 pb-2 text-sm text-danger" role="alert">
@@ -559,19 +667,18 @@ export const Composer = forwardRef<
           )}
 
           {/* Presets row */}
-          {selectedPresets.length > 0 && (
+          {promptDriven && selectedPresets.length > 0 && (
             <div className="flex flex-wrap gap-1.5 px-3 pb-1">
               {selectedPresets.map((id) => {
                 const p = getPreset(id);
                 if (!p) return null;
                 return (
                   <Chip key={id} className="gap-1 pr-1">
-                    <span>{p.icon}</span>
                     <span>{p.label}</span>
                     <button
                       type="button"
                       onClick={() => setSelectedPresets((prev) => prev.filter((x) => x !== id))}
-                      className="rounded-full p-0.5 hover:bg-hover"
+                      className="flex size-6 items-center justify-center rounded-full hover:bg-hover"
                       aria-label={`Retirer ${p.label}`}
                     >
                       <X size={12} />
@@ -583,34 +690,38 @@ export const Composer = forwardRef<
           )}
 
           {/* Enhanced prompt preview */}
-          {showEnhanced && String(params.prompt).trim() && (selectedPresets.length > 0 || enhanceEnabled) && (
+          {promptDriven && showEnhanced && sentPrompt && (selectedPresets.length > 0 || enhanceEnabled) && (
             <div className="mx-3 mb-2 rounded-item border border-line bg-sunken p-2.5 text-xs leading-relaxed text-muted">
               <p className="mb-1 font-medium text-faint">Prompt envoyé :</p>
-              <p>{enhancePrompt(String(params.prompt), { presets: selectedPresets.map(getPreset).filter((p): p is Preset => p !== undefined), enhance: enhanceEnabled })}</p>
+              <p>{sentPrompt}</p>
             </div>
           )}
 
           {/* Settings wrap onto their own rows: nothing hides in a strip that scrolls. */}
           <div className="flex flex-col gap-2 border-t border-line p-2 sm:flex-row sm:items-center">
             <div className="flex flex-wrap items-center gap-1.5 sm:min-w-0 sm:flex-1">
-              {(!mode || mode.id !== "keyframes") && <AddMenu model={model} mode={mode} attachments={attachments} params={params} onPick={pickSlot} />}
-              <ModelMenu model={model} />
-              <PresetMenu selected={selectedPresets} onToggle={(id) => setSelectedPresets((prev) => prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id])} />
-              <Chip
-                onClick={() => setEnhanceEnabled((v) => !v)}
-                aria-pressed={enhanceEnabled}
-                className={enhanceEnabled ? "border-accent/40 bg-accent-soft text-accent" : ""}
-              >
-                <Sparkle size={14} weight={enhanceEnabled ? "fill" : "regular"} />
-                Enhancer
-              </Chip>
-              {(selectedPresets.length > 0 || enhanceEnabled) && (
+              {frameSlots.length === 0 && <AddMenu model={model} mode={mode} attachments={attachments} params={params} onPick={pickSlot} />}
+              <ModelMenu model={model} onSelect={switchModel} />
+              {promptDriven && (
+                <PresetMenu selected={selectedPresets} onToggle={(id) => setSelectedPresets((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]))} />
+              )}
+              {promptDriven && (
+                <Chip
+                  onClick={() => setEnhanceEnabled((v) => !v)}
+                  aria-pressed={enhanceEnabled}
+                  className={enhanceEnabled ? "border-accent/40 bg-accent-soft text-accent" : ""}
+                >
+                  <Sparkle size={14} weight={enhanceEnabled ? "fill" : "regular"} />
+                  Enrichir
+                </Chip>
+              )}
+              {promptDriven && (selectedPresets.length > 0 || enhanceEnabled) && (
                 <Chip
                   onClick={() => setShowEnhanced((v) => !v)}
                   aria-pressed={showEnhanced}
                   className={showEnhanced ? "border-accent/40 text-accent" : ""}
                 >
-                  {showEnhanced ? "Masquer" : "Aperçu"}
+                  Aperçu
                 </Chip>
               )}
               {mainFields.map((f) => (
@@ -626,7 +737,9 @@ export const Composer = forwardRef<
                     {estimateLabel}
                   </span>
                 </div>
-                <div className="text-xs text-faint">{formatCredits(estimate.credits)}</div>
+                <div className="text-xs text-faint">
+                  {estimate.perSecond !== undefined ? "selon la durée de la vidéo" : formatCredits(estimate.credits)}
+                </div>
               </div>
               {/* Three visual states in one cell (repos, envoi, lancée); the accessible name stays "Générer". */}
               <Button type="submit" variant="primary" aria-label="Générer" aria-busy={submitting} className="min-w-40 sm:min-w-36">
@@ -653,6 +766,9 @@ export const Composer = forwardRef<
             </p>
           )}
         </form>
+        <p className="sr-only" aria-live="polite">
+          {announce}
+        </p>
       </div>
 
       {/* Visually hidden rather than display:none: iOS opens the picker more reliably this way. */}
@@ -696,10 +812,13 @@ function AttachmentThumb({
   isTag,
   onInsert,
   onRemove,
+  wide,
 }: {
   attachment: Attachment;
   label: string;
   isTag: boolean;
+  /** Input tiles carry a word ("Personnage") that must not be cut. */
+  wide?: boolean;
   onInsert: () => void;
   onRemove: () => void;
 }) {
@@ -712,7 +831,7 @@ function AttachmentThumb({
         disabled={!isTag}
         title={isTag ? `Insérer ${label} dans le prompt` : a.file.name}
         aria-label={isTag ? `Insérer ${label} dans le prompt` : `${label} : ${a.file.name}`}
-        className="pressable block w-[72px] overflow-hidden rounded-control border border-line-strong bg-raised"
+        className={cx("pressable block overflow-hidden rounded-control border border-line-strong bg-raised", wide ? "w-[88px]" : "w-[72px]")}
       >
         <div className="flex h-16 items-center justify-center bg-sunken">
           {a.kind === "image" ? (
@@ -822,11 +941,11 @@ function PresetMenu({ selected, onToggle }: { selected: string[]; onToggle: (id:
   const categories = ["camera", "style", "motion", "effect"] as PresetCategory[];
   return (
     <Popover
-      label="Presets"
+      label="Préréglages"
       trigger={({ open, toggle }) => (
-        <Chip onClick={toggle} active={open} aria-expanded={open} aria-label={`Presets${selected.length ? ` (${selected.length})` : ""}`}>
+        <Chip onClick={toggle} active={open} aria-expanded={open} aria-label={`Préréglages${selected.length ? ` (${selected.length})` : ""}`}>
           <SlidersHorizontal size={15} />
-          <span className="font-medium text-fg">Presets</span>
+          <span className="font-medium text-fg">Préréglages</span>
           {selected.length > 0 && (
             <span className="flex size-4 items-center justify-center rounded-full bg-accent text-[10px] font-bold text-on-accent">{selected.length}</span>
           )}
@@ -835,18 +954,18 @@ function PresetMenu({ selected, onToggle }: { selected: string[]; onToggle: (id:
       )}
     >
       {() => (
-        <div className="max-h-[60vh] w-full overflow-y-auto sm:w-80">
+        <div className="max-h-[60vh] w-full overflow-y-auto sm:w-80" role="group" aria-label="Préréglages">
           {categories.map((cat) => {
             const items = PRESETS.filter((p) => p.category === cat);
             return (
-              <div key={cat}>
-                <p className="px-3 pt-2.5 pb-1 text-xs font-medium text-faint sm:px-2.5">{PRESET_CATEGORY_LABELS[cat]}</p>
+              <div key={cat} role="group" aria-labelledby={`preset-cat-${cat}`}>
+                <p id={`preset-cat-${cat}`} className="px-3 pt-2.5 pb-1 text-xs font-medium text-faint sm:px-2.5">
+                  {PRESET_CATEGORY_LABELS[cat]}
+                </p>
                 {items.map((p) => (
-                  <MenuItem key={p.id} selected={selected.includes(p.id)} onClick={() => onToggle(p.id)} className="items-start">
+                  <MenuItem key={p.id} multi selected={selected.includes(p.id)} onClick={() => onToggle(p.id)} className="items-start">
                     <span className="flex flex-col gap-0.5">
-                      <span className="text-fg">
-                        {p.icon} {p.label}
-                      </span>
+                      <span className="text-fg">{p.label}</span>
                       <span className="text-xs leading-snug text-faint">{p.description}</span>
                     </span>
                   </MenuItem>
@@ -860,7 +979,8 @@ function PresetMenu({ selected, onToggle }: { selected: string[]; onToggle: (id:
   );
 }
 
-function ModelMenu({ model }: { model: ModelDefinition }) {
+function ModelMenu({ model, onSelect }: { model: ModelDefinition; onSelect: (id: string) => void }) {
+  const groups = [...new Set(MODELS.map((m) => m.group ?? ""))];
   return (
     <Popover
       label="Modèle"
@@ -873,18 +993,32 @@ function ModelMenu({ model }: { model: ModelDefinition }) {
       )}
     >
       {(close) => (
-        <div className="w-full sm:w-72" role="radiogroup" aria-label="Modèle" onKeyDown={onRadioArrows}>
-          {MODELS.map((m) => (
-            <MenuItem key={m.id} selected={m.id === model.id} onClick={close} className="items-start">
-              <span className="flex flex-col gap-0.5">
-                <span className="text-fg">
-                  {m.label} <span className="text-faint">{m.vendor}</span>
-                </span>
-                <span className="text-xs leading-snug text-faint">{m.description}</span>
-              </span>
-            </MenuItem>
+        <div className="w-full sm:w-80" role="radiogroup" aria-label="Modèle" onKeyDown={onRadioArrows}>
+          {groups.map((g, i) => (
+            <div key={g} role="group" aria-labelledby={`model-group-${i}`} className="pb-1 last:pb-0">
+              <p id={`model-group-${i}`} className="px-3 pt-2 pb-1 text-xs text-faint sm:px-2.5">
+                {g}
+              </p>
+              {MODELS.filter((m) => (m.group ?? "") === g).map((m) => (
+                <MenuItem
+                  key={m.id}
+                  selected={m.id === model.id}
+                  onClick={() => {
+                    close();
+                    onSelect(m.id);
+                  }}
+                  className="items-start"
+                >
+                  <span className="flex flex-col gap-0.5">
+                    <span className="text-fg">
+                      {m.label} <span className="text-faint">{m.vendor}</span>
+                    </span>
+                    <span className="text-xs leading-snug text-faint">{m.description}</span>
+                  </span>
+                </MenuItem>
+              ))}
+            </div>
           ))}
-          <p className="px-3 pt-2 pb-1 text-xs text-faint sm:px-2.5">D&apos;autres modèles arrivent via le registre.</p>
         </div>
       )}
     </Popover>

@@ -13,16 +13,14 @@ export function enhancePrompt(
 ): string {
   const { presets = [], enhance = false } = options;
   let result = userPrompt.trim();
+  // Suffixes alone would send a prompt that starts with ", ...".
+  if (!result) return result;
 
-  if (enhance && result.length > 0) {
+  if (enhance) {
     result = addCinematicDetails(result);
   }
 
-  for (const preset of presets) {
-    if (preset.promptSuffix) {
-      result += preset.promptSuffix;
-    }
-  }
+  for (const preset of presets) result += preset.promptSuffix;
 
   return result;
 }
@@ -45,13 +43,4 @@ function addCinematicDetails(prompt: string): string {
   const alreadyCinematic = CINEMATIC_HINTS.some((h) => lower.includes(h));
   if (alreadyCinematic) return prompt;
   return `${prompt}, high quality, smooth camera motion, professional cinematic lighting, detailed textures`;
-}
-
-/** Returns the enhanced prompt for display, without mutating state. */
-export function previewEnhancedPrompt(
-  userPrompt: string,
-  presets: Preset[],
-  enhance: boolean,
-): string {
-  return enhancePrompt(userPrompt, { presets, enhance });
 }

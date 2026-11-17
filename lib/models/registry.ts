@@ -1,9 +1,11 @@
 import { kindOfFile } from "./media";
 import type { MediaSummary, ModelDefinition, ModelMode, Params } from "./types";
+import { kling30MotionControl } from "./kling-3-0-motion-control";
+import { wan22AnimateReplace } from "./wan-2-2-animate-replace";
 import { wan30Video } from "./wan-3-0-video";
 
 /** Every model the studio can run. Adding a model = adding a definition file here. */
-export const MODELS: ModelDefinition[] = [wan30Video];
+export const MODELS: ModelDefinition[] = [wan30Video, kling30MotionControl, wan22AnimateReplace];
 
 export function getModel(id: string): ModelDefinition | undefined {
   return MODELS.find((m) => m.id === id || m.kieModel === id);

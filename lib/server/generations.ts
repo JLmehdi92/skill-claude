@@ -90,6 +90,11 @@ export async function submitGeneration(
   }
 
   const estimate = model.estimate(check.params, check.media);
+  if (estimate.perSecond !== undefined) {
+    // Priced per second of a video whose length is unknown: no honest estimate, no budget check.
+    await removeDir(path.join("inputs", id));
+    return { ok: false, status: 422, errors: ["Durée de la vidéo illisible. Réessaie avec un MP4."] };
+  }
   const { rate } = await getUsdEurRate();
   const estimateEur = creditsToEur(estimate.credits, rate);
 
@@ -280,7 +285,7 @@ export async function importTask(taskId: string): Promise<Generation> {
   const category: Category = model?.category ?? (task.resultUrls[0] ? categoryFromExt(extFromUrl(task.resultUrls[0], ".mp4")) : "video");
   const { rate } = await getUsdEurRate();
   const id = randomUUID();
-  const params = { ...(model?.defaults ?? {}), ...input, prompt };
+  const params = { ...(model?.defaults ?? {}), ...(model?.paramsFromKie ? model.paramsFromKie(input) : input), prompt };
   // kie does not always report creditsConsumed: fall back to our own price estimate.
   const estimated = task.creditsConsumed ?? (model ? safeEstimate(model, params) : 0);
 
@@ -297,7 +302,8 @@ export async function importTask(taskId: string): Promise<Generation> {
 
 function safeEstimate(model: NonNullable<ReturnType<typeof getModel>>, params: Params): number {
   try {
-    return model.estimate(params, {}).credits;
+    const credits = model.estimate(params, {}).credits;
+    return Number.isFinite(credits) ? credits : 0;
   } catch {
     return 0;
   }

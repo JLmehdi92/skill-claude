@@ -193,27 +193,29 @@ function DrawerBody({
           </Button>
         </div>
 
-        <section className="space-y-2 px-4 py-4">
-          <div className="flex items-center justify-between">
-            <h3 className="text-[13px] text-faint">Prompt</h3>
-            <button
-              type="button"
-              onClick={() => copy(gen.prompt, "Prompt")}
-              className="pressable -my-2 -mr-2 flex h-11 items-center gap-1.5 rounded-full px-3 text-[13px] text-muted hover:bg-hover hover:text-fg sm:h-8"
-            >
-              <CopyIcon done={copied === "Prompt"} />
-              <span className="grid [&>*]:col-start-1 [&>*]:row-start-1">
-                <span className="swap" data-on={copied !== "Prompt"} aria-hidden={copied === "Prompt"}>
-                  Copier
+        {gen.prompt && (
+          <section className="space-y-2 px-4 py-4">
+            <div className="flex items-center justify-between">
+              <h3 className="text-[13px] text-faint">Prompt</h3>
+              <button
+                type="button"
+                onClick={() => copy(gen.prompt, "Prompt")}
+                className="pressable -my-2 -mr-2 flex h-11 items-center gap-1.5 rounded-full px-3 text-[13px] text-muted hover:bg-hover hover:text-fg sm:h-8"
+              >
+                <CopyIcon done={copied === "Prompt"} />
+                <span className="grid [&>*]:col-start-1 [&>*]:row-start-1">
+                  <span className="swap" data-on={copied !== "Prompt"} aria-hidden={copied === "Prompt"}>
+                    Copier
+                  </span>
+                  <span className="swap" data-on={copied === "Prompt"} aria-hidden={copied !== "Prompt"}>
+                    Copié
+                  </span>
                 </span>
-                <span className="swap" data-on={copied === "Prompt"} aria-hidden={copied !== "Prompt"}>
-                  Copié
-                </span>
-              </span>
-            </button>
-          </div>
-          <p className="max-h-60 overflow-y-auto text-[15px] leading-relaxed whitespace-pre-wrap text-fg sm:text-sm">{gen.prompt}</p>
-        </section>
+              </button>
+            </div>
+            <p className="max-h-60 overflow-y-auto text-[15px] leading-relaxed whitespace-pre-wrap text-fg sm:text-sm">{gen.prompt}</p>
+          </section>
+        )}
 
         {gen.inputs.length > 0 && (
           <section className="px-4 pb-4">

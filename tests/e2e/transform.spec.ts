@@ -1,0 +1,95 @@
+import { expect, test } from "@playwright/test";
+import path from "node:path";
+
+const image = path.join(process.cwd(), "app/icon.svg");
+const video = path.join(process.cwd(), "fixtures/sample.mp4");
+
+// Named to run after studio.spec, which needs an empty gallery (files run in name order, one worker).
+
+test("genjutsu: copy a motion onto a character, priced from the video", async ({ page }) => {
+  await page.request.put("/api/settings", { data: { monthlyBudgetEur: null } });
+  await page.goto("/");
+
+  // An image added in Wan moves to the character tile when switching model.
+  await page.getByRole("radio", { name: "Images clés" }).click();
+  let chooser = page.waitForEvent("filechooser");
+  await page.getByRole("button", { name: "Ajouter l'image de début" }).click();
+  await (await chooser).setFiles(image);
+
+  await page.getByRole("button", { name: /^Modèle :/ }).click();
+  const models = page.getByRole("radiogroup", { name: "Modèle" });
+  await expect(models.getByRole("group", { name: "Genjutsu : transformer une vidéo" })).toBeVisible();
+  await models.getByRole("radio", { name: /Copier un mouvement/ }).click();
+
+  await expect(page.getByRole("button", { name: "Modèle : Copier un mouvement" })).toBeVisible();
+  await expect(page.getByRole("button", { name: /Personnage : icon\.svg/ })).toBeVisible();
+  // Prompt-driven tools and modes do not apply here.
+  await expect(page.getByRole("radiogroup", { name: "Mode de génération" })).toHaveCount(0);
+  await expect(page.getByRole("button", { name: /^Préréglages/ })).toHaveCount(0);
+  await expect(page.getByRole("button", { name: "Enrichir" })).toHaveCount(0);
+  await expect(page.getByText("selon la durée de la vidéo")).toBeVisible();
+
+  chooser = page.waitForEvent("filechooser");
+  await page.getByRole("button", { name: "Ajouter la vidéo de mouvement, 3 à 30 s" }).click();
+  await (await chooser).setFiles(video);
+  await expect(page.getByRole("button", { name: /Mouvement : sample\.mp4/ })).toBeVisible();
+  // 4 s at 22.7 credits/s.
+  await expect(page.getByText("91 crédits")).toBeVisible();
+
+  await page.getByRole("button", { name: "Générer" }).click();
+  await expect(page.getByText("Génération lancée")).toBeVisible();
+  await expect(page.locator("article").first()).toContainText("Copier un mouvement");
+  // Finished before the next spec starts: no completion toast leaks into it.
+  await expect(page.getByText("Copier un mouvement : génération prête")).toBeVisible({ timeout: 30_000 });
+});
+
+test("genjutsu: replacing a character takes no prompt, and undo restores the files", async ({ page }) => {
+  await page.goto("/");
+  await page.getByRole("radio", { name: "Référence" }).click();
+  await page.locator("#prompt").fill("une scène");
+  let chooser = page.waitForEvent("filechooser");
+  await page.getByRole("button", { name: "Ajouter une référence" }).click();
+  await page.getByRole("button", { name: /^Images/ }).click();
+  await (await chooser).setFiles([image, image]);
+  await expect(page.getByRole("button", { name: "Insérer @Image2 dans le prompt" })).toBeVisible();
+
+  await page.getByRole("button", { name: /^Modèle :/ }).click();
+  await page.getByRole("radio", { name: /Remplacer un personnage/ }).click();
+  // One image fits the character tile, the second one is removed with an undo.
+  await expect(page.getByText("1 fichier retiré : pas accepté par ce modèle.")).toBeVisible();
+  await expect(page.locator("#prompt")).toHaveCount(0);
+  await expect(page.getByText(/Pas de prompt : le personnage de ton image remplace/)).toBeVisible();
+
+  await page.getByRole("button", { name: "Annuler" }).click();
+  await expect(page.getByRole("button", { name: "Modèle : Wan 3.0" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Insérer @Image2 dans le prompt" })).toBeVisible();
+  await expect(page.locator("#prompt")).toHaveValue("une scène");
+
+  // Back on the replace model, the video goes to its tile and the generation is sent without prompt.
+  await page.getByRole("button", { name: /^Modèle :/ }).click();
+  await page.getByRole("radio", { name: /Remplacer un personnage/ }).click();
+  chooser = page.waitForEvent("filechooser");
+  await page.getByRole("button", { name: "Ajouter la vidéo, 10 Mo max" }).click();
+  await (await chooser).setFiles(video);
+  // 4 s at 6 credits/s in 480p.
+  await expect(page.getByText("24 crédits")).toBeVisible();
+  await page.getByRole("button", { name: "Générer" }).click();
+  await expect(page.getByText("Génération lancée")).toBeVisible();
+  await expect(page.locator("article").first()).toContainText("Remplacer un personnage");
+  // Finished before the next spec starts: no completion toast leaks into it.
+  await expect(page.getByText("Remplacer un personnage : génération prête")).toBeVisible({ timeout: 30_000 });
+});
+
+test("presets: French labels, checkboxes, prompt preview", async ({ page }) => {
+  await page.goto("/");
+  await page.locator("#prompt").fill("un chat");
+  await page.getByRole("button", { name: /^Préréglages/ }).click();
+  const presets = page.getByRole("group", { name: "Préréglages" });
+  await presets.getByRole("checkbox", { name: /Push In/ }).click();
+  await presets.getByRole("checkbox", { name: /Anime/ }).click();
+  await expect(presets.getByRole("checkbox", { name: /Push In/ })).toHaveAttribute("aria-checked", "true");
+  await page.keyboard.press("Escape");
+  await expect(page.getByRole("button", { name: "Préréglages (2)" })).toBeVisible();
+  await page.getByRole("button", { name: "Aperçu" }).click();
+  await expect(page.getByText(/^un chat, smooth push-in camera movement/)).toBeVisible();
+});

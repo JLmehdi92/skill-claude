@@ -284,13 +284,16 @@ export function MenuItem({
   children,
   hint,
   className,
+  multi,
   ...props
-}: ButtonHTMLAttributes<HTMLButtonElement> & { selected?: boolean; hint?: ReactNode }) {
+}: ButtonHTMLAttributes<HTMLButtonElement> & { selected?: boolean; hint?: ReactNode; multi?: boolean }) {
+  // A choice (selected is set) is a radio: only the chosen one is a Tab stop, arrows move between them.
+  // With multi, it is a checkbox: each one is a Tab stop.
+  const choice = selected === undefined ? {} : multi ? { role: "checkbox", "aria-checked": selected } : { role: "radio", "aria-checked": selected, tabIndex: selected ? 0 : -1 };
   return (
     <button
       type="button"
-      // A choice (selected is set) is a radio: only the chosen one is a Tab stop, arrows move between them.
-      {...(selected === undefined ? {} : { role: "radio", "aria-checked": selected, tabIndex: selected ? 0 : -1 })}
+      {...choice}
       {...props}
       className={cx(
         "flex min-h-12 w-full items-center justify-between gap-6 rounded-control px-3 py-2 text-left text-[15px] transition-colors duration-150 disabled:cursor-not-allowed disabled:opacity-40 sm:min-h-9 sm:rounded-item sm:px-2.5 sm:text-[13px]",

@@ -1,8 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { enhancePrompt, previewEnhancedPrompt } from "@/lib/prompt-enhancer";
-import { getPreset } from "@/lib/presets/registry";
-import { PRESETS } from "@/lib/presets/registry";
-import type { Preset } from "@/lib/presets/types";
+import { enhancePrompt } from "@/lib/prompt-enhancer";
+import { getPreset, PRESETS } from "@/lib/presets/registry";
 
 describe("enhancePrompt", () => {
   it("returns the prompt unchanged when no options are set", () => {
@@ -34,9 +32,9 @@ describe("enhancePrompt", () => {
     expect(result).toContain("cinematic lighting");
   });
 
-  it("does nothing on empty prompt even with enhance", () => {
+  it("sends nothing on an empty prompt, even with enhance and presets", () => {
     expect(enhancePrompt("", { enhance: true })).toBe("");
-    expect(enhancePrompt("  ", { enhance: true })).toBe("");
+    expect(enhancePrompt("  ", { enhance: true, presets: [getPreset("push-in")!] })).toBe("");
   });
 });
 
@@ -54,22 +52,8 @@ describe("presets registry", () => {
     expect(new Set(ids).size).toBe(ids.length);
   });
 
-  it("every preset has a promptSuffix", () => {
-    for (const p of PRESETS) {
-      expect(p.promptSuffix, `${p.id} missing promptSuffix`).toBeTruthy();
-    }
-  });
 
   it("getPreset returns undefined for unknown id", () => {
     expect(getPreset("nonexistent")).toBeUndefined();
-  });
-});
-
-describe("previewEnhancedPrompt", () => {
-  it("matches enhancePrompt output", () => {
-    const presets = [getPreset("anime")!];
-    const result = previewEnhancedPrompt("test", presets, true);
-    const expected = enhancePrompt("test", { presets, enhance: true });
-    expect(result).toBe(expected);
   });
 });

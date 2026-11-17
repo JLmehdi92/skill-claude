@@ -16,6 +16,8 @@ export interface MediaSlot {
   array: boolean;
   /** Short label for small tiles (e.g. "Début"). */
   shortLabel?: string;
+  /** Accessible name of the empty tile ("Ajouter le personnage"). Default: "Ajouter l'<label>". */
+  addLabel?: string;
   /** Prefix used for prompt mentions, e.g. "Image" gives @Image1. */
   tagPrefix?: string;
   hint?: string;
@@ -57,6 +59,8 @@ export interface Estimate {
   credits: number;
   /** True when the real cost depends on the model (auto duration): credits is then a ceiling. */
   upperBound: boolean;
+  /** Credits per second, when the cost follows a video not attached yet (credits is then 0). */
+  perSecond?: number;
 }
 
 export type Params = Record<string, unknown> & { prompt: string };
@@ -68,7 +72,15 @@ export interface ModelDefinition {
   vendor: string;
   category: Category;
   description: string;
+  /** Heading the model sits under in the model menu (e.g. "Genjutsu"). */
+  group?: string;
   promptMaxLength: number;
+  /** "optional": the prompt may stay empty; "none": the model takes no prompt. Default: required. */
+  promptUse?: "optional" | "none";
+  /** Prompt placeholder for models without modes; with promptUse "none", the line shown instead of the prompt. */
+  placeholder?: string;
+  /** Media slots shown as tiles above the prompt (one file each), instead of the "+" menu. */
+  tiles?: boolean;
   fields: Field[];
   mediaSlots: MediaSlot[];
   /** Optional modes, in display order. The first one is the default. */
@@ -78,6 +90,8 @@ export interface ModelDefinition {
   /** Cross-field rules. Returns user-facing (French) error messages. */
   validate(params: Params, media: MediaSummary): string[];
   estimate(params: Params, media: MediaSummary): Estimate;
+  /** Params from a kie `input` (task import), when field names differ. Default: the input as is. */
+  paramsFromKie?(input: Record<string, unknown>): Record<string, unknown>;
   /** Builds the kie `input` object from validated params and uploaded file URLs. */
   buildInput(params: Params, urls: Record<string, string[]>): Record<string, unknown>;
 }

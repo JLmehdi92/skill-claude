@@ -1,16 +1,12 @@
-/** A preset modifies the prompt and/or params before sending to the API. */
+/** A preset appends a description to the prompt before sending to the API. */
 export interface Preset {
   id: string;
   label: string;
   /** Short French description shown below the label. */
   description: string;
   category: PresetCategory;
-  /** Emoji or icon hint for the UI. */
-  icon: string;
-  /** Text prepended/appended to the user prompt by the enhancer. */
-  promptSuffix?: string;
-  /** Param overrides applied when the preset is selected. */
-  paramOverrides?: Record<string, unknown>;
+  /** Text appended to the user prompt before sending. */
+  promptSuffix: string;
 }
 
 export type PresetCategory = "camera" | "style" | "motion" | "effect";

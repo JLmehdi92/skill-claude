@@ -35,7 +35,8 @@ export default defineConfig({
     },
   ],
   webServer: {
-    command: `npx next start -H 0.0.0.0 -p ${port}`,
+    // Each run starts from an empty gallery: studio.spec relies on the empty-state examples.
+    command: `node -e "require('fs').rmSync('storage-e2e', { recursive: true, force: true })" && npx next start -H 0.0.0.0 -p ${port}`,
     port,
     reuseExistingServer: false,
     env: { KIE_MOCK: "1", STORAGE_DIR: "storage-e2e", USD_EUR_RATE: "0.9", KIE_OFFLINE_RATE: "1" },

@@ -82,7 +82,7 @@ export function GenerationCard({ gen, onOpen, onRetry }: { gen: Generation; onOp
           )}
         </div>
         <div className="flex items-baseline gap-2 border-t border-line px-3 py-2">
-          <p className="min-w-0 flex-1 truncate text-[13px] text-fg">{gen.prompt}</p>
+          <p className="min-w-0 flex-1 truncate text-[13px] text-fg">{gen.prompt || gen.modelLabel}</p>
           {cost && <p className="shrink-0 text-xs text-faint">{cost}</p>}
         </div>
       </button>
@@ -104,7 +104,7 @@ export function GenerationCard({ gen, onOpen, onRetry }: { gen: Generation; onOp
         <button
           type="button"
           onClick={onRetry}
-          aria-label={`Relancer : ${gen.prompt.slice(0, 40)}`}
+          aria-label={`Relancer : ${(gen.prompt || gen.modelLabel).slice(0, 40)}`}
           className="pressable absolute top-2 right-2 flex h-11 items-center gap-1.5 rounded-full border border-line-strong bg-raised px-3.5 text-[13px] font-medium text-fg shadow-thumb hover:bg-hover sm:h-8 sm:px-3"
         >
           <ArrowClockwise size={14} weight="bold" />
