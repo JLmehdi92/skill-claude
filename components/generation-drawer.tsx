@@ -3,7 +3,8 @@
 import { useEffect, useRef, useState } from "react";
 import { Drawer } from "vaul";
 import { toast } from "sonner";
-import { ArrowClockwise, Check, Copy, DownloadSimple, Heart, LockSimple, MagicWand, Shuffle, Trash, Warning, X } from "@phosphor-icons/react";
+import { ArrowClockwise, Check, Copy, DownloadSimple, FilmStrip, Heart, LockSimple, MagicWand, Shuffle, Trash, Warning, X } from "@phosphor-icons/react";
+import { api, ApiError } from "@/lib/client/api";
 import { copyText } from "@/lib/client/clipboard";
 import { useMediaQuery } from "@/lib/client/use-media-query";
 import { formatCredits, formatEur } from "@/lib/costs";
@@ -94,6 +95,21 @@ function DrawerBody({
   const holdTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
   // Which value was just copied: its button shows a check for a moment.
   const [copied, setCopied] = useState<string | null>(null);
+  // Id of the generation just added to the motion gallery (the drawer can switch generation).
+  const [savedMotion, setSavedMotion] = useState<string | null>(null);
+  const [savingMotion, setSavingMotion] = useState(false);
+  const saveMotion = async () => {
+    setSavingMotion(true);
+    try {
+      await api.motionFromGeneration(gen.id);
+      setSavedMotion(gen.id);
+      toast.success("Ajoutée aux mouvements", { description: "Retrouve-la dans Copier un mouvement, bouton Galerie." });
+    } catch (err) {
+      toast.error(err instanceof ApiError ? err.errors[0] : "Ajout impossible. Réessaie.");
+    } finally {
+      setSavingMotion(false);
+    }
+  };
   useEffect(() => {
     if (!copied) return;
     const t = setTimeout(() => setCopied(null), 1500);
@@ -186,6 +202,19 @@ function DrawerBody({
               <DownloadSimple size={16} />
               Télécharger
             </a>
+          )}
+          {gen.status === "success" && output?.kind === "video" && (
+            <Button
+              size="sm"
+              // aria-disabled, not disabled: focus stays on the button once the video is added.
+              onClick={() => savedMotion !== gen.id && !savingMotion && void saveMotion()}
+              aria-disabled={savedMotion === gen.id || savingMotion}
+              aria-busy={savingMotion}
+              className="aria-disabled:opacity-60"
+            >
+              {savedMotion === gen.id ? <Check size={16} weight="bold" /> : <FilmStrip size={16} />}
+              {savedMotion === gen.id ? "Dans les mouvements" : "Ajouter aux mouvements"}
+            </Button>
           )}
           <Button size="sm" variant="ghost" onClick={() => onFavorite(gen)} aria-label="Favori" aria-pressed={gen.favorite} className="max-sm:col-span-full">
             <Heart size={16} weight={gen.favorite ? "fill" : "regular"} className={gen.favorite ? "check-in text-fg" : undefined} key={String(gen.favorite)} />

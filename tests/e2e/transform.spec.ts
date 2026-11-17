@@ -93,3 +93,42 @@ test("presets: French labels, checkboxes, prompt preview", async ({ page }) => {
   await page.getByRole("button", { name: "Aperçu" }).click();
   await expect(page.getByText(/^un chat, smooth push-in camera movement/)).toBeVisible();
 });
+
+test("motion gallery: add a video, pick it for the motion tile, remove it", async ({ page }) => {
+  await page.goto("/");
+  await page.getByRole("button", { name: /^Modèle :/ }).click();
+  await page.getByRole("radio", { name: /Copier un mouvement/ }).click();
+  await page.getByRole("button", { name: "Galerie de mouvements" }).click();
+  const gallery = page.getByRole("dialog", { name: "Galerie de mouvements" });
+  await expect(gallery.getByText(/Garde ici les vidéos de mouvement/)).toBeVisible();
+
+  const chooser = page.waitForEvent("filechooser");
+  await gallery.getByRole("button", { name: /Ajouter une vidéo/ }).click();
+  await (await chooser).setFiles(video);
+  await expect(page.getByText("Vidéo ajoutée à la galerie")).toBeVisible();
+
+  await gallery.getByRole("button", { name: "Choisir sample, 4 s" }).click();
+  await expect(gallery).toHaveCount(0);
+  await expect(page.getByRole("button", { name: /Mouvement : sample\.mp4/ })).toBeVisible();
+  await expect(page.getByText("91 crédits")).toBeVisible();
+
+  await page.getByRole("button", { name: "Galerie de mouvements" }).click();
+  await gallery.getByRole("button", { name: "Retirer sample de la galerie" }).click();
+  await expect(page.getByText("Mouvement retiré")).toBeVisible();
+  await expect(gallery.getByRole("button", { name: "Choisir sample, 4 s" })).toHaveCount(0);
+  // Focus stays in the dialog, on "Ajouter une vidéo" once the list is empty.
+  await expect(gallery.getByRole("button", { name: /Ajouter une vidéo/ })).toBeFocused();
+  // Deleted for real: reopening does not bring it back.
+  await page.keyboard.press("Escape");
+  await page.getByRole("button", { name: "Galerie de mouvements" }).click();
+  await expect(gallery.getByText(/Garde ici les vidéos de mouvement/)).toBeVisible();
+});
+
+test("motion gallery: a finished generation video can be added from its detail", async ({ page }) => {
+  await page.goto("/");
+  await page.locator("article button").first().click();
+  const detail = page.getByRole("dialog");
+  await detail.getByRole("button", { name: "Ajouter aux mouvements" }).click();
+  await expect(page.getByText("Ajoutée aux mouvements")).toBeVisible();
+  await expect(detail.getByRole("button", { name: "Dans les mouvements" })).toHaveAttribute("aria-disabled", "true");
+});

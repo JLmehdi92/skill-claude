@@ -74,3 +74,13 @@ export interface AppConfig {
 
 export const PENDING: Status[] = ["uploading", "queued", "generating"];
 export const isPending = (s: Status) => PENDING.includes(s);
+
+/** A reusable motion video for "Copier un mouvement". */
+export interface Motion {
+  id: string;
+  name: string;
+  url: string;
+  thumbUrl: string | null;
+  duration: number;
+  createdAt: number;
+}

@@ -68,6 +68,14 @@ CREATE TABLE IF NOT EXISTS settings (
   key TEXT PRIMARY KEY,
   value TEXT NOT NULL
 );
+CREATE TABLE IF NOT EXISTS motions (
+  id TEXT PRIMARY KEY,
+  name TEXT NOT NULL,
+  path TEXT NOT NULL,
+  thumb_path TEXT,
+  duration REAL NOT NULL,
+  created_at INTEGER NOT NULL
+);
 `;
 
 const globalForDb = globalThis as unknown as { __hfDb?: DatabaseSync; __hfDbPath?: string };

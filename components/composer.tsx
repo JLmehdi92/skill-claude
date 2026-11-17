@@ -18,9 +18,11 @@ import {
   SpeakerSlash,
   Sparkle,
   X,
+  FilmStrip as GalleryIcon,
 } from "@phosphor-icons/react";
 import { api, ApiError, notifyStatsChanged, type BudgetConflict } from "@/lib/client/api";
 import { newId } from "@/lib/client/id";
+import { measureDuration } from "@/lib/client/media";
 import { creditsToEur, formatCredits, formatEur } from "@/lib/costs";
 import { kindOfFile } from "@/lib/models/media";
 import { getMode, inferMode, MODELS, summarizeMedia, validateRequest } from "@/lib/models/registry";
@@ -28,7 +30,8 @@ import type { Field, MediaKind, MediaSlot, ModelDefinition, ModelMode, Params } 
 import { PRESETS, getPreset } from "@/lib/presets/registry";
 import { PRESET_CATEGORY_LABELS, type Preset, type PresetCategory } from "@/lib/presets/types";
 import { enhancePrompt } from "@/lib/prompt-enhancer";
-import type { Generation } from "@/lib/types";
+import type { Generation, Motion } from "@/lib/types";
+import { MotionGallery } from "./motion-gallery";
 import { Button, Chip, ChipCaret, cx, fieldClass, Kbd, MenuItem, Modal, ModalActions, onRadioArrows, Popover, Segmented, Stepper, Switch } from "./ui";
 
 interface Attachment {
@@ -49,37 +52,9 @@ export interface ComposerHandle {
 const SLOT_ICONS: Record<MediaKind, typeof ImageIcon> = { image: ImageIcon, video: FilmStrip, audio: MusicNotes, document: FileIcon };
 const DURATION_PRESETS = [-1, 3, 5, 8, 10, 15, 20, 30];
 
-/**
- * Reads a video/audio duration in the browser. iOS Safari may never fire loadedmetadata for a
- * detached element, so this gives up after a few seconds (the server measures again with ffprobe).
- */
-function measureDuration(file: File, kind: MediaKind): Promise<number | undefined> {
-  if (kind !== "video" && kind !== "audio") return Promise.resolve(undefined);
-  return new Promise((resolve) => {
-    const el = document.createElement(kind);
-    const url = URL.createObjectURL(file);
-    let settled = false;
-    const done = (v?: number) => {
-      if (settled) return;
-      settled = true;
-      clearTimeout(timer);
-      el.removeAttribute("src");
-      el.load();
-      URL.revokeObjectURL(url);
-      resolve(v);
-    };
-    const timer = setTimeout(() => done(undefined), 5000);
-    el.preload = "metadata";
-    el.muted = true;
-    if (el instanceof HTMLVideoElement) el.playsInline = true;
-    el.onloadedmetadata = () => done(Number.isFinite(el.duration) ? Math.round(el.duration * 100) / 100 : undefined);
-    el.onerror = () => done(undefined);
-    el.src = url;
-    el.load();
-  });
-}
-
 const MODE_KEY = "hf:composer-mode";
+/** The slot the motion gallery fills (Copier un mouvement). */
+const MOTION_SLOT = "motion_video";
 
 function savedMode(model: ModelDefinition): string | undefined {
   if (!model.modes?.length) return undefined;
@@ -128,6 +103,8 @@ export const Composer = forwardRef<
   const [selectedPresets, setSelectedPresets] = useState<string[]>([]);
   const [enhanceEnabled, setEnhanceEnabled] = useState(false);
   const [showEnhanced, setShowEnhanced] = useState(false);
+  const [galleryOpen, setGalleryOpen] = useState(false);
+  const pickSeq = useRef(0);
   // Announces a model switch (also said by the toast when files were removed).
   const [announce, setAnnounce] = useState("");
   const say = (text: string) => {
@@ -304,17 +281,19 @@ export const Composer = forwardRef<
   };
 
   /** Never fails silently: any unexpected error ends up in a toast. */
-  const addFiles = async (files: File[], forcedSlot?: MediaSlot) => {
+  /** replace: the files take the place of what is in forcedSlot, only once they pass the checks. */
+  const addFiles = async (files: File[], forcedSlot?: MediaSlot, replace = false) => {
     try {
-      await addFilesUnsafe(files, forcedSlot);
+      await addFilesUnsafe(files, forcedSlot, replace);
     } catch (err) {
       console.error(err);
       toast.error("Impossible d'ajouter le fichier.", { description: err instanceof Error ? err.message : String(err) });
     }
   };
 
-  const addFilesUnsafe = async (files: File[], forcedSlot?: MediaSlot) => {
+  const addFilesUnsafe = async (files: File[], forcedSlot?: MediaSlot, replace = false) => {
     if (!files.length) return;
+    const replaced = (current: Attachment[]) => (replace && forcedSlot ? current.filter((a) => a.slot === forcedSlot.key) : []);
     let target = mode;
     // Text mode takes no files: dropping some switches to the first mode that accepts them.
     if (!forcedSlot && target && target.slots.length === 0) {
@@ -341,7 +320,7 @@ export const Composer = forwardRef<
         toast.error(`${forcedSlot.label} : « ${file.name} » n'est pas du bon type.`);
         continue;
       }
-      const all = [...attachmentsRef.current, ...accepted];
+      const all = [...attachmentsRef.current.filter((a) => !replaced(attachmentsRef.current).includes(a)), ...accepted];
       const slot = candidates.find((s) => all.filter((a) => a.slot === s.key).length < s.max);
       if (!slot) {
         toast.error(`${candidates[0].label} : ${candidates[0].max} maximum.`);
@@ -354,9 +333,32 @@ export const Composer = forwardRef<
       accepted.push({ id: newId(), slot: slot.key, file, url: URL.createObjectURL(file), kind, duration });
     }
     if (accepted.length) {
-      commitAttachments([...attachmentsRef.current, ...accepted]);
+      const gone = replaced(attachmentsRef.current);
+      gone.forEach((a) => URL.revokeObjectURL(a.url));
+      commitAttachments([...attachmentsRef.current.filter((a) => !gone.includes(a)), ...accepted]);
       setServerErrors([]);
     }
+  };
+
+  /** A gallery motion replaces whatever is in the motion slot, through the usual checks of addFiles. */
+  const pickMotion = async (m: Motion) => {
+    setGalleryOpen(false);
+    const slot = slotByKey(MOTION_SLOT);
+    if (!slot) return;
+    // Two quick picks: only the last one counts.
+    const seq = ++pickSeq.current;
+    let file: File;
+    try {
+      const res = await fetch(m.url);
+      if (!res.ok) throw new Error(String(res.status));
+      const blob = await res.blob();
+      file = new File([blob], m.name, { type: blob.type || "video/mp4" });
+    } catch {
+      return void toast.error(`Mouvement introuvable : ${m.name}`);
+    }
+    if (seq !== pickSeq.current) return;
+    await addFiles([file], slot, true);
+    if (attachmentsRef.current.some((a) => a.file === file)) say(`Mouvement : ${m.name}`);
   };
 
   const removeAttachment = (id: string) => {
@@ -617,6 +619,14 @@ export const Composer = forwardRef<
                   </li>
                 );
               })}
+              {frameSlots.some((s) => s.key === MOTION_SLOT) && (
+                <li className="self-end">
+                  <Chip onClick={() => setGalleryOpen(true)} aria-label="Galerie de mouvements" aria-haspopup="dialog">
+                    <GalleryIcon size={15} />
+                    Galerie
+                  </Chip>
+                </li>
+              )}
             </ul>
           )}
 
@@ -766,6 +776,7 @@ export const Composer = forwardRef<
             </p>
           )}
         </form>
+        <MotionGallery open={galleryOpen} onClose={() => setGalleryOpen(false)} onPick={(m) => void pickMotion(m)} />
         <p className="sr-only" aria-live="polite">
           {announce}
         </p>
