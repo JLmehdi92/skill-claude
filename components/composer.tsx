@@ -25,6 +25,9 @@ import { creditsToEur, formatCredits, formatEur } from "@/lib/costs";
 import { kindOfFile } from "@/lib/models/media";
 import { getMode, inferMode, MODELS, summarizeMedia, validateRequest } from "@/lib/models/registry";
 import type { Field, MediaKind, MediaSlot, ModelDefinition, ModelMode, Params } from "@/lib/models/types";
+import { PRESETS, getPreset } from "@/lib/presets/registry";
+import { PRESET_CATEGORY_LABELS, type Preset, type PresetCategory } from "@/lib/presets/types";
+import { enhancePrompt } from "@/lib/prompt-enhancer";
 import type { Generation } from "@/lib/types";
 import { Button, Chip, ChipCaret, cx, fieldClass, Kbd, MenuItem, Modal, ModalActions, onRadioArrows, Popover, Segmented, Stepper, Switch } from "./ui";
 
@@ -122,6 +125,9 @@ export const Composer = forwardRef<
   const [serverErrors, setServerErrors] = useState<string[]>([]);
   const [budget, setBudget] = useState<BudgetConflict | null>(null);
   const [dragging, setDragging] = useState(false);
+  const [selectedPresets, setSelectedPresets] = useState<string[]>([]);
+  const [enhanceEnabled, setEnhanceEnabled] = useState(false);
+  const [showEnhanced, setShowEnhanced] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const pendingSlot = useRef<MediaSlot | null>(null);
@@ -293,9 +299,12 @@ export const Composer = forwardRef<
       if (!check.ok || submitting) return;
       setSubmitting(true);
       setServerErrors([]);
+      const activePresets = selectedPresets.map(getPreset).filter((p): p is Preset => p !== undefined);
+      const finalPrompt = enhancePrompt(String(check.params.prompt), { presets: activePresets, enhance: enhanceEnabled });
+      const enhancedParams = { ...check.params, prompt: finalPrompt };
       const form = new FormData();
       form.set("model", model.id);
-      form.set("params", JSON.stringify(check.params));
+      form.set("params", JSON.stringify(enhancedParams));
       form.set("meta", JSON.stringify(attachments.map((a) => ({ slot: a.slot, duration: a.duration }))));
       for (const a of attachments) form.append("file", a.file, a.file.name);
       if (confirmOverBudget) form.set("confirmOverBudget", "1");
@@ -319,7 +328,7 @@ export const Composer = forwardRef<
         setSubmitting(false);
       }
     },
-    [attachments, check, estimate.upperBound, estimateEur, model, onSubmitted, submitting],
+    [attachments, check, enhanceEnabled, estimate.upperBound, estimateEur, model, onSubmitted, selectedPresets, submitting],
   );
 
   useEffect(() => {
@@ -549,11 +558,61 @@ export const Composer = forwardRef<
             </ul>
           )}
 
+          {/* Presets row */}
+          {selectedPresets.length > 0 && (
+            <div className="flex flex-wrap gap-1.5 px-3 pb-1">
+              {selectedPresets.map((id) => {
+                const p = getPreset(id);
+                if (!p) return null;
+                return (
+                  <Chip key={id} className="gap-1 pr-1">
+                    <span>{p.icon}</span>
+                    <span>{p.label}</span>
+                    <button
+                      type="button"
+                      onClick={() => setSelectedPresets((prev) => prev.filter((x) => x !== id))}
+                      className="rounded-full p-0.5 hover:bg-hover"
+                      aria-label={`Retirer ${p.label}`}
+                    >
+                      <X size={12} />
+                    </button>
+                  </Chip>
+                );
+              })}
+            </div>
+          )}
+
+          {/* Enhanced prompt preview */}
+          {showEnhanced && String(params.prompt).trim() && (selectedPresets.length > 0 || enhanceEnabled) && (
+            <div className="mx-3 mb-2 rounded-item border border-line bg-sunken p-2.5 text-xs leading-relaxed text-muted">
+              <p className="mb-1 font-medium text-faint">Prompt envoyé :</p>
+              <p>{enhancePrompt(String(params.prompt), { presets: selectedPresets.map(getPreset).filter((p): p is Preset => p !== undefined), enhance: enhanceEnabled })}</p>
+            </div>
+          )}
+
           {/* Settings wrap onto their own rows: nothing hides in a strip that scrolls. */}
           <div className="flex flex-col gap-2 border-t border-line p-2 sm:flex-row sm:items-center">
             <div className="flex flex-wrap items-center gap-1.5 sm:min-w-0 sm:flex-1">
               {(!mode || mode.id !== "keyframes") && <AddMenu model={model} mode={mode} attachments={attachments} params={params} onPick={pickSlot} />}
               <ModelMenu model={model} />
+              <PresetMenu selected={selectedPresets} onToggle={(id) => setSelectedPresets((prev) => prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id])} />
+              <Chip
+                onClick={() => setEnhanceEnabled((v) => !v)}
+                aria-pressed={enhanceEnabled}
+                className={enhanceEnabled ? "border-accent/40 bg-accent-soft text-accent" : ""}
+              >
+                <Sparkle size={14} weight={enhanceEnabled ? "fill" : "regular"} />
+                Enhancer
+              </Chip>
+              {(selectedPresets.length > 0 || enhanceEnabled) && (
+                <Chip
+                  onClick={() => setShowEnhanced((v) => !v)}
+                  aria-pressed={showEnhanced}
+                  className={showEnhanced ? "border-accent/40 text-accent" : ""}
+                >
+                  {showEnhanced ? "Masquer" : "Aperçu"}
+                </Chip>
+              )}
               {mainFields.map((f) => (
                 <FieldControl key={f.key} field={f} value={params[f.key]} onChange={(v) => set(f.key, v)} />
               ))}
@@ -753,6 +812,48 @@ function AddMenu({
               })}
             </div>
           ))}
+        </div>
+      )}
+    </Popover>
+  );
+}
+
+function PresetMenu({ selected, onToggle }: { selected: string[]; onToggle: (id: string) => void }) {
+  const categories = ["camera", "style", "motion", "effect"] as PresetCategory[];
+  return (
+    <Popover
+      label="Presets"
+      trigger={({ open, toggle }) => (
+        <Chip onClick={toggle} active={open} aria-expanded={open} aria-label={`Presets${selected.length ? ` (${selected.length})` : ""}`}>
+          <SlidersHorizontal size={15} />
+          <span className="font-medium text-fg">Presets</span>
+          {selected.length > 0 && (
+            <span className="flex size-4 items-center justify-center rounded-full bg-accent text-[10px] font-bold text-on-accent">{selected.length}</span>
+          )}
+          <ChipCaret />
+        </Chip>
+      )}
+    >
+      {() => (
+        <div className="max-h-[60vh] w-full overflow-y-auto sm:w-80">
+          {categories.map((cat) => {
+            const items = PRESETS.filter((p) => p.category === cat);
+            return (
+              <div key={cat}>
+                <p className="px-3 pt-2.5 pb-1 text-xs font-medium text-faint sm:px-2.5">{PRESET_CATEGORY_LABELS[cat]}</p>
+                {items.map((p) => (
+                  <MenuItem key={p.id} selected={selected.includes(p.id)} onClick={() => onToggle(p.id)} className="items-start">
+                    <span className="flex flex-col gap-0.5">
+                      <span className="text-fg">
+                        {p.icon} {p.label}
+                      </span>
+                      <span className="text-xs leading-snug text-faint">{p.description}</span>
+                    </span>
+                  </MenuItem>
+                ))}
+              </div>
+            );
+          })}
         </div>
       )}
     </Popover>
