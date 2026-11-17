@@ -5,7 +5,7 @@ import { toast } from "sonner";
 import { api, ApiError, notifyStatsChanged, type BudgetConflict } from "@/lib/client/api";
 import { formatEur } from "@/lib/costs";
 import type { Generation } from "@/lib/types";
-import { Button, Modal } from "./ui";
+import { Button, Modal, ModalActions } from "./ui";
 
 /** Retry / favorite / delete, shared by the studio feed and the history page. */
 export function useGenerationActions(opts: {
@@ -63,14 +63,12 @@ export function useGenerationActions(opts: {
             {formatEur(conflict.budget.spentEur)} engagés sur {formatEur(conflict.budget.monthlyBudgetEur)} ce mois-ci. Relancer coûterait{" "}
             {formatEur(conflict.budget.estimateEur)} de plus.
           </p>
-          <div className="mt-6 flex justify-end gap-2">
-            <Button variant="ghost" onClick={() => setConflict(null)}>
-              Annuler
-            </Button>
+          <ModalActions>
+            <Button onClick={() => setConflict(null)}>Annuler</Button>
             <Button variant="primary" onClick={() => void retry(conflict.gen, { confirmOverBudget: true, newSeed: conflict.newSeed })}>
               Relancer quand même
             </Button>
-          </div>
+          </ModalActions>
         </>
       )}
     </Modal>

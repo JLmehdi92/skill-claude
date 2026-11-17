@@ -1,15 +1,15 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { DownloadSimple, Heart, MagnifyingGlass, CloudArrowDown } from "@phosphor-icons/react";
+import { CloudArrowDown, DownloadSimple, Heart, MagnifyingGlass, X } from "@phosphor-icons/react";
 import { api } from "@/lib/client/api";
 import { useGenerations } from "@/lib/client/use-generations";
 import type { Generation } from "@/lib/types";
 import { GenerationCard } from "./generation-card";
 import { GenerationDrawer } from "./generation-drawer";
-import { Button, Chip, cx, Modal } from "./ui";
+import { Button, buttonClass, Chip, cx, fieldClass, Modal, ModalActions, Segmented } from "./ui";
 import { useGenerationActions } from "./use-generation-actions";
 
 const CATEGORIES = [
@@ -19,7 +19,7 @@ const CATEGORIES = [
   { value: "audio", label: "Audio" },
 ];
 const STATUSES = [
-  { value: "", label: "Tous les statuts" },
+  { value: "", label: "Tous" },
   { value: "success", label: "Réussies" },
   { value: "pending", label: "En cours" },
   { value: "failed", label: "Échouées" },
@@ -40,6 +40,7 @@ export function Library() {
   const [favorite, setFavorite] = useState(false);
   const [selected, setSelected] = useState<Generation | null>(null);
   const [importOpen, setImportOpen] = useState(false);
+  const searchRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     const t = setTimeout(() => setQ(query.trim()), 250);
@@ -64,69 +65,97 @@ export function Library() {
   const filtered = Boolean(q || category || status || favorite || period);
 
   return (
-    <main className="mx-auto max-w-[1600px] px-3 pt-6 pb-16 sm:px-6 sm:pt-8">
+    <main className="mx-auto max-w-[1600px] px-3 pt-5 pb-16 sm:px-6 sm:pt-8">
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-semibold tracking-tight">Historique</h1>
+          <h1 className="font-wide text-[32px] leading-tight">Historique</h1>
           <p className="mt-1 text-sm text-muted">Toutes tes générations, stockées en local avec leurs fichiers.</p>
         </div>
-        <div className="flex gap-2">
+        <div className="grid w-full grid-cols-2 gap-2 sm:flex sm:w-auto">
           <Button size="sm" onClick={() => setImportOpen(true)}>
-            <CloudArrowDown size={14} />
+            <CloudArrowDown size={16} />
             Importer de kie.ai
           </Button>
-          <a href="/api/export?format=json" className="pressable inline-flex h-8 items-center gap-1.5 rounded-full border border-line-strong bg-raised px-3 text-[13px] font-medium hover:bg-hover">
-            <DownloadSimple size={14} />
+          <a href="/api/export?format=json" className={buttonClass("secondary", "sm")}>
+            <DownloadSimple size={16} />
             Sauvegarde JSON
           </a>
         </div>
       </div>
 
-      <div className="mt-6 flex flex-wrap items-center gap-2">
-        <label className="relative w-full sm:w-auto sm:min-w-56 sm:flex-1 sm:max-w-80">
-          <span className="sr-only">Rechercher dans les prompts</span>
-          <MagnifyingGlass size={14} className="pointer-events-none absolute top-1/2 left-3 -translate-y-1/2 text-faint" />
+      <div className="mt-6 flex flex-col gap-2 lg:flex-row lg:flex-wrap lg:items-center">
+        <div className="relative lg:w-72">
+          <label htmlFor="library-search" className="sr-only">
+            Rechercher dans les prompts
+          </label>
+          <MagnifyingGlass size={16} className="pointer-events-none absolute top-1/2 left-3.5 -translate-y-1/2 text-faint" />
           <input
+            id="library-search"
+            ref={searchRef}
             type="search"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Escape" && query) {
+                e.preventDefault();
+                setQuery("");
+              }
+            }}
             placeholder="Rechercher un prompt"
-            className="h-10 w-full rounded-full border border-line bg-raised pr-3 pl-8 text-base placeholder:text-faint focus:border-accent focus:outline-none sm:h-8 sm:text-[13px]"
+            className={cx(fieldClass, "pl-10", query && "pr-11")}
           />
-        </label>
-        <Segmented options={CATEGORIES} value={category} onChange={setCategory} label="Type" />
-        <Segmented options={STATUSES} value={status} onChange={setStatus} label="Statut" />
-        <Segmented options={PERIODS} value={period} onChange={choosePeriod} label="Période" />
-        <Chip active={favorite} aria-pressed={favorite} onClick={() => setFavorite((f) => !f)}>
-          <Heart size={14} weight={favorite ? "fill" : "regular"} />
-          Favoris
-        </Chip>
+          {query && (
+            <button
+              type="button"
+              onClick={() => {
+                setQuery("");
+                searchRef.current?.focus();
+              }}
+              aria-label="Effacer la recherche"
+              className="pressable absolute top-1/2 right-0.5 flex size-10 -translate-y-1/2 items-center justify-center rounded-item text-muted hover:text-fg sm:size-9"
+            >
+              <X size={16} weight="bold" />
+            </button>
+          )}
+        </div>
+        {/* Phones: one full-width row per filter, period and favourites share the last one. */}
+        <div className="grid gap-2 sm:grid-cols-2 lg:flex lg:flex-wrap">
+          <Segmented options={CATEGORIES} value={category} onChange={setCategory} label="Type" />
+          <Segmented options={STATUSES} value={status} onChange={setStatus} label="Statut" />
+          <div className="flex gap-2 sm:col-span-2 lg:contents">
+            <Segmented options={PERIODS} value={period} onChange={choosePeriod} label="Période" className="flex-1 lg:flex-none" />
+            <Chip active={favorite} aria-pressed={favorite} onClick={() => setFavorite((f) => !f)}>
+              <Heart key={String(favorite)} size={16} weight={favorite ? "fill" : "regular"} className="check-in" />
+              Favoris
+            </Chip>
+          </div>
+        </div>
       </div>
 
       <div className="mt-6">
         {error && <p className="text-sm text-danger">{error}</p>}
         {loading && items.length === 0 && (
-          <div className="columns-1 gap-3 sm:columns-2 lg:columns-3 2xl:columns-4">
-            {[16 / 9, 1, 9 / 16, 16 / 9].map((r, i) => (
-              <div key={i} className="shimmer mb-3 rounded-[var(--radius-tile)]" style={{ aspectRatio: r }} />
+          <div className="columns-2 gap-2 sm:columns-3 sm:gap-3 lg:columns-4 2xl:columns-5">
+            {[9 / 16, 1, 16 / 9, 9 / 16].map((r, i) => (
+              <div key={i} className="shimmer mb-2 rounded-panel sm:mb-3" style={{ aspectRatio: r }} />
             ))}
           </div>
         )}
         {!loading && items.length === 0 && (
-          <div className="max-w-md py-16">
-            <p className="text-lg font-medium">{filtered ? "Aucun résultat" : "Rien pour l'instant"}</p>
+          <div className="max-w-md py-12">
+            <p className="font-wide text-xl">{filtered ? "Aucun résultat" : "Rien pour l'instant"}</p>
             <p className="mt-1 text-sm leading-relaxed text-muted">
               {filtered ? "Essaie d'autres filtres ou un autre mot-clé." : "Tes générations apparaîtront ici dès ton premier lancement."}
             </p>
             {!filtered && (
-              <Button variant="primary" size="sm" className="mt-4" onClick={() => router.push("/")}>
+              <Button variant="primary" className="mt-4" onClick={() => router.push("/")}>
                 Créer une vidéo
               </Button>
             )}
           </div>
         )}
         {items.length > 0 && (
-          <div className="columns-1 gap-3 sm:columns-2 lg:columns-3 2xl:columns-4">
+          <div className="columns-2 gap-2 sm:columns-3 sm:gap-3 lg:columns-4 2xl:columns-5">
             {items.map((g) => (
               <GenerationCard key={g.id} gen={g} onOpen={() => setSelected(g)} onRetry={() => void actions.retry(g)} />
             ))}
@@ -134,9 +163,7 @@ export function Library() {
         )}
         {hasMore && (
           <div className="mt-6 flex justify-center">
-            <Button size="sm" variant="ghost" onClick={() => void loadMore()}>
-              Afficher plus
-            </Button>
+            <Button onClick={() => void loadMore()}>Afficher plus</Button>
           </div>
         )}
       </div>
@@ -153,28 +180,6 @@ export function Library() {
       {actions.budgetModal}
       <ImportModal open={importOpen} onClose={() => setImportOpen(false)} onImported={(g) => upsert(g)} />
     </main>
-  );
-}
-
-function Segmented({ options, value, onChange, label }: { options: { value: string; label: string }[]; value: string; onChange: (v: string) => void; label: string }) {
-  return (
-    <div role="radiogroup" aria-label={label} className="scrollbar-none flex h-9 max-w-full items-center overflow-x-auto rounded-full border border-line bg-raised p-0.5 sm:h-8">
-      {options.map((o) => (
-        <button
-          key={o.value}
-          type="button"
-          role="radio"
-          aria-checked={o.value === value}
-          onClick={() => onChange(o.value)}
-          className={cx(
-            "h-full rounded-full px-3 text-[13px] whitespace-nowrap transition-colors duration-150",
-            o.value === value ? "bg-hover text-fg" : "text-muted hover:text-fg",
-          )}
-        >
-          {o.label}
-        </button>
-      ))}
-    </div>
   );
 }
 
@@ -206,7 +211,7 @@ function ImportModal({ open, onClose, onImported }: { open: boolean; onClose: ()
           void submit();
         }}
       >
-        <label htmlFor="task-id" className="text-sm text-muted">
+        <label htmlFor="task-id" className="text-sm leading-relaxed text-muted">
           Identifiant de tâche (taskId), visible dans ton historique kie.ai
         </label>
         <input
@@ -214,17 +219,15 @@ function ImportModal({ open, onClose, onImported }: { open: boolean; onClose: ()
           value={taskId}
           onChange={(e) => setTaskId(e.target.value)}
           autoFocus
-          className="mt-2 h-11 w-full rounded-full border border-line-strong bg-canvas px-4 font-mono text-base focus:border-accent focus:outline-none sm:h-10 sm:text-sm"
+          className={cx(fieldClass, "mt-2 font-mono")}
         />
         {err && <p className="mt-2 text-sm text-danger">{err}</p>}
-        <div className="mt-6 flex justify-end gap-2">
-          <Button variant="ghost" onClick={onClose}>
-            Annuler
-          </Button>
+        <ModalActions>
+          <Button onClick={onClose}>Annuler</Button>
           <Button type="submit" variant="primary" disabled={busy || !taskId.trim()}>
             {busy ? "Import" : "Importer"}
           </Button>
-        </div>
+        </ModalActions>
       </form>
     </Modal>
   );

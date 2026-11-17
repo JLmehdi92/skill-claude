@@ -3,7 +3,8 @@
 import { forwardRef, useCallback, useEffect, useImperativeHandle, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import {
-  CaretDown,
+  Check,
+  CircleNotch,
   Clock,
   CornersOut,
   DiceFive,
@@ -25,7 +26,7 @@ import { kindOfFile } from "@/lib/models/media";
 import { getMode, inferMode, MODELS, summarizeMedia, validateRequest } from "@/lib/models/registry";
 import type { Field, MediaKind, MediaSlot, ModelDefinition, ModelMode, Params } from "@/lib/models/types";
 import type { Generation } from "@/lib/types";
-import { Button, Chip, cx, Kbd, MenuItem, Modal, Popover, Switch } from "./ui";
+import { Button, Chip, ChipCaret, cx, fieldClass, Kbd, MenuItem, Modal, ModalActions, Popover, Segmented, Stepper, Switch } from "./ui";
 
 interface Attachment {
   id: string;
@@ -115,6 +116,8 @@ export const Composer = forwardRef<
     setAttachments(next);
   }, []);
   const [submitting, setSubmitting] = useState(false);
+  // "Lancée" confirmation on the button for a moment after a successful submit.
+  const [launched, setLaunched] = useState(false);
   const [triedSubmit, setTriedSubmit] = useState(false);
   const [serverErrors, setServerErrors] = useState<string[]>([]);
   const [budget, setBudget] = useState<BudgetConflict | null>(null);
@@ -300,6 +303,7 @@ export const Composer = forwardRef<
         setTriedSubmit(false);
         onSubmitted(gen);
         notifyStatsChanged();
+        setLaunched(true);
         toast.success("Génération lancée", { description: `${model.label}, ${estimate.upperBound ? "jusqu'à " : "≈ "}${formatEur(estimateEur)}` });
       } catch (err) {
         if (err instanceof ApiError && err.status === 409) {
@@ -315,6 +319,12 @@ export const Composer = forwardRef<
     },
     [attachments, check, estimate.upperBound, estimateEur, model, onSubmitted, submitting],
   );
+
+  useEffect(() => {
+    if (!launched) return;
+    const t = setTimeout(() => setLaunched(false), 1200);
+    return () => clearTimeout(t);
+  }, [launched]);
 
   // Cmd/Ctrl+Enter submits from anywhere, "/" focuses the prompt.
   useEffect(() => {
@@ -421,13 +431,15 @@ export const Composer = forwardRef<
   const advancedFields = model.fields.filter((f) => f.advanced && !hidden.has(f.key));
   const frameSlots = mode?.id === "keyframes" ? mode.slots.map((k) => slotByKey(k)!).filter(Boolean) : [];
   const promptLength = String(params.prompt).length;
+  const buttonState = submitting ? "sending" : launched ? "launched" : "idle";
+  const estimateLabel = `${estimate.upperBound ? "≤ " : "≈ "}${formatEur(estimateEur)}`;
 
   return (
     <>
       {dragging && (
-        <div className="fade-in pointer-events-none fixed inset-0 z-30 flex items-center justify-center bg-canvas/80 backdrop-blur-sm">
-          <div className="rounded-[var(--radius-surface)] border border-dashed border-accent/60 px-10 py-8 text-center">
-            <p className="text-lg font-medium">Dépose tes références</p>
+        <div className="fade-in pointer-events-none fixed inset-0 z-30 flex items-center justify-center bg-canvas/85 p-6">
+          <div className="rounded-sheet border-2 border-dashed border-accent bg-surface px-10 py-8 text-center">
+            <p className="font-wide text-xl">Dépose tes références</p>
             <p className="mt-1 text-sm text-muted">Images, vidéos, audio ou document</p>
           </div>
         </div>
@@ -439,14 +451,18 @@ export const Composer = forwardRef<
             e.preventDefault();
             void submit();
           }}
-          className="pointer-events-auto mx-auto max-w-[880px] rounded-[var(--radius-surface)] border border-line-strong bg-surface/95 transition-[border-color] duration-200 focus-within:border-white/25 shadow-[0_24px_60px_-20px_rgb(0_0_0/0.7)] backdrop-blur-xl"
+          className="pointer-events-auto mx-auto max-w-[880px] rounded-sheet border border-line-strong bg-surface shadow-float transition-[border-color] duration-200 focus-within:border-accent/50"
         >
           {model.modes && mode && (
-            <div className="flex items-center gap-3 px-2.5 pt-2.5">
-              <ModeTabs modes={model.modes} value={mode.id} onChange={(id) => switchMode(id)} />
-              <p className="hidden min-w-0 truncate text-xs text-faint sm:block" title={mode.hint}>
-                {mode.hint}
-              </p>
+            <div className="flex flex-col gap-1.5 px-2 pt-2 sm:flex-row sm:items-center sm:gap-3">
+              <Segmented
+                label="Mode de génération"
+                options={model.modes.map((m) => ({ value: m.id, label: m.label, hint: m.hint }))}
+                value={mode.id}
+                onChange={(id) => switchMode(id)}
+                className="sm:w-[22rem] sm:shrink-0"
+              />
+              <p className="px-2 text-xs leading-snug text-faint sm:min-w-0 sm:px-0">{mode.hint}</p>
             </div>
           )}
 
@@ -471,14 +487,14 @@ export const Composer = forwardRef<
                       onClick={() => pickSlot(slot)}
                       disabled={needsFirst}
                       aria-label={`Ajouter l'${slot.label.toLowerCase()}`}
-                      className="pressable flex w-[66px] flex-col items-center overflow-hidden rounded-[var(--radius-tile)] border border-dashed border-line-strong text-muted hover:border-accent/60 hover:text-fg disabled:cursor-not-allowed disabled:opacity-40"
+                      className="pressable flex w-[72px] flex-col items-center overflow-hidden rounded-control border border-dashed border-edge bg-raised text-muted hover:border-accent hover:text-fg disabled:cursor-not-allowed disabled:opacity-50"
                     >
                       <span className="flex size-16 items-center justify-center">
-                        <Plus size={16} />
+                        <Plus size={18} />
                       </span>
-                      <span className="w-full border-t border-dashed border-line-strong px-1 py-1 text-center text-[11px]">
+                      <span className="w-full border-t border-dashed border-line-strong px-1 py-1 text-center text-xs">
                         {slot.shortLabel ?? slot.label}
-                        {slot.key !== frameSlots[0].key && <span className="text-faint"> (option)</span>}
+                        {slot.key !== frameSlots[0].key && <span className="block text-[11px] text-faint">option</span>}
                       </span>
                     </button>
                   </li>
@@ -488,7 +504,7 @@ export const Composer = forwardRef<
           )}
 
           {frameSlots.length === 0 && attachments.length > 0 && (
-            <ul className="scrollbar-none flex gap-2 overflow-x-auto px-3 pt-3.5 pb-1" aria-label="Références jointes">
+            <ul className="flex flex-wrap gap-2 px-3 pt-3.5 pb-1" aria-label="Références jointes">
               {attachments.map((a) => (
                 <AttachmentThumb
                   key={a.id}
@@ -516,20 +532,20 @@ export const Composer = forwardRef<
             rows={2}
             maxLength={model.promptMaxLength}
             placeholder={mode?.placeholder ?? "Décris ta scène. Cite tes références avec @Image1, @Video1..."}
-            className="block max-h-[28vh] min-h-[60px] w-full resize-none bg-transparent px-4 pt-3.5 pb-2 text-base leading-relaxed text-fg placeholder:text-faint focus:outline-none sm:max-h-[32vh] sm:text-[15px]"
+            className="block max-h-[28vh] min-h-[64px] w-full resize-none bg-transparent px-4 pt-3 pb-2 text-base leading-relaxed text-fg placeholder:text-faint focus:outline-none sm:max-h-[32vh]"
           />
 
           {visibleErrors.length > 0 && (
-            <ul className="space-y-0.5 px-4 pb-2 text-[13px] text-danger" role="alert">
+            <ul className="space-y-0.5 px-4 pb-2 text-sm text-danger" role="alert">
               {visibleErrors.map((e) => (
                 <li key={e}>{e}</li>
               ))}
             </ul>
           )}
 
-          {/* Mobile: settings wrap on their own rows so none hide off-screen, actions get a full row. */}
-          <div className="flex flex-col gap-2.5 border-t border-line px-2.5 py-2.5 sm:flex-row sm:items-center sm:gap-2">
-            <div className="flex flex-wrap items-center gap-1.5 sm:scrollbar-none sm:-my-1 sm:min-w-0 sm:flex-1 sm:flex-nowrap sm:overflow-x-auto sm:px-0.5 sm:py-1">
+          {/* Settings wrap onto their own rows: nothing hides in a strip that scrolls. */}
+          <div className="flex flex-col gap-2 border-t border-line p-2 sm:flex-row sm:items-center">
+            <div className="flex flex-wrap items-center gap-1.5 sm:min-w-0 sm:flex-1">
               {(!mode || mode.id !== "keyframes") && <AddMenu model={model} mode={mode} attachments={attachments} params={params} onPick={pickSlot} />}
               <ModelMenu model={model} />
               {mainFields.map((f) => (
@@ -538,24 +554,36 @@ export const Composer = forwardRef<
               {advancedFields.length > 0 && <AdvancedMenu fields={advancedFields} params={params} onChange={set} />}
             </div>
 
-            <div className="flex shrink-0 items-center justify-between gap-3 sm:justify-end sm:pl-1">
-              <div className="pl-1.5 leading-tight sm:pl-0 sm:text-right" title={`1 crédit = 0,005 $. Taux USD/EUR : ${usdEurRate.toFixed(4)}`}>
-                <div className="text-sm font-medium tabular-nums">
-                  {estimate.upperBound ? "≤ " : "≈ "}
-                  {formatEur(estimateEur)}
+            <div className="flex shrink-0 items-center justify-between gap-3 sm:justify-end">
+              <div className="pl-2 leading-tight sm:pl-0 sm:text-right" title={`1 crédit = 0,005 $. Taux USD/EUR : ${usdEurRate.toFixed(4)}`}>
+                <div className="font-wide text-base">
+                  <span key={estimateLabel} className="tick">
+                    {estimateLabel}
+                  </span>
                 </div>
-                <div className="text-[11px] text-faint tabular-nums">{formatCredits(estimate.credits)}</div>
+                <div className="text-xs text-faint">{formatCredits(estimate.credits)}</div>
               </div>
-              <Button type="submit" variant="primary" size="md" disabled={submitting} aria-label="Générer" className="h-11 min-w-36 sm:h-9 sm:min-w-0 sm:pr-3">
-                {submitting ? "Envoi" : "Générer"}
-                <span className="hidden sm:inline-flex">
-                  <Kbd className="border-on-accent/20 text-on-accent/70">⌘↵</Kbd>
+              {/* Three visual states in one cell (repos, envoi, lancée); the accessible name stays "Générer". */}
+              <Button type="submit" variant="primary" aria-label="Générer" aria-busy={submitting} className="min-w-40 sm:min-w-36">
+                <span className="grid items-center justify-items-center [&>*]:col-start-1 [&>*]:row-start-1">
+                  <span className="swap flex items-center gap-2" data-on={buttonState === "idle"}>
+                    Générer
+                    <Kbd className="hidden border-on-accent/30 text-on-accent/80 sm:inline">⌘↵</Kbd>
+                  </span>
+                  <span className="swap flex items-center gap-2" data-on={buttonState === "sending"}>
+                    <CircleNotch size={16} weight="bold" className="animate-spin" />
+                    Envoi
+                  </span>
+                  <span className="swap flex items-center gap-2" data-on={buttonState === "launched"}>
+                    <Check size={16} weight="bold" />
+                    Lancée
+                  </span>
                 </span>
               </Button>
             </div>
           </div>
           {promptLength > model.promptMaxLength * 0.9 && (
-            <p className="px-4 pb-2 text-right text-[11px] text-faint tabular-nums">
+            <p className="px-4 pb-2 text-right text-xs text-faint">
               {promptLength} / {model.promptMaxLength}
             </p>
           )}
@@ -580,18 +608,16 @@ export const Composer = forwardRef<
         {budget && (
           <>
             <p className="text-sm leading-relaxed text-muted">
-              Ce mois-ci : <span className="text-fg tabular-nums">{formatEur(budget.spentEur)}</span> engagés sur{" "}
-              <span className="text-fg tabular-nums">{formatEur(budget.monthlyBudgetEur)}</span>. Cette génération coûterait{" "}
-              <span className="text-fg tabular-nums">{formatEur(budget.estimateEur)}</span> de plus.
+              Ce mois-ci : <span className="text-fg">{formatEur(budget.spentEur)}</span> engagés sur{" "}
+              <span className="text-fg">{formatEur(budget.monthlyBudgetEur)}</span>. Cette génération coûterait{" "}
+              <span className="text-fg">{formatEur(budget.estimateEur)}</span> de plus.
             </p>
-            <div className="mt-6 flex justify-end gap-2">
-              <Button variant="ghost" onClick={() => setBudget(null)}>
-                Annuler
-              </Button>
+            <ModalActions>
+              <Button onClick={() => setBudget(null)}>Annuler</Button>
               <Button variant="primary" onClick={() => void submit(true)} disabled={submitting}>
                 Lancer quand même
               </Button>
-            </div>
+            </ModalActions>
           </>
         )}
       </Modal>
@@ -614,19 +640,19 @@ function AttachmentThumb({
 }) {
   const Icon = SLOT_ICONS[a.kind];
   return (
-    <li className="fade-in group relative shrink-0">
+    <li className="fade-in relative shrink-0">
       <button
         type="button"
         onClick={onInsert}
         disabled={!isTag}
         title={isTag ? `Insérer ${label} dans le prompt` : a.file.name}
         aria-label={isTag ? `Insérer ${label} dans le prompt` : `${label} : ${a.file.name}`}
-        className="pressable block overflow-hidden rounded-[var(--radius-tile)] border border-line bg-raised"
+        className="pressable block w-[72px] overflow-hidden rounded-control border border-line-strong bg-raised"
       >
-        <div className="flex size-16 items-center justify-center">
+        <div className="flex h-16 items-center justify-center bg-sunken">
           {a.kind === "image" ? (
             // eslint-disable-next-line @next/next/no-img-element
-            <img src={a.url} alt="" className="size-full object-cover" />
+            <img src={a.url} alt="" className="size-full object-cover outline outline-1 -outline-offset-1 outline-black/10" />
           ) : a.kind === "video" ? (
             <span className="relative block size-full">
               {/* Shown when the browser cannot paint a frame; a decoded frame covers it. */}
@@ -637,67 +663,21 @@ function AttachmentThumb({
             <Icon size={22} className="text-muted" />
           )}
         </div>
-        <span className="block border-t border-line px-1.5 py-1 text-center text-[11px] text-muted">
+        <span className={cx("block border-t border-line px-1.5 py-1 text-center text-xs", isTag ? "font-medium text-accent" : "text-muted")}>
           {label}
-          {a.duration !== undefined && <span className="text-faint"> {Math.round(a.duration)} s</span>}
+          {a.duration !== undefined && <span className="font-normal text-faint"> {Math.round(a.duration)} s</span>}
         </span>
       </button>
       <button
         type="button"
         onClick={onRemove}
         aria-label={`Retirer ${a.file.name}`}
-        className="pressable absolute -top-1.5 -right-1.5 flex size-5 items-center justify-center rounded-full border border-line-strong bg-hover text-muted hover:text-fg"
+        // 22px dot, 44px hit area through the pseudo-element.
+        className="pressable absolute -top-2 -right-2 flex size-[22px] items-center justify-center rounded-full border border-line-strong bg-raised text-muted shadow-thumb after:absolute after:-inset-[11px] after:content-[''] hover:text-fg"
       >
-        <X size={10} weight="bold" />
+        <X size={11} weight="bold" />
       </button>
     </li>
-  );
-}
-
-function ModeTabs({ modes, value, onChange }: { modes: ModelMode[]; value: string; onChange: (id: string) => void }) {
-  const refs = useRef<(HTMLButtonElement | null)[]>([]);
-  const index = modes.findIndex((m) => m.id === value);
-  const move = (delta: number) => {
-    const next = (index + delta + modes.length) % modes.length;
-    onChange(modes[next].id);
-    refs.current[next]?.focus();
-  };
-  return (
-    <div
-      role="radiogroup"
-      aria-label="Mode de génération"
-      className="flex h-9 shrink-0 items-center rounded-full border border-line bg-raised p-0.5 max-sm:w-full sm:h-8"
-      onKeyDown={(e) => {
-        if (e.key === "ArrowRight" || e.key === "ArrowDown") {
-          e.preventDefault();
-          move(1);
-        } else if (e.key === "ArrowLeft" || e.key === "ArrowUp") {
-          e.preventDefault();
-          move(-1);
-        }
-      }}
-    >
-      {modes.map((m, i) => (
-        <button
-          key={m.id}
-          ref={(el) => {
-            refs.current[i] = el;
-          }}
-          type="button"
-          role="radio"
-          aria-checked={m.id === value}
-          tabIndex={m.id === value ? 0 : -1}
-          title={m.hint}
-          onClick={() => onChange(m.id)}
-          className={cx(
-            "h-full rounded-full px-3 text-[13px] whitespace-nowrap transition-colors duration-150 max-sm:flex-1",
-            m.id === value ? "bg-hover text-fg" : "text-muted hover:text-fg",
-          )}
-        >
-          {m.label}
-        </button>
-      ))}
-    </div>
   );
 }
 
@@ -735,8 +715,8 @@ function AddMenu({
   return (
     <Popover
       trigger={({ open, toggle, id }) => (
-        <Chip onClick={toggle} active={open} aria-expanded={open} aria-controls={id} aria-label="Ajouter une référence" className="px-2.5">
-          <Plus size={14} weight="bold" />
+        <Chip onClick={toggle} active={open} aria-expanded={open} aria-controls={id} aria-label="Ajouter une référence" icon>
+          <Plus size={16} weight="bold" />
         </Chip>
       )}
     >
@@ -744,7 +724,7 @@ function AddMenu({
         <div className="w-full sm:w-64">
           {groups.map((g) => (
             <div key={g.title ?? "all"} className="pb-1 last:pb-0">
-              {g.title && <p className="px-2.5 pt-1.5 pb-1 text-[11px] text-faint">{g.title}</p>}
+              {g.title && <p className="px-3 pt-2 pb-1 text-xs text-faint sm:px-2.5">{g.title}</p>}
               {g.slots.map((slot) => {
                 const Icon = SLOT_ICONS[slot.kind];
                 const reason = g.switchTo ? null : blocked(slot);
@@ -759,7 +739,7 @@ function AddMenu({
                     hint={reason ?? (g.switchTo ? undefined : `${count(slot.key)}/${slot.max}`)}
                     title={slot.hint}
                   >
-                    <Icon size={16} />
+                    <Icon size={18} />
                     {slot.label}
                   </MenuItem>
                 );
@@ -777,9 +757,9 @@ function ModelMenu({ model }: { model: ModelDefinition }) {
     <Popover
       trigger={({ open, toggle }) => (
         <Chip onClick={toggle} active={open} aria-expanded={open}>
-          <Sparkle size={14} weight="fill" className="text-accent" />
-          <span className="text-fg">{model.label}</span>
-          <CaretDown size={11} />
+          <Sparkle size={15} weight="fill" className="text-accent" />
+          <span className="font-medium text-fg">{model.label}</span>
+          <ChipCaret />
         </Chip>
       )}
     >
@@ -795,7 +775,7 @@ function ModelMenu({ model }: { model: ModelDefinition }) {
               </span>
             </MenuItem>
           ))}
-          <p className="px-2.5 pt-2 pb-1 text-[11px] text-faint">D&apos;autres modèles arrivent via le registre.</p>
+          <p className="px-3 pt-2 pb-1 text-xs text-faint sm:px-2.5">D&apos;autres modèles arrivent via le registre.</p>
         </div>
       )}
     </Popover>
@@ -808,7 +788,7 @@ function FieldControl({ field, value, onChange }: { field: Field; value: unknown
     const Icon = field.key === "audio" ? (on ? SpeakerHigh : SpeakerSlash) : Sparkle;
     return (
       <Chip onClick={() => onChange(!on)} active={on} aria-pressed={on} title={field.hint}>
-        <Icon size={14} />
+        <Icon key={String(on)} size={15} className="check-in" />
         {field.label}
       </Chip>
     );
@@ -820,15 +800,15 @@ function FieldControl({ field, value, onChange }: { field: Field; value: unknown
       <Popover
         trigger={({ open, toggle }) => (
           <Chip onClick={toggle} active={open} aria-expanded={open} aria-label={`${field.label} : ${current?.label}`}>
-            {Icon && <Icon size={14} />}
+            {Icon && <Icon size={15} />}
             {current?.label ?? field.label}
-            <CaretDown size={11} />
+            <ChipCaret />
           </Chip>
         )}
       >
         {(close) => (
-          <div className="w-full sm:w-40">
-            <p className="px-2.5 pt-1 pb-1.5 text-[11px] text-faint">{field.label}</p>
+          <div className="w-full sm:w-44">
+            <p className="px-3 pt-2 pb-1 text-xs text-faint sm:px-2.5">{field.label}</p>
             {field.options.map((o) => (
               <MenuItem
                 key={o.value}
@@ -848,47 +828,48 @@ function FieldControl({ field, value, onChange }: { field: Field; value: unknown
   }
   if (field.type === "duration") {
     const v = Number(value);
+    // Auto has no number: the stepper starts from 5 s, as the old slider did.
+    const base = v === -1 ? 5 : v;
     return (
       <Popover
         trigger={({ open, toggle }) => (
           <Chip onClick={toggle} active={open} aria-expanded={open} aria-label={`Durée : ${v === -1 ? "auto" : `${v} secondes`}`}>
-            <Clock size={14} />
+            <Clock size={15} />
             {v === -1 ? "Auto" : `${v} s`}
-            <CaretDown size={11} />
+            <ChipCaret />
           </Chip>
         )}
       >
         {() => (
           <div className="w-full p-1 sm:w-64">
-            <p className="px-1.5 pb-2 text-[11px] text-faint">Durée de la vidéo</p>
-            <div className="grid grid-cols-4 gap-1">
+            <p className="px-1 pb-2 text-xs text-faint">Durée de la vidéo</p>
+            <div className="grid grid-cols-4 gap-1.5 sm:gap-1">
               {DURATION_PRESETS.filter((d) => d === -1 || (d >= field.min && d <= field.max)).map((d) => (
                 <button
                   key={d}
                   type="button"
+                  aria-pressed={d === v}
                   onClick={() => onChange(d)}
                   className={cx(
-                    "pressable h-10 rounded-full text-[13px] tabular-nums sm:h-8",
-                    d === v ? "bg-accent text-on-accent" : "bg-hover text-muted hover:text-fg",
+                    "pressable h-11 rounded-control text-sm sm:h-9 sm:rounded-item sm:text-[13px]",
+                    d === v ? "bg-accent font-medium text-on-accent" : "bg-sunken text-muted hover:bg-hover hover:text-fg",
                   )}
                 >
                   {d === -1 ? "Auto" : `${d} s`}
                 </button>
               ))}
             </div>
-            <label className="mt-3 block px-1.5 text-[11px] text-faint" htmlFor="duration-range">
-              Précis : {v === -1 ? "auto" : `${v} s`}
-            </label>
-            <input
-              id="duration-range"
-              type="range"
+            <p className="mt-3 px-1 pb-1.5 text-xs text-faint">Précis, à la seconde</p>
+            <Stepper
+              value={base}
+              display={v === -1 ? "Auto" : `${v} secondes`}
               min={field.min}
               max={field.max}
-              value={v === -1 ? 5 : v}
-              onChange={(e) => onChange(Number(e.target.value))}
-              className="mt-1 w-full accent-[var(--color-accent)]"
+              onChange={(n) => onChange(n)}
+              less="Une seconde de moins"
+              more="Une seconde de plus"
             />
-            {field.allowAuto && <p className="px-1.5 pt-1 text-[11px] leading-snug text-faint">Auto : le modèle choisit, facturé jusqu&apos;à 30 s.</p>}
+            {field.allowAuto && <p className="px-1 pt-2 text-xs leading-snug text-faint">Auto : le modèle choisit, facturé jusqu&apos;à 30 s.</p>}
           </div>
         )}
       </Popover>
@@ -904,19 +885,20 @@ function AdvancedMenu({ fields, params, onChange }: { fields: Field[]; params: P
       align="end"
       trigger={({ open, toggle }) => (
         <Chip onClick={toggle} active={open || changed} aria-expanded={open} aria-label="Réglages avancés">
-          <SlidersHorizontal size={14} />
+          <SlidersHorizontal size={15} />
           Avancé
+          {changed && <span aria-hidden className="size-1.5 rounded-full bg-accent" />}
         </Chip>
       )}
     >
       {() => (
-        <div className="w-full space-y-4 p-2.5 sm:w-80">
+        <div className="w-full space-y-5 p-2 sm:w-80">
           {fields.map((f) => {
             if (f.type === "seed") {
               const seed = params[f.key] as number | null;
               return (
                 <div key={f.key} className="space-y-1.5">
-                  <label htmlFor="seed" className="text-[13px] text-fg">
+                  <label htmlFor="seed" className="text-sm font-medium text-fg">
                     {f.label}
                   </label>
                   <div className="flex gap-1.5">
@@ -929,18 +911,18 @@ function AdvancedMenu({ fields, params, onChange }: { fields: Field[]; params: P
                         const digits = e.target.value.replace(/\D/g, "").slice(0, 10);
                         onChange(f.key, digits ? Math.min(Number(digits), 2_147_483_647) : null);
                       }}
-                      className="h-9 min-w-0 flex-1 rounded-full border border-line-strong bg-canvas px-3 text-base tabular-nums sm:h-8 sm:text-[13px] placeholder:text-faint focus:border-accent focus:outline-none"
+                      className={cx(fieldClass, "min-w-0 flex-1")}
                     />
-                    <Chip onClick={() => onChange(f.key, Math.floor(Math.random() * 2_147_483_647))} aria-label="Seed au hasard">
-                      <DiceFive size={14} />
-                    </Chip>
+                    <Button size="icon" onClick={() => onChange(f.key, Math.floor(Math.random() * 2_147_483_647))} aria-label="Seed au hasard">
+                      <DiceFive size={18} />
+                    </Button>
                     {seed !== null && (
-                      <Chip onClick={() => onChange(f.key, null)} aria-label="Revenir à un seed aléatoire">
-                        <X size={14} />
-                      </Chip>
+                      <Button size="icon" onClick={() => onChange(f.key, null)} aria-label="Revenir à un seed aléatoire">
+                        <X size={16} />
+                      </Button>
                     )}
                   </div>
-                  <p className={cx("text-[11px] leading-snug", seed !== null ? "text-warn" : "text-faint")}>
+                  <p className={cx("text-xs leading-snug", seed !== null ? "text-warn" : "text-faint")}>
                     {seed !== null
                       ? "Seed fixé : toutes tes générations l'utiliseront. Efface-le pour retrouver de la variété."
                       : "Vide : un seed aléatoire est tiré et enregistré dans l'historique pour chaque vidéo."}
@@ -952,8 +934,8 @@ function AdvancedMenu({ fields, params, onChange }: { fields: Field[]; params: P
               return (
                 <div key={f.key} className="flex items-start justify-between gap-4">
                   <div>
-                    <p className="text-[13px] text-fg">{f.label}</p>
-                    {f.hint && <p className="mt-0.5 text-[11px] leading-snug text-faint">{f.hint}</p>}
+                    <p className="text-sm font-medium text-fg">{f.label}</p>
+                    {f.hint && <p className="mt-0.5 text-xs leading-snug text-faint">{f.hint}</p>}
                   </div>
                   <Switch checked={params[f.key] === true} onChange={(v) => onChange(f.key, v)} label={f.label} />
                 </div>
@@ -963,7 +945,7 @@ function AdvancedMenu({ fields, params, onChange }: { fields: Field[]; params: P
               const links = params[f.key] as string[];
               return (
                 <div key={f.key} className="space-y-1.5">
-                  <label htmlFor={`link-${f.key}`} className="text-[13px] text-fg">
+                  <label htmlFor={`link-${f.key}`} className="text-sm font-medium text-fg">
                     {f.label}
                   </label>
                   <input
@@ -972,9 +954,9 @@ function AdvancedMenu({ fields, params, onChange }: { fields: Field[]; params: P
                     value={links[0] ?? ""}
                     placeholder="https://"
                     onChange={(e) => onChange(f.key, e.target.value.trim() ? [e.target.value.trim()] : [])}
-                    className="h-9 w-full rounded-full border border-line-strong bg-canvas px-3 text-base placeholder sm:h-8 sm:text-[13px]:text-faint focus:border-accent focus:outline-none"
+                    className={fieldClass}
                   />
-                  {f.hint && <p className="text-[11px] leading-snug text-faint">{f.hint}</p>}
+                  {f.hint && <p className="text-xs leading-snug text-faint">{f.hint}</p>}
                 </div>
               );
             }

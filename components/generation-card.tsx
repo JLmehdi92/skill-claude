@@ -4,7 +4,7 @@ import { useRef, useState } from "react";
 import { ArrowClockwise, Heart, Warning } from "@phosphor-icons/react";
 import { formatEur } from "@/lib/costs";
 import { isPending, type Generation } from "@/lib/types";
-import { cx } from "./ui";
+import { Tally } from "./ui";
 
 const RATIOS: Record<string, number> = { "16:9": 16 / 9, "9:16": 9 / 16, "1:1": 1, "4:3": 4 / 3, "3:4": 3 / 4 };
 
@@ -21,13 +21,16 @@ export function generationRatio(g: Generation, natural?: number): number {
 export function GenerationCard({ gen, onOpen, onRetry }: { gen: Generation; onOpen: () => void; onRetry?: () => void }) {
   const video = useRef<HTMLVideoElement>(null);
   const [natural, setNatural] = useState<number>();
-  const ratio = generationRatio(gen, natural);
+  // A failure has no frame to show: a square tile instead of an empty 9:16 column.
+  const ratio = gen.status === "failed" ? 1 : generationRatio(gen, natural);
   const output = gen.outputs[0];
   const canHover = () => typeof window !== "undefined" && window.matchMedia("(hover: hover) and (pointer: fine)").matches;
+  const cost = gen.costEur !== null ? formatEur(gen.costEur) : isPending(gen.status) ? `≈ ${formatEur(gen.estimatedEur)}` : null;
 
   return (
     <article
-      className="fade-in group relative mb-3 break-inside-avoid overflow-hidden rounded-[var(--radius-tile)] border border-line bg-surface"
+      className="fade-in relative mb-2 break-inside-avoid overflow-hidden rounded-panel border border-line bg-surface sm:mb-3"
+      // Playing on hover is a desktop bonus; the caption below is always there.
       onMouseEnter={() => canHover() && video.current?.play().catch(() => {})}
       onMouseLeave={() => {
         if (!video.current) return;
@@ -35,8 +38,8 @@ export function GenerationCard({ gen, onOpen, onRetry }: { gen: Generation; onOp
         video.current.currentTime = 0;
       }}
     >
-      <button type="button" onClick={onOpen} className="block w-full text-left" aria-label={`Ouvrir : ${gen.prompt.slice(0, 60)}`}>
-        <div className="relative w-full" style={{ aspectRatio: ratio }}>
+      <button type="button" onClick={onOpen} className="block w-full rounded-panel text-left" aria-label={`Ouvrir : ${gen.prompt.slice(0, 60)}`}>
+        <div className="relative w-full bg-sunken" style={{ aspectRatio: ratio }}>
           {gen.status === "success" && output?.kind === "video" && (
             <video
               ref={video}
@@ -64,67 +67,58 @@ export function GenerationCard({ gen, onOpen, onRetry }: { gen: Generation; onOp
             />
           )}
           {gen.status === "success" && output?.kind === "audio" && (
-            <div className="absolute inset-0 flex items-center justify-center bg-raised p-4">
+            <div className="absolute inset-0 flex items-center justify-center p-4">
               <audio src={output.url} controls className="w-full" />
             </div>
           )}
           {isPending(gen.status) && <PendingState gen={gen} />}
           {gen.status === "failed" && (
-            <div className="absolute inset-0 flex flex-col justify-end gap-2 bg-raised p-4">
-              <Warning size={20} className="text-danger" />
+            <div className="absolute inset-0 flex flex-col justify-end gap-1.5 p-3 sm:p-4">
+              <Warning size={20} weight="bold" className="text-danger" />
               <p className="line-clamp-3 text-[13px] leading-snug text-muted">{gen.error ?? "La génération a échoué."}</p>
             </div>
           )}
         </div>
+        <div className="flex items-baseline gap-2 border-t border-line px-3 py-2">
+          <p className="min-w-0 flex-1 truncate text-[13px] text-fg">{gen.prompt}</p>
+          {cost && <p className="shrink-0 text-xs text-faint">{cost}</p>}
+        </div>
       </button>
 
       {gen.favorite && (
-        <Heart size={16} weight="fill" className="pointer-events-none absolute top-2.5 right-2.5 text-fg drop-shadow" aria-label="Favori" />
+        <span className="pointer-events-none absolute top-2 right-2 flex size-7 items-center justify-center rounded-full bg-raised text-fg shadow-thumb">
+          <Heart size={14} weight="fill" aria-hidden />
+          <span className="sr-only">Favori</span>
+        </span>
       )}
 
       {gen.status === "failed" && onRetry && (
         <button
           type="button"
           onClick={onRetry}
-          className="pressable absolute top-2.5 right-2.5 flex h-7 items-center gap-1.5 rounded-full border border-line-strong bg-surface px-2.5 text-xs text-fg hover:bg-hover"
+          className="pressable absolute top-2 right-2 flex h-11 items-center gap-1.5 rounded-full border border-line-strong bg-raised px-3.5 text-[13px] font-medium text-fg shadow-thumb hover:bg-hover sm:h-8 sm:px-3"
         >
-          <ArrowClockwise size={12} />
+          <ArrowClockwise size={14} weight="bold" />
           Relancer
         </button>
       )}
-
-      <div
-        className={cx(
-          "pointer-events-none absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent px-3 pt-8 pb-2.5",
-          "opacity-0 transition-opacity duration-200 group-hover:opacity-100 group-focus-within:opacity-100",
-          gen.status !== "success" && "hidden",
-        )}
-      >
-        <p className="line-clamp-2 text-[13px] leading-snug text-fg">{gen.prompt}</p>
-        <p className="mt-1 text-[11px] text-white/60 tabular-nums">
-          {gen.modelLabel}
-          {gen.costEur !== null && <> · {formatEur(gen.costEur)}</>}
-        </p>
-      </div>
     </article>
   );
 }
 
 function PendingState({ gen }: { gen: Generation }) {
   const progress = gen.status === "generating" ? gen.progress : null;
+  const shown = progress ?? (gen.status === "queued" ? 8 : 3);
   return (
-    <div className="shimmer absolute inset-0 flex flex-col justify-end p-4">
-      <p className="text-[13px] font-medium text-fg">
+    <div className="shimmer absolute inset-0 flex flex-col justify-end p-3 sm:p-4">
+      <p className="flex items-center gap-2 text-[13px] font-medium text-fg">
+        <Tally />
         {STATUS_LABEL[gen.status]}
-        {progress !== null && progress !== undefined && <span className="text-muted tabular-nums"> {progress} %</span>}
+        {progress !== null && progress !== undefined && <span className="font-normal text-muted">{progress} %</span>}
       </p>
-      <p className="mt-1 line-clamp-2 text-xs leading-snug text-faint">{gen.prompt}</p>
-      {gen.error && <p className="mt-1 text-[11px] text-warn">{gen.error}</p>}
-      <div className="absolute inset-x-0 bottom-0 h-0.5 overflow-hidden">
-        <div
-          className="h-full bg-accent transition-[width] duration-700 ease-[var(--ease-out)]"
-          style={{ width: `${progress ?? (gen.status === "queued" ? 8 : 3)}%` }}
-        />
+      {gen.error && <p className="mt-1 text-xs text-warn">{gen.error}</p>}
+      <div className="absolute inset-x-0 bottom-0 h-[3px] bg-line">
+        <div className="progress-line h-full bg-accent" style={{ transform: `scaleX(${shown / 100})` }} />
       </div>
     </div>
   );

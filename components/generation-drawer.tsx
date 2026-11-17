@@ -1,15 +1,15 @@
 "use client";
 
-import { useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Drawer } from "vaul";
 import { toast } from "sonner";
-import { ArrowClockwise, Copy, DownloadSimple, Heart, LockSimple, MagicWand, Shuffle, Trash, X } from "@phosphor-icons/react";
+import { ArrowClockwise, Check, Copy, DownloadSimple, Heart, LockSimple, MagicWand, Shuffle, Trash, Warning, X } from "@phosphor-icons/react";
 import { copyText } from "@/lib/client/clipboard";
 import { useMediaQuery } from "@/lib/client/use-media-query";
 import { formatCredits, formatEur } from "@/lib/costs";
 import { getModel, inferMode } from "@/lib/models/registry";
 import { isPending, type Generation } from "@/lib/types";
-import { Button } from "./ui";
+import { Button, buttonClass, cx, Tally } from "./ui";
 
 const STATUS: Record<string, string> = {
   uploading: "Envoi des références",
@@ -53,16 +53,16 @@ export function GenerationDrawer({
   return (
     <Drawer.Root open={gen !== null} onOpenChange={(o) => !o && onClose()} direction={desktop ? "right" : "bottom"}>
       <Drawer.Portal>
-        <Drawer.Overlay className="fixed inset-0 z-50 bg-black/50" />
+        <Drawer.Overlay className="fixed inset-0 z-50 bg-scrim" />
         <Drawer.Content
           className={
             desktop
-              ? "fixed top-2 right-2 bottom-2 z-50 flex w-[min(540px,calc(100vw-16px))] flex-col overflow-hidden rounded-[var(--radius-surface)] border border-line-strong bg-surface outline-none"
-              : "fixed inset-x-0 bottom-0 z-50 flex max-h-[94dvh] flex-col overflow-hidden rounded-t-[20px] border-t border-line-strong bg-surface pb-[env(safe-area-inset-bottom)] outline-none"
+              ? "fixed top-2 right-2 bottom-2 z-50 flex w-[min(540px,calc(100vw-16px))] flex-col overflow-hidden rounded-sheet border border-line-strong bg-surface shadow-float outline-none"
+              : "fixed inset-x-0 bottom-0 z-50 flex max-h-[94dvh] flex-col overflow-hidden rounded-t-sheet border-t border-line-strong bg-surface pb-[env(safe-area-inset-bottom)] shadow-float outline-none"
           }
           aria-describedby={undefined}
         >
-          {!desktop && <div aria-hidden className="mx-auto mt-2 h-1 w-10 shrink-0 rounded-full bg-line-strong" />}
+          {!desktop && <div aria-hidden className="mx-auto mt-2 h-1 w-10 shrink-0 rounded-full bg-edge" />}
           {gen && <DrawerBody gen={gen} onClose={onClose} onRemix={onRemix} onRetry={onRetry} onVariant={onVariant} onFavorite={onFavorite} onDelete={onDelete} />}
         </Drawer.Content>
       </Drawer.Portal>
@@ -92,9 +92,18 @@ function DrawerBody({
   const model = getModel(gen.model);
   const output = gen.outputs[0];
   const holdTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
+  // Which value was just copied: its button shows a check for a moment.
+  const [copied, setCopied] = useState<string | null>(null);
+  useEffect(() => {
+    if (!copied) return;
+    const t = setTimeout(() => setCopied(null), 1500);
+    return () => clearTimeout(t);
+  }, [copied]);
   const copy = async (text: string, what: string) => {
-    if (await copyText(text)) toast.success(`${what} copié`);
-    else toast.error("Copie impossible sur ce navigateur. Sélectionne le texte à la main.");
+    if (await copyText(text)) {
+      toast.success(`${what} copié`);
+      setCopied(what);
+    } else toast.error("Copie impossible sur ce navigateur. Sélectionne le texte à la main.");
   };
 
   const seed = typeof gen.params.seed === "number" ? gen.params.seed : null;
@@ -116,19 +125,24 @@ function DrawerBody({
 
   return (
     <>
-      <div className="flex h-12 shrink-0 items-center justify-between border-b border-line px-4 sm:h-14">
-        <Drawer.Title className="text-[15px] font-medium">
-          {gen.modelLabel} <span className="font-normal text-faint">{STATUS[gen.status]}</span>
+      <div className="flex h-14 shrink-0 items-center justify-between gap-3 border-b border-line pr-2 pl-4">
+        <Drawer.Title className="flex min-w-0 items-center gap-2 text-[15px] font-medium">
+          {gen.modelLabel}
+          <span className={cx("flex items-center gap-1.5 font-normal", gen.status === "failed" ? "text-danger" : "text-muted")}>
+            {isPending(gen.status) && <Tally />}
+            {STATUS[gen.status]}
+          </span>
         </Drawer.Title>
-        <button type="button" onClick={onClose} aria-label="Fermer" className="pressable rounded-full p-2 text-muted hover:bg-raised hover:text-fg">
-          <X size={16} />
+        <button type="button" onClick={onClose} aria-label="Fermer" className="pressable flex size-11 items-center justify-center rounded-full text-muted hover:bg-hover hover:text-fg">
+          <X size={18} />
         </button>
       </div>
 
-      <div className="flex-1 overflow-y-auto">
-        <div className="bg-canvas">
+      <div className="flex-1 overflow-y-auto overscroll-contain">
+        {/* Letterbox: pure black in both themes, the frame is judged on black like a monitor. */}
+        <div className="bg-black">
           {gen.status === "success" && output?.kind === "video" && (
-            <video key={output.url} src={output.url} poster={gen.thumbUrl ?? undefined} controls autoPlay muted loop playsInline className="max-h-[46dvh] w-full bg-black sm:max-h-[56vh]" />
+            <video key={output.url} src={output.url} poster={gen.thumbUrl ?? undefined} controls autoPlay muted loop playsInline className="mx-auto max-h-[46dvh] w-full sm:max-h-[56vh]" />
           )}
           {gen.status === "success" && output?.kind === "image" && (
             // eslint-disable-next-line @next/next/no-img-element
@@ -137,40 +151,44 @@ function DrawerBody({
           {gen.status === "success" && output?.kind === "audio" && <audio src={output.url} controls className="w-full p-4" />}
           {isPending(gen.status) && <div className="shimmer aspect-video w-full" />}
           {gen.status === "failed" && (
-            <div className="px-5 py-8">
-              <p className="text-sm font-medium text-danger">La génération a échoué</p>
+            <div className="bg-surface px-4 py-6">
+              <p className="flex items-center gap-2 text-sm font-medium text-danger">
+                <Warning size={18} weight="bold" />
+                La génération a échoué
+              </p>
               <p className="mt-1 text-sm leading-relaxed text-muted">{gen.error}</p>
             </div>
           )}
         </div>
 
-        <div className="flex flex-wrap gap-2 border-b border-line px-4 py-3">
+        {/* Phones: two columns of 44px buttons; from sm, one row. */}
+        <div className="grid grid-cols-2 gap-2 border-b border-line p-3 sm:flex sm:flex-wrap sm:px-4">
           <Button variant="primary" size="sm" onClick={() => onRemix(gen)} title="Recharge le prompt, les réglages et les références">
-            <MagicWand size={14} />
+            <MagicWand size={16} />
             Remix
           </Button>
           {seed !== null && (
             <Button size="sm" onClick={() => onRemix(gen, true)} title="Recharge tout avec ce seed fixé : retouche le prompt en gardant la même prise">
-              <LockSimple size={14} />
+              <LockSimple size={16} />
               Même seed
             </Button>
           )}
           <Button size="sm" onClick={() => onVariant(gen)} title="Relance avec les mêmes réglages et un nouveau seed">
-            <Shuffle size={14} />
+            <Shuffle size={16} />
             Variante
           </Button>
-          <Button size="sm" variant="ghost" onClick={() => onRetry(gen)} title="Relance à l'identique, même seed">
-            <ArrowClockwise size={14} />
+          <Button size="sm" onClick={() => onRetry(gen)} title="Relance à l'identique, même seed">
+            <ArrowClockwise size={16} />
             Relancer
           </Button>
           {output && (
-            <a href={`${output.url}?download`} className="pressable inline-flex h-8 items-center gap-1.5 rounded-full border border-line-strong bg-raised px-3 text-[13px] font-medium hover:bg-hover">
-              <DownloadSimple size={14} />
+            <a href={`${output.url}?download`} className={buttonClass("secondary", "sm")}>
+              <DownloadSimple size={16} />
               Télécharger
             </a>
           )}
-          <Button size="sm" variant="ghost" onClick={() => onFavorite(gen)} aria-pressed={gen.favorite}>
-            <Heart size={14} weight={gen.favorite ? "fill" : "regular"} />
+          <Button size="sm" variant="ghost" onClick={() => onFavorite(gen)} aria-pressed={gen.favorite} className="max-sm:col-span-full">
+            <Heart size={16} weight={gen.favorite ? "fill" : "regular"} className={gen.favorite ? "check-in text-fg" : undefined} key={String(gen.favorite)} />
             {gen.favorite ? "Favori" : "Ajouter aux favoris"}
           </Button>
         </div>
@@ -178,12 +196,23 @@ function DrawerBody({
         <section className="space-y-2 px-4 py-4">
           <div className="flex items-center justify-between">
             <h3 className="text-[13px] text-faint">Prompt</h3>
-            <button type="button" onClick={() => copy(gen.prompt, "Prompt")} className="pressable flex items-center gap-1 rounded-full px-2 py-1 text-xs text-muted hover:bg-raised hover:text-fg">
-              <Copy size={12} />
-              Copier
+            <button
+              type="button"
+              onClick={() => copy(gen.prompt, "Prompt")}
+              className="pressable -my-2 -mr-2 flex h-11 items-center gap-1.5 rounded-full px-3 text-[13px] text-muted hover:bg-hover hover:text-fg sm:h-8"
+            >
+              <CopyIcon done={copied === "Prompt"} />
+              <span className="grid [&>*]:col-start-1 [&>*]:row-start-1">
+                <span className="swap" data-on={copied !== "Prompt"} aria-hidden={copied === "Prompt"}>
+                  Copier
+                </span>
+                <span className="swap" data-on={copied === "Prompt"} aria-hidden={copied !== "Prompt"}>
+                  Copié
+                </span>
+              </span>
             </button>
           </div>
-          <p className="max-h-60 overflow-y-auto text-sm leading-relaxed whitespace-pre-wrap text-fg">{gen.prompt}</p>
+          <p className="max-h-60 overflow-y-auto text-[15px] leading-relaxed whitespace-pre-wrap text-fg sm:text-sm">{gen.prompt}</p>
         </section>
 
         {gen.inputs.length > 0 && (
@@ -192,7 +221,7 @@ function DrawerBody({
             <ul className="flex flex-wrap gap-2">
               {gen.inputs.map((i) => (
                 <li key={i.url}>
-                  <a href={i.url} target="_blank" rel="noreferrer" title={i.name} className="block overflow-hidden rounded-[var(--radius-tile)] border border-line bg-raised">
+                  <a href={i.url} target="_blank" rel="noreferrer" title={i.name} className="block overflow-hidden rounded-control border border-line-strong bg-sunken">
                     {i.kind === "image" ? (
                       // eslint-disable-next-line @next/next/no-img-element
                       <img src={i.url} alt={i.name} className="size-16 object-cover" />
@@ -206,7 +235,7 @@ function DrawerBody({
           </section>
         )}
 
-        <section className="grid grid-cols-2 gap-x-4 gap-y-3 border-t border-line px-4 py-4 text-sm">
+        <dl className="grid grid-cols-2 gap-x-4 gap-y-3 border-t border-line px-4 py-4 text-sm">
           <Detail label="Coût" value={gen.costEur !== null ? formatEur(gen.costEur) : `≈ ${formatEur(gen.estimatedEur)} (estimé)`} strong />
           <Detail label="Crédits" value={formatCredits(gen.credits ?? gen.estimatedCredits)} />
           {rows.map(([label, value]) => (
@@ -214,36 +243,45 @@ function DrawerBody({
           ))}
           {seed !== null && (
             <div className="min-w-0">
-              <p className="text-[12px] text-faint">Seed{seedAuto ? " (auto)" : ""}</p>
-              <button
-                type="button"
-                onClick={() => copy(String(seed), "Seed")}
-                title="Copier le seed"
-                className="mt-0.5 flex max-w-full items-center gap-1.5 text-muted tabular-nums hover:text-fg"
-              >
-                <span className="truncate">{seed}</span>
-                <Copy size={12} className="shrink-0" />
-              </button>
+              <dt className="text-xs text-faint">Seed{seedAuto ? " (auto)" : ""}</dt>
+              <dd>
+                <button
+                  type="button"
+                  onClick={() => copy(String(seed), "Seed")}
+                  title="Copier le seed"
+                  className="-mx-1 mt-0.5 flex max-w-full items-center gap-1.5 rounded-item px-1 py-1 text-muted hover:bg-hover hover:text-fg"
+                >
+                  <span className="truncate">{seed}</span>
+                  <CopyIcon done={copied === "Seed"} />
+                </button>
+              </dd>
             </div>
           )}
           <Detail label="Créée le" value={dateFmt.format(gen.createdAt)} />
           {gen.completedAt && <Detail label="Terminée le" value={dateFmt.format(gen.completedAt)} />}
           <Detail label="Taux USD/EUR" value={gen.usdEurRate.toFixed(4)} />
           {gen.kieTaskId && (
-            <div className="col-span-2">
-              <p className="text-[12px] text-faint">Tâche kie.ai</p>
-              <button type="button" onClick={() => copy(gen.kieTaskId!, "Identifiant")} className="mt-0.5 max-w-full truncate font-mono text-xs text-muted hover:text-fg">
-                {gen.kieTaskId}
-              </button>
+            <div className="col-span-2 min-w-0">
+              <dt className="text-xs text-faint">Tâche kie.ai</dt>
+              <dd>
+                <button
+                  type="button"
+                  onClick={() => copy(gen.kieTaskId!, "Identifiant")}
+                  className="-mx-1 mt-0.5 flex max-w-full items-center gap-1.5 rounded-item px-1 py-1 font-mono text-xs text-muted hover:bg-hover hover:text-fg"
+                >
+                  <span className="truncate">{gen.kieTaskId}</span>
+                  <CopyIcon done={copied === "Identifiant"} />
+                </button>
+              </dd>
             </div>
           )}
-        </section>
+        </dl>
       </div>
 
-      <div className="shrink-0 border-t border-line px-4 py-3">
+      <div className="shrink-0 border-t border-line p-3 sm:px-4">
         <button
           type="button"
-          className="hold pressable relative w-full touch-manipulation overflow-hidden rounded-full border border-danger/30 py-3 text-[13px] text-danger select-none sm:py-2"
+          className="hold pressable relative h-12 w-full touch-manipulation overflow-hidden rounded-control border border-danger/40 text-sm font-medium text-danger select-none sm:h-10"
           onPointerDown={() => {
             holdTimer.current = setTimeout(() => onDelete(gen), 1200);
           }}
@@ -255,9 +293,9 @@ function DrawerBody({
             if (e.key === "Delete" || e.key === "Backspace") onDelete(gen);
           }}
         >
-          <span aria-hidden className="hold-overlay absolute inset-0 bg-danger/20" />
+          <span aria-hidden className="hold-overlay absolute inset-0 bg-danger/15" />
           <span className="relative flex items-center justify-center gap-1.5">
-            <Trash size={14} />
+            <Trash size={16} />
             Maintenir pour supprimer
           </span>
         </button>
@@ -266,13 +304,18 @@ function DrawerBody({
   );
 }
 
+/** Copy icon that turns into a check for a moment after copying. */
+function CopyIcon({ done }: { done: boolean }) {
+  return done ? <Check key="done" size={14} weight="bold" className="check-in shrink-0 text-accent" /> : <Copy key="copy" size={14} className="shrink-0" />;
+}
+
 function Detail({ label, value, strong }: { label: string; value: string; strong?: boolean }) {
   return (
     <div className="min-w-0">
-      <p className="text-[12px] text-faint">{label}</p>
-      <p className={`mt-0.5 truncate tabular-nums ${strong ? "font-medium text-fg" : "text-muted"}`} title={value}>
+      <dt className="text-xs text-faint">{label}</dt>
+      <dd className={cx("mt-0.5 truncate", strong ? "font-medium text-fg" : "text-muted")} title={value}>
         {value}
-      </p>
+      </dd>
     </div>
   );
 }

@@ -3,11 +3,11 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { toast } from "sonner";
-import { DownloadSimple, PencilSimple } from "@phosphor-icons/react";
+import { DownloadSimple, PencilSimple, Table } from "@phosphor-icons/react";
 import { api, notifyStatsChanged, STATS_EVENT } from "@/lib/client/api";
 import { formatEur } from "@/lib/costs";
 import type { Generation, SpendBucket, Stats } from "@/lib/types";
-import { Button, cx } from "./ui";
+import { Button, buttonClass, cx, fieldClass, Tally } from "./ui";
 
 const dayFmt = new Intl.DateTimeFormat("fr-FR", { day: "numeric", month: "short" });
 const longDayFmt = new Intl.DateTimeFormat("fr-FR", { weekday: "long", day: "numeric", month: "long" });
@@ -42,66 +42,74 @@ export function Spending() {
   if (error) return <main className="mx-auto max-w-6xl px-4 pt-10 text-sm text-danger sm:px-6">{error}</main>;
   if (!stats) {
     return (
-      <main className="mx-auto max-w-6xl px-4 pt-10 sm:px-6" aria-busy="true">
-        <div className="shimmer h-10 w-48 rounded-full" />
-        <div className="shimmer mt-8 h-40 rounded-[var(--radius-surface)]" />
-        <div className="shimmer mt-4 h-72 rounded-[var(--radius-surface)]" />
+      <main className="mx-auto max-w-6xl px-3 pt-6 sm:px-6 sm:pt-8" aria-busy="true">
+        <div className="shimmer h-10 w-48 rounded-control" />
+        <div className="shimmer mt-6 h-80 rounded-panel" />
+        <div className="shimmer mt-3 h-28 rounded-panel" />
       </main>
     );
   }
 
   return (
-    <main className="mx-auto max-w-6xl px-3 pt-6 pb-20 sm:px-6 sm:pt-8">
+    <main className="mx-auto max-w-6xl px-3 pt-5 pb-20 sm:px-6 sm:pt-8">
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-semibold tracking-tight">Dépenses</h1>
+          <h1 className="font-wide text-[32px] leading-tight">Dépenses</h1>
           <p className="mt-1 text-sm text-muted">En euros, au taux BCE figé le jour de chaque génération.</p>
         </div>
-        <a href="/api/export?format=csv" className="pressable inline-flex h-8 items-center gap-1.5 rounded-full border border-line-strong bg-raised px-3 text-[13px] font-medium hover:bg-hover">
-          <DownloadSimple size={14} />
+        <a href="/api/export?format=csv" className={buttonClass("secondary", "sm")}>
+          <DownloadSimple size={16} />
           Export CSV
         </a>
       </div>
 
-      <section className="mt-6 grid gap-4 sm:mt-8 lg:grid-cols-[1.3fr_1fr] [&>*]:min-w-0">
-        <div className="rounded-[var(--radius-surface)] border border-line bg-surface p-5 sm:p-6">
-          <p className="text-sm text-muted">Ce mois-ci</p>
-          <p className="mt-1 text-5xl font-semibold tracking-tight md:text-6xl">{formatEur(stats.month)}</p>
-          <BudgetMeter stats={stats} onSaved={() => { load(); notifyStatsChanged(); }} />
-        </div>
-        <dl className="grid grid-cols-2 gap-px overflow-hidden rounded-[var(--radius-surface)] border border-line bg-line">
-          <Tile label="Aujourd'hui" value={formatEur(stats.today)} />
-          <Tile label="Cette semaine" value={formatEur(stats.week)} />
-          <Tile label="Depuis le début" value={formatEur(stats.total)} sub={`${stats.successCount} réussie${stats.successCount > 1 ? "s" : ""}, ${stats.failedCount} échouée${stats.failedCount > 1 ? "s" : ""}`} />
-          <Tile
-            label="En cours"
-            value={stats.pendingCount ? `≈ ${formatEur(stats.pendingEur)}` : formatEur(0)}
-            sub={stats.pendingCount ? `${stats.pendingCount} génération${stats.pendingCount > 1 ? "s" : ""}, estimation` : "Rien en cours"}
+      {/* The month figure sits with its own 30-day history, not alone as a hero number. */}
+      <section className="mt-6 grid gap-6 rounded-panel border border-line bg-surface p-4 sm:p-6 lg:grid-cols-[minmax(0,17rem)_minmax(0,1fr)] lg:gap-10">
+        <div>
+          <h2 className="text-sm text-muted">Ce mois-ci</h2>
+          <p className="font-wide mt-1 text-[40px] leading-none sm:text-5xl">{formatEur(stats.month)}</p>
+          <BudgetMeter
+            stats={stats}
+            onSaved={() => {
+              load();
+              notifyStatsChanged();
+            }}
           />
-        </dl>
-      </section>
-
-      <section className="mt-4 rounded-[var(--radius-surface)] border border-line bg-surface p-5 sm:p-6">
-        <div className="flex flex-wrap items-baseline justify-between gap-2">
-          <h2 className="text-base font-medium">Dépenses par jour</h2>
-          <p className="text-xs text-faint">30 derniers jours</p>
         </div>
-        <DailyChart daily={stats.daily} />
+        <div className="min-w-0">
+          <div className="flex flex-wrap items-baseline justify-between gap-2">
+            <h2 className="text-sm font-medium">Dépenses par jour</h2>
+            <p className="text-xs text-faint">30 derniers jours</p>
+          </div>
+          <DailyChart daily={stats.daily} />
+        </div>
       </section>
 
-      <section className="mt-4 grid gap-4 md:grid-cols-2 [&>*]:min-w-0">
+      <dl className="mt-3 grid grid-cols-2 gap-2 sm:gap-3 lg:grid-cols-4">
+        <Tile label="Aujourd'hui" value={formatEur(stats.today)} />
+        <Tile label="Cette semaine" value={formatEur(stats.week)} />
+        <Tile label="Depuis le début" value={formatEur(stats.total)} sub={`${stats.successCount} réussie${stats.successCount > 1 ? "s" : ""}, ${stats.failedCount} échouée${stats.failedCount > 1 ? "s" : ""}`} />
+        <Tile
+          label="En cours"
+          live={stats.pendingCount > 0}
+          value={stats.pendingCount ? `≈ ${formatEur(stats.pendingEur)}` : formatEur(0)}
+          sub={stats.pendingCount ? `${stats.pendingCount} génération${stats.pendingCount > 1 ? "s" : ""}, estimation` : "Rien en cours"}
+        />
+      </dl>
+
+      <section className="mt-3 grid gap-3 md:grid-cols-2 [&>*]:min-w-0">
         <Breakdown title="Par modèle" buckets={stats.byModel} />
         <Breakdown title="Par type" buckets={stats.byCategory} />
       </section>
 
-      <section className="mt-4 grid gap-4 lg:grid-cols-[1fr_2fr] [&>*]:min-w-0">
-        <div className="rounded-[var(--radius-surface)] border border-line bg-surface p-5 sm:p-6">
-          <h2 className="text-base font-medium">Solde kie.ai</h2>
-          {balance === null && <div className="shimmer mt-4 h-9 w-32 rounded-full" />}
+      <section className="mt-3 grid gap-3 lg:grid-cols-[1fr_2fr] [&>*]:min-w-0">
+        <div className="self-start rounded-panel border border-line bg-surface p-4 sm:p-6">
+          <h2 className="text-sm font-medium">Solde kie.ai</h2>
+          {balance === null && <div className="shimmer mt-4 h-9 w-32 rounded-control" />}
           {balance === "error" && <p className="mt-3 text-sm leading-relaxed text-muted">Solde indisponible. Vérifie ta clé API et ta connexion.</p>}
           {balance && balance !== "error" && (
             <>
-              <p className="mt-3 text-3xl font-semibold tracking-tight">{new Intl.NumberFormat("fr-FR").format(balance.credits)} crédits</p>
+              <p className="font-wide mt-2 text-[28px] leading-tight">{new Intl.NumberFormat("fr-FR").format(balance.credits)} crédits</p>
               <p className="mt-1 text-sm text-muted">Environ {formatEur(balance.eur)} restants</p>
             </>
           )}
@@ -116,12 +124,15 @@ export function Spending() {
   );
 }
 
-function Tile({ label, value, sub }: { label: string; value: string; sub?: string }) {
+function Tile({ label, value, sub, live }: { label: string; value: string; sub?: string; live?: boolean }) {
   return (
-    <div className="bg-surface p-5">
-      <dt className="text-sm text-muted">{label}</dt>
-      <dd className="mt-1 text-2xl font-semibold tracking-tight">{value}</dd>
-      {sub && <dd className="mt-1 text-xs text-faint">{sub}</dd>}
+    <div className="rounded-panel border border-line bg-surface p-4">
+      <dt className="flex items-center gap-2 text-sm text-muted">
+        {live && <Tally />}
+        {label}
+      </dt>
+      <dd className="mt-1 text-xl font-semibold">{value}</dd>
+      {sub && <dd className="mt-1 text-xs leading-snug text-faint">{sub}</dd>}
     </div>
   );
 }
@@ -165,16 +176,14 @@ function BudgetMeter({ stats, onSaved }: { stats: Stats; onSaved: () => void }) 
             value={value}
             onChange={(e) => setValue(e.target.value.replace(/[^\d.,]/g, ""))}
             placeholder="Aucun"
-            className="h-11 w-40 rounded-full border border-line-strong bg-canvas px-4 text-base tabular-nums sm:h-9 sm:w-36 sm:text-sm placeholder:text-faint focus:border-accent focus:outline-none"
+            className={cx(fieldClass, "w-40")}
           />
         </div>
         <Button type="submit" variant="primary">
           Enregistrer
         </Button>
-        <Button variant="ghost" onClick={() => setEditing(false)}>
-          Annuler
-        </Button>
-        <p className="w-full text-xs text-faint">Une confirmation sera demandée avant toute génération qui dépasse ce montant. Laisse vide pour aucun budget.</p>
+        <Button onClick={() => setEditing(false)}>Annuler</Button>
+        <p className="w-full text-xs leading-relaxed text-faint">Une confirmation sera demandée avant toute génération qui dépasse ce montant. Laisse vide pour aucun budget.</p>
       </form>
     );
   }
@@ -184,10 +193,10 @@ function BudgetMeter({ stats, onSaved }: { stats: Stats; onSaved: () => void }) 
       {budget ? (
         <>
           <div className="flex items-baseline justify-between text-sm">
-            <span className={cx(level === "ok" ? "text-muted" : level === "warn" ? "text-warn" : "text-danger")}>
+            <span className={cx(level === "ok" ? "text-muted" : level === "warn" ? "font-medium text-warn" : "font-medium text-danger")}>
               {level === "danger" ? "Budget dépassé" : level === "warn" ? "Plus de 80 % du budget" : `${Math.round(ratio * 100)} % du budget`}
             </span>
-            <span className="text-muted tabular-nums">
+            <span className="text-muted">
               {formatEur(stats.month)} / {formatEur(budget)}
             </span>
           </div>
@@ -200,7 +209,7 @@ function BudgetMeter({ stats, onSaved }: { stats: Stats; onSaved: () => void }) 
             aria-valuenow={stats.month}
           >
             <div
-              className={cx("h-full rounded-full", level === "ok" ? "bg-chart-hover" : level === "warn" ? "bg-warn" : "bg-danger")}
+              className={cx("h-full rounded-full", level === "ok" ? "bg-chart" : level === "warn" ? "bg-warn" : "bg-danger")}
               style={{ width: `${Math.min(ratio, 1) * 100}%` }}
             />
           </div>
@@ -208,10 +217,10 @@ function BudgetMeter({ stats, onSaved }: { stats: Stats; onSaved: () => void }) 
       ) : (
         <p className="text-sm text-muted">Aucun budget mensuel défini.</p>
       )}
-      <button type="button" onClick={() => setEditing(true)} className="pressable mt-3 inline-flex items-center gap-1.5 rounded-full px-2 py-1 text-[13px] text-muted hover:bg-raised hover:text-fg">
-        <PencilSimple size={13} />
+      <Button size="sm" variant="ghost" onClick={() => setEditing(true)} className="mt-3 -ml-3 sm:-ml-3">
+        <PencilSimple size={16} />
         {budget ? "Modifier le budget" : "Définir un budget"}
-      </button>
+      </Button>
     </div>
   );
 }
@@ -250,6 +259,7 @@ function DailyChart({ daily }: { daily: Stats["daily"] }) {
   const x = (i: number) => pad.left + i * band + (band - barW) / 2;
   const y = (v: number) => pad.top + innerH - (v / max) * innerH;
   const active = hover !== null ? daily[hover] : null;
+  const labelStep = Math.ceil(daily.length / Math.max(Math.floor(innerW / 70), 2));
 
   return (
     <div className="mt-4">
@@ -258,7 +268,7 @@ function DailyChart({ daily }: { daily: Stats["daily"] }) {
           {ticks.map((t) => (
             <g key={t}>
               <line x1={pad.left} x2={width - pad.right} y1={y(t)} y2={y(t)} stroke="var(--color-line)" strokeWidth={1} />
-              <text x={pad.left - 8} y={y(t)} dy="0.32em" textAnchor="end" className="fill-faint text-[11px] tabular-nums">
+              <text x={pad.left - 8} y={y(t)} dy="0.32em" textAnchor="end" className="fill-faint text-[11px]">
                 {formatEur(t)}
               </text>
             </g>
@@ -294,12 +304,13 @@ function DailyChart({ daily }: { daily: Stats["daily"] }) {
             );
           })}
           {!empty && daily[peak].eur > 0 && hover === null && (
-            <text x={x(peak) + barW / 2} y={y(daily[peak].eur) - 6} textAnchor="middle" className="fill-muted text-[11px] tabular-nums">
+            <text x={x(peak) + barW / 2} y={y(daily[peak].eur) - 6} textAnchor="middle" className="fill-muted text-[11px]">
               {formatEur(daily[peak].eur)}
             </text>
           )}
           {daily.map((d, i) =>
-            i % Math.ceil(daily.length / Math.max(Math.floor(innerW / 70), 2)) === 0 || i === daily.length - 1 ? (
+            // Every labelStep-th day, plus "Auj."; a date too close to "Auj." is skipped so they never overlap.
+            (i % labelStep === 0 && daily.length - 1 - i >= labelStep / 2) || i === daily.length - 1 ? (
               <text key={d.date} x={x(i) + barW / 2} y={height - 6} textAnchor="middle" className="fill-faint text-[11px]">
                 {i === daily.length - 1 ? "Auj." : dayFmt.format(parseDay(d.date))}
               </text>
@@ -308,10 +319,10 @@ function DailyChart({ daily }: { daily: Stats["daily"] }) {
         </svg>
         {active && hover !== null && (
           <div
-            className="pointer-events-none absolute z-10 -translate-x-1/2 rounded-[10px] border border-line-strong bg-raised px-3 py-2 shadow-lg"
+            className="pointer-events-none absolute z-10 -translate-x-1/2 rounded-control border border-line-strong bg-raised px-3 py-2 shadow-float"
             style={{ left: Math.min(Math.max(x(hover) + barW / 2, 70), width - 70), top: Math.max(y(active.eur) - 64, 0) }}
           >
-            <p className="text-sm font-semibold tabular-nums">{formatEur(active.eur)}</p>
+            <p className="text-sm font-semibold">{formatEur(active.eur)}</p>
             <p className="text-xs whitespace-nowrap text-muted">
               {longDayFmt.format(parseDay(active.date))}, {active.count} génération{active.count > 1 ? "s" : ""}
             </p>
@@ -319,9 +330,10 @@ function DailyChart({ daily }: { daily: Stats["daily"] }) {
         )}
         {empty && <p className="absolute inset-x-0 top-1/2 -translate-y-1/2 text-center text-sm text-faint">Aucune dépense sur cette période</p>}
       </div>
-      <button type="button" onClick={() => setTable((t) => !t)} className="mt-3 text-xs text-muted underline-offset-4 hover:text-fg hover:underline">
+      <Button size="sm" variant="ghost" onClick={() => setTable((t) => !t)} aria-expanded={table} className="mt-2 -ml-3 sm:-ml-3">
+        <Table size={16} />
         {table ? "Masquer le tableau" : "Voir en tableau"}
-      </button>
+      </Button>
       {table && (
         <table className="mt-3 w-full text-sm">
           <thead>
@@ -335,8 +347,8 @@ function DailyChart({ daily }: { daily: Stats["daily"] }) {
             {[...daily].reverse().filter((d) => d.count > 0).map((d) => (
               <tr key={d.date} className="border-t border-line">
                 <td className="py-1.5 text-muted">{longDayFmt.format(parseDay(d.date))}</td>
-                <td className="py-1.5 text-right text-muted tabular-nums">{d.count}</td>
-                <td className="py-1.5 text-right tabular-nums">{formatEur(d.eur)}</td>
+                <td className="py-1.5 text-right text-muted">{d.count}</td>
+                <td className="py-1.5 text-right">{formatEur(d.eur)}</td>
               </tr>
             ))}
           </tbody>
@@ -349,8 +361,8 @@ function DailyChart({ daily }: { daily: Stats["daily"] }) {
 function Breakdown({ title, buckets }: { title: string; buckets: SpendBucket[] }) {
   const max = Math.max(...buckets.map((b) => b.eur), 0);
   return (
-    <div className="rounded-[var(--radius-surface)] border border-line bg-surface p-5 sm:p-6">
-      <h2 className="text-base font-medium">{title}</h2>
+    <div className="rounded-panel border border-line bg-surface p-4 sm:p-6">
+      <h2 className="text-sm font-medium">{title}</h2>
       {buckets.length === 0 ? (
         <p className="mt-3 text-sm text-faint">Pas encore de dépense.</p>
       ) : (
@@ -359,12 +371,12 @@ function Breakdown({ title, buckets }: { title: string; buckets: SpendBucket[] }
             <li key={b.key} title={`${b.label} : ${formatEur(b.eur)}, ${b.count} génération${b.count > 1 ? "s" : ""}`}>
               <div className="flex items-baseline justify-between gap-4 text-sm">
                 <span className="text-fg">{b.label}</span>
-                <span className="tabular-nums">
+                <span>
                   {formatEur(b.eur)} <span className="text-xs text-faint">{b.count}×</span>
                 </span>
               </div>
-              <div className="mt-1.5 h-1.5">
-                <div className="h-full rounded-r-[4px] bg-chart" style={{ width: `${max ? Math.max((b.eur / max) * 100, 1) : 0}%` }} />
+              <div className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-chart-track">
+                <div className="h-full rounded-full bg-chart" style={{ width: `${max ? Math.max((b.eur / max) * 100, 1) : 0}%` }} />
               </div>
             </li>
           ))}
@@ -376,10 +388,10 @@ function Breakdown({ title, buckets }: { title: string; buckets: SpendBucket[] }
 
 function Ledger({ items }: { items: Generation[] }) {
   return (
-    <div className="rounded-[var(--radius-surface)] border border-line bg-surface p-5 sm:p-6">
-      <div className="flex items-baseline justify-between">
-        <h2 className="text-base font-medium">Dernières générations</h2>
-        <Link href="/library" className="text-xs text-muted hover:text-fg">
+    <div className="rounded-panel border border-line bg-surface p-4 sm:p-6">
+      <div className="flex items-center justify-between">
+        <h2 className="text-sm font-medium">Dernières générations</h2>
+        <Link href="/library" className="-my-3 inline-flex h-11 items-center rounded-item px-2 text-[13px] text-accent underline-offset-4 hover:underline sm:h-8">
           Tout l&apos;historique
         </Link>
       </div>
@@ -393,9 +405,9 @@ function Ledger({ items }: { items: Generation[] }) {
                 <p className="truncate text-sm text-muted" title={g.prompt}>
                   <span className="text-fg">{g.modelLabel}</span> {g.prompt}
                 </p>
-                <p className="mt-0.5 text-xs text-faint tabular-nums">{dateTimeFmt.format(g.createdAt)}</p>
+                <p className="mt-0.5 text-xs text-faint">{dateTimeFmt.format(g.createdAt)}</p>
               </div>
-              <p className="shrink-0 text-sm tabular-nums">
+              <p className="shrink-0 text-sm">
                 {g.costEur !== null ? formatEur(g.costEur) : <span className="text-faint">≈ {formatEur(g.estimatedEur)}</span>}
               </p>
             </li>
