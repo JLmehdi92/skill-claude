@@ -32,6 +32,7 @@ export interface GenerationRow {
   created_at: number;
   completed_at: number | null;
   deleted_at: number | null;
+  provider: "kie" | "higgsfield";
 }
 
 const SCHEMA = `
@@ -114,6 +115,8 @@ function loadSqlite(): typeof import("node:sqlite") {
 function migrate(conn: DatabaseSync) {
   const cols = new Set((conn.prepare("PRAGMA table_info(generations)").all() as unknown as { name: string }[]).map((c) => c.name));
   if (!cols.has("deleted_at")) conn.exec("ALTER TABLE generations ADD COLUMN deleted_at INTEGER");
+  // Which API runs the task: rows from before Higgsfield were all kie.ai.
+  if (!cols.has("provider")) conn.exec("ALTER TABLE generations ADD COLUMN provider TEXT NOT NULL DEFAULT 'kie'");
 }
 
 export function getSetting(key: string): string | null {

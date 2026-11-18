@@ -53,6 +53,8 @@ const SLOT_ICONS: Record<MediaKind, typeof ImageIcon> = { image: ImageIcon, vide
 const DURATION_PRESETS = [-1, 3, 5, 8, 10, 15, 20, 30];
 
 const MODE_KEY = "hf:composer-mode";
+/** A model whose prompt describes a whole scene (Wan, image models), as opposed to file-driven tools with tiles. */
+const isScene = (m: ModelDefinition) => m.promptUse === undefined && !m.tiles;
 /** The slot the motion gallery fills (Copier un mouvement). */
 const MOTION_SLOT = "motion_video";
 
@@ -150,8 +152,8 @@ export const Composer = forwardRef<
   const metas = useMemo(() => attachments.map((a) => ({ slot: a.slot, size: a.file.size, duration: a.duration })), [attachments]);
   const media = useMemo(() => summarizeMedia(metas), [metas]);
   // Presets and "Enrichir" only shape prompt-driven models. A model without prompt gets "" (the text stays for later).
-  // Preset suffixes describe camera and motion: video only.
-  const promptDriven = model.promptUse === undefined && model.category === "video";
+  // Preset suffixes describe camera and motion: scene video models only.
+  const promptDriven = isScene(model) && model.category === "video";
   const sentPrompt = useMemo(() => {
     if (model.promptUse === "none") return "";
     if (!promptDriven) return String(params.prompt);
@@ -249,9 +251,9 @@ export const Composer = forwardRef<
     }
     const nsfw = next.fields.some((f) => f.key === "nsfw_checker") ? { nsfw_checker: nsfwDefault } : {};
     // A scene prompt must not become a Genjutsu instruction: it is kept aside and comes back on a prompt-driven model.
-    if (prevModel.promptUse === undefined) scenePrompt.current = String(prevParams.prompt);
+    if (isScene(prevModel)) scenePrompt.current = String(prevParams.prompt);
     setModel(next);
-    setParams({ ...next.defaults, ...nsfw, prompt: next.promptUse === undefined ? scenePrompt.current : "", mode: nextMode?.id });
+    setParams({ ...next.defaults, ...nsfw, prompt: isScene(next) ? scenePrompt.current : "", mode: nextMode?.id });
     rememberMode(nextMode?.id);
     commitAttachments(kept);
     setServerErrors([]);
@@ -719,7 +721,7 @@ export const Composer = forwardRef<
           {/* Settings wrap onto their own rows: nothing hides in a strip that scrolls. */}
           <div className="flex flex-col gap-2 border-t border-line p-2 sm:flex-row sm:items-center">
             <div className="flex flex-wrap items-center gap-1.5 sm:min-w-0 sm:flex-1">
-              {frameSlots.length === 0 && <AddMenu model={model} mode={mode} attachments={attachments} params={params} onPick={pickSlot} />}
+              {frameSlots.length === 0 && model.mediaSlots.length > 0 && <AddMenu model={model} mode={mode} attachments={attachments} params={params} onPick={pickSlot} />}
               <ModelMenu model={model} onSelect={switchModel} />
               {promptDriven && (
                 <PresetMenu selected={selectedPresets} onToggle={(id) => setSelectedPresets((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]))} />

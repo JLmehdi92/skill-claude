@@ -3,10 +3,11 @@ import fs from "node:fs/promises";
 import path from "node:path";
 import { randomInt, randomUUID } from "node:crypto";
 import { creditsToEur, creditsToUsd } from "@/lib/costs";
-import { kie, KieError } from "@/lib/kie";
-import { getModel, validateRequest, type FileMeta } from "@/lib/models/registry";
+import { clientFor, kie, KieError } from "@/lib/kie";
+import { getModel, summarizeMedia, validateRequest, type FileMeta } from "@/lib/models/registry";
 import type { Category, MediaKind, Params } from "@/lib/models/types";
 import type { Generation, InputFile, OutputFile, Status } from "@/lib/types";
+import { config } from "./config";
 import { db, getSetting, type GenerationRow } from "./db";
 import { makeThumbnail, probeDuration } from "./ffmpeg";
 import { getUsdEurRate } from "./rates";
@@ -89,6 +90,10 @@ export async function submitGeneration(
     return { ok: false, status: 422, errors: check.errors };
   }
 
+  if (model.provider === "higgsfield" && !config.mock && !config.hfApiKey) {
+    await removeDir(path.join("inputs", id));
+    return { ok: false, status: 422, errors: ["Ce modèle passe par l'API Higgsfield : colle ta clé de open.higgsfield.ai dans HF_API_KEY (.env.local), telle quelle."] };
+  }
   const estimate = model.estimate(check.params, check.media);
   if (estimate.perSecond !== undefined) {
     // Priced per second of a video whose length is unknown: no honest estimate, no budget check.
@@ -110,8 +115,8 @@ export async function submitGeneration(
   db()
     .prepare(
       `INSERT INTO generations (id, model, model_label, category, status, prompt, params_json, inputs_json,
-        estimated_credits, usd_eur_rate, created_at)
-       VALUES (?, ?, ?, ?, 'uploading', ?, ?, ?, ?, ?, ?)`,
+        estimated_credits, usd_eur_rate, created_at, provider)
+       VALUES (?, ?, ?, ?, 'uploading', ?, ?, ?, ?, ?, ?, ?)`,
     )
     .run(
       id,
@@ -124,6 +129,7 @@ export async function submitGeneration(
       estimate.credits,
       rate,
       Date.now(),
+      model.provider ?? "kie",
     );
 
   inflight.add(id);
@@ -161,7 +167,7 @@ async function startTask(id: string): Promise<void> {
   if (!row) return;
   const model = getModel(row.model)!;
   try {
-    const client = kie();
+    const client = clientFor(row);
     const inputs = JSON.parse(row.inputs_json) as StoredInput[];
     const urls: Record<string, string[]> = {};
     for (const input of inputs) {
@@ -169,8 +175,10 @@ async function startTask(id: string): Promise<void> {
       const url = await client.uploadFile(data, path.basename(input.path), input.mime, `higgsfield-local/${id}`);
       (urls[input.slot] ??= []).push(url);
     }
-    const kieInput = model.buildInput(JSON.parse(row.params_json) as Params, urls);
-    const taskId = await client.createTask(model.kieModel, kieInput);
+    const params = JSON.parse(row.params_json) as Params;
+    const kieInput = model.buildInput(params, urls);
+    const endpoint = model.endpoint?.(params, summarizeMedia(inputs.map((i) => ({ slot: i.slot, size: 0, duration: i.duration })))) ?? model.kieModel;
+    const taskId = await client.createTask(endpoint, kieInput);
     db()
       .prepare("UPDATE generations SET kie_task_id = ?, kie_input_json = ?, status = 'queued' WHERE id = ?")
       .run(taskId, JSON.stringify(kieInput), id);
@@ -187,7 +195,7 @@ export async function refreshGeneration(id: string): Promise<void> {
   if (!row || !row.kie_task_id || (row.status !== "queued" && row.status !== "generating")) return;
   refreshing.add(id);
   try {
-    const task = await kie().getTask(row.kie_task_id);
+    const task = await clientFor(row).getTask(row.kie_task_id);
     if (task.state === "waiting" || task.state === "queuing") {
       setStatus(id, "queued", null);
     } else if (task.state === "generating") {
@@ -218,7 +226,7 @@ async function completeGeneration(row: GenerationRow, resultUrls: string[], cred
       .run(JSON.stringify(resultUrls), credits, creditsToUsd(credits), creditsToEur(credits, row.usd_eur_rate), Date.now(), row.id);
     return;
   }
-  const client = kie();
+  const client = clientFor(row);
   const outputs: StoredOutput[] = [];
   for (const [n, url] of resultUrls.entries()) {
     const ext = url.startsWith("mock://") ? path.extname(url) : extFromUrl(url, row.category === "image" ? ".png" : ".mp4");
@@ -248,11 +256,28 @@ function setStatus(id: string, status: Status, progress: number | null) {
   db().prepare("UPDATE generations SET status = ?, progress = ?, error = NULL WHERE id = ?").run(status, progress, id);
 }
 
+export type CancelResult = { ok: true; generation: Generation } | { ok: false; status: 404 | 409 | 422; error: string };
+
+/** Cancels a queued generation at its provider (stopping the polling alone would still let it run and bill). */
+export async function cancelGeneration(id: string): Promise<CancelResult> {
+  const row = getRow(id);
+  if (!row) return { ok: false, status: 404, error: "Génération introuvable." };
+  const client = clientFor(row);
+  if (!client.cancelTask) return { ok: false, status: 422, error: "Ce fournisseur ne permet pas d'annuler une génération." };
+  if (row.status !== "queued" || !row.kie_task_id) return { ok: false, status: 409, error: "Trop tard : la génération a déjà démarré." };
+  if (!(await client.cancelTask(row.kie_task_id))) return { ok: false, status: 409, error: "Trop tard : la génération a déjà démarré." };
+  markFailed(id, "Annulée avant le démarrage, rien n'est facturé.", 0);
+  return { ok: true, generation: getGeneration(id)! };
+}
+
 function markFailed(id: string, message: string, credits: number) {
   const row = getRow(id);
   const rate = row?.usd_eur_rate ?? 0;
   db()
-    .prepare("UPDATE generations SET status = 'failed', error = ?, credits = ?, cost_usd = ?, cost_eur = ?, completed_at = ? WHERE id = ?")
+    // Never over a finished generation (a cancel can race the poller that just completed it).
+    .prepare(
+      "UPDATE generations SET status = 'failed', error = ?, credits = ?, cost_usd = ?, cost_eur = ?, completed_at = ? WHERE id = ? AND status IN ('uploading', 'queued', 'generating')",
+    )
     .run(message, credits, creditsToUsd(credits), creditsToEur(credits, rate), Date.now(), id);
 }
 
@@ -285,7 +310,7 @@ export async function importTask(taskId: string): Promise<Generation> {
   const category: Category = model?.category ?? (task.resultUrls[0] ? categoryFromExt(extFromUrl(task.resultUrls[0], ".mp4")) : "video");
   const { rate } = await getUsdEurRate();
   const id = randomUUID();
-  const params = { ...(model?.defaults ?? {}), ...(model?.paramsFromKie ? model.paramsFromKie(input) : input), prompt };
+  const params = { ...(model?.defaults ?? {}), ...input, prompt };
   // kie does not always report creditsConsumed: fall back to our own price estimate.
   const estimated = task.creditsConsumed ?? (model ? safeEstimate(model, params) : 0);
 

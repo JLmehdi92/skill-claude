@@ -10,6 +10,7 @@ import type { KieClient, KieTask } from "./types";
  * A prompt containing "[fail]" produces a failed task.
  */
 const SECONDS = Number(process.env.KIE_MOCK_SECONDS) || 6;
+const canceled = ((globalThis as unknown as { __hfMockCanceled?: Set<string> }).__hfMockCanceled ??= new Set());
 
 export function mockKieClient(): KieClient {
   return {
@@ -26,6 +27,7 @@ export function mockKieClient(): KieClient {
       const elapsed = (Date.now() - started) / 1000;
       const param = params ? (JSON.parse(Buffer.from(params, "base64url").toString()) as KieTask["param"]) : undefined;
       const base = { taskId, model: param?.model, param, createTime: started };
+      if (canceled.has(taskId)) return { ...base, state: "fail", resultUrls: [], failMsg: "Annulée.", creditsConsumed: 0 };
       if (elapsed < SECONDS * 0.25) return { ...base, state: "queuing", resultUrls: [] };
       if (elapsed < SECONDS) {
         return { ...base, state: "generating", resultUrls: [], progress: Math.round((elapsed / SECONDS) * 100) };
@@ -41,6 +43,13 @@ export function mockKieClient(): KieClient {
 
     async getCredits() {
       return 4820;
+    },
+
+    async cancelTask(taskId) {
+      const started = Number(taskId.split("_")[1]);
+      if ((Date.now() - started) / 1000 >= SECONDS * 0.25) return false;
+      canceled.add(taskId);
+      return true;
     },
 
     async download(url) {

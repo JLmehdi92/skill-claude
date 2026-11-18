@@ -72,6 +72,10 @@ export interface ModelDefinition {
   vendor: string;
   category: Category;
   description: string;
+  /** Who runs the model. Default: kie.ai. Higgsfield models put their endpoint path in kieModel. */
+  provider?: "kie" | "higgsfield";
+  /** Endpoint when it depends on the request (text vs image input, resolution tier). Default: kieModel. */
+  endpoint?(params: Params, media: MediaSummary): string;
   /** Heading the model sits under in the model menu (e.g. "Genjutsu"). */
   group?: string;
   promptMaxLength: number;
@@ -90,8 +94,6 @@ export interface ModelDefinition {
   /** Cross-field rules. Returns user-facing (French) error messages. */
   validate(params: Params, media: MediaSummary): string[];
   estimate(params: Params, media: MediaSummary): Estimate;
-  /** Params from a kie `input` (task import), when field names differ. Default: the input as is. */
-  paramsFromKie?(input: Record<string, unknown>): Record<string, unknown>;
   /** Builds the kie `input` object from validated params and uploaded file URLs. */
   buildInput(params: Params, urls: Record<string, string[]>): Record<string, unknown>;
 }

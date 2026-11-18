@@ -37,6 +37,7 @@ export const api = {
   },
   get: (id: string) => request<Generation>(`/api/generations/${id}`),
   generate: (form: FormData) => request<Generation>("/api/generate", { method: "POST", body: form }),
+  cancel: (id: string) => request<Generation>(`/api/generations/${id}/cancel`, { method: "POST" }),
   retry: (id: string, opts: { confirmOverBudget?: boolean; newSeed?: boolean } = {}) =>
     request<Generation>(`/api/generations/${id}/retry`, {
       method: "POST",

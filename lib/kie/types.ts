@@ -21,6 +21,8 @@ export interface KieClient {
   getCredits(): Promise<number>;
   /** Returns a fetchable URL for a generated file (kie may need to sign it). */
   download(url: string): Promise<Buffer>;
+  /** Cancels a task that has not started. False once it started. Absent: the provider cannot cancel. */
+  cancelTask?(taskId: string): Promise<boolean>;
 }
 
 const MESSAGES: Record<number, string> = {

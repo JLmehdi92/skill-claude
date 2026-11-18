@@ -98,6 +98,20 @@ function DrawerBody({
   // Id of the generation just added to the motion gallery (the drawer can switch generation).
   const [savedMotion, setSavedMotion] = useState<string | null>(null);
   const [savingMotion, setSavingMotion] = useState(false);
+  const [canceling, setCanceling] = useState(false);
+  // Reaches the provider's cancel endpoint; the list picks up the new status on its next refresh.
+  const cancel = async () => {
+    if (canceling) return;
+    setCanceling(true);
+    try {
+      await api.cancel(gen.id);
+      toast.success("Génération annulée", { description: "Rien n'est facturé." });
+    } catch (err) {
+      toast.error(err instanceof ApiError ? err.errors[0] : "Annulation impossible.");
+    } finally {
+      setCanceling(false);
+    }
+  };
   const saveMotion = async () => {
     setSavingMotion(true);
     try {
@@ -166,6 +180,14 @@ function DrawerBody({
           )}
           {gen.status === "success" && output?.kind === "audio" && <audio src={output.url} controls className="w-full p-4" />}
           {isPending(gen.status) && <div className="shimmer aspect-video w-full" />}
+          {gen.status === "queued" && model?.provider === "higgsfield" && (
+            <div className="flex items-center justify-between gap-3 bg-surface px-4 py-3">
+              <p className="text-sm leading-snug text-muted">En file d&apos;attente chez Higgsfield : annuler maintenant ne coûte rien.</p>
+              <Button size="sm" onClick={() => void cancel()} aria-busy={canceling} aria-disabled={canceling} className="shrink-0">
+                Annuler la génération
+              </Button>
+            </div>
+          )}
           {gen.status === "failed" && (
             <div className="bg-surface px-4 py-6">
               <p className="flex items-center gap-2 text-sm font-medium text-danger">

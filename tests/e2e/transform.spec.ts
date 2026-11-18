@@ -19,7 +19,7 @@ test("genjutsu: copy a motion onto a character, priced from the video", async ({
   await page.getByRole("button", { name: /^Modèle :/ }).click();
   const models = page.getByRole("radiogroup", { name: "Modèle" });
   await expect(models.getByRole("group", { name: "Genjutsu : transformer une vidéo" })).toBeVisible();
-  await models.getByRole("radio", { name: /Copier un mouvement/ }).click();
+  await models.getByRole("radio", { name: /Copier un mouvement Kling/ }).click();
 
   await expect(page.getByRole("button", { name: "Modèle : Copier un mouvement" })).toBeVisible();
   await expect(page.getByRole("button", { name: /Personnage : icon\.svg/ })).toBeVisible();
@@ -33,8 +33,8 @@ test("genjutsu: copy a motion onto a character, priced from the video", async ({
   await page.getByRole("button", { name: "Ajouter la vidéo de mouvement, 3 à 30 s" }).click();
   await (await chooser).setFiles(video);
   await expect(page.getByRole("button", { name: /Mouvement : sample\.mp4/ })).toBeVisible();
-  // 4 s at 22.7 credits/s.
-  await expect(page.getByText("91 crédits")).toBeVisible();
+  // 4 s at 0.092 $/s through Higgsfield.
+  await expect(page.getByText("73,6 crédits")).toBeVisible();
 
   await page.getByRole("button", { name: "Générer" }).click();
   await expect(page.getByText("Génération lancée")).toBeVisible();
@@ -97,7 +97,7 @@ test("presets: French labels, checkboxes, prompt preview", async ({ page }) => {
 test("motion gallery: add a video, pick it for the motion tile, remove it", async ({ page }) => {
   await page.goto("/");
   await page.getByRole("button", { name: /^Modèle :/ }).click();
-  await page.getByRole("radio", { name: /Copier un mouvement/ }).click();
+  await page.getByRole("radio", { name: /Copier un mouvement Kling/ }).click();
   await page.getByRole("button", { name: "Galerie de mouvements" }).click();
   const gallery = page.getByRole("dialog", { name: "Galerie de mouvements" });
   await expect(gallery.getByText(/Garde ici les vidéos de mouvement/)).toBeVisible();
@@ -110,7 +110,7 @@ test("motion gallery: add a video, pick it for the motion tile, remove it", asyn
   await gallery.getByRole("button", { name: "Choisir sample, 4 s" }).click();
   await expect(gallery).toHaveCount(0);
   await expect(page.getByRole("button", { name: /Mouvement : sample\.mp4/ })).toBeVisible();
-  await expect(page.getByText("91 crédits")).toBeVisible();
+  await expect(page.getByText("73,6 crédits")).toBeVisible();
 
   await page.getByRole("button", { name: "Galerie de mouvements" }).click();
   await gallery.getByRole("button", { name: "Retirer sample de la galerie" }).click();
@@ -152,7 +152,7 @@ test("images: Nano Banana 2.1 makes an image, priced per image, without video pr
   await expect(page.locator("article").first().locator("img")).toBeVisible();
 });
 
-test("genjutsu pro: several character images, Seedance bills input and output seconds", async ({ page }) => {
+test("genjutsu pro: the official Genjutsu takes several character images, priced per second", async ({ page }) => {
   await page.goto("/");
   await page.getByRole("radio", { name: "Référence" }).click();
   let chooser = page.waitForEvent("filechooser");
@@ -169,10 +169,10 @@ test("genjutsu pro: several character images, Seedance bills input and output se
   await expect(page.getByRole("button", { name: "Ajouter une image du personnage" })).toBeVisible();
 
   chooser = page.waitForEvent("filechooser");
-  await page.getByRole("button", { name: "Ajouter la vidéo, 2 à 30 s" }).click();
+  await page.getByRole("button", { name: "Ajouter la vidéo, 4 à 30 s" }).click();
   await (await chooser).setFiles(video);
-  // 4 s in + 4 s out at 38 credits/s (720p).
-  await expect(page.getByText("304 crédits")).toBeVisible();
+  // 4 s at 0.3446 $/s (720p).
+  await expect(page.getByText("275,7 crédits")).toBeVisible();
   await page.getByRole("button", { name: "Générer" }).click();
   await expect(page.getByText("Génération lancée")).toBeVisible();
   await expect(page.getByText("Remplacer un personnage Pro : génération prête")).toBeVisible({ timeout: 30_000 });
@@ -182,9 +182,28 @@ test("a scene prompt is not sent as a Genjutsu instruction, and comes back after
   await page.goto("/");
   await page.locator("#prompt").fill("Un chat sur une plage au coucher du soleil");
   await page.getByRole("button", { name: /^Modèle :/ }).click();
-  await page.getByRole("radio", { name: /Copier un mouvement/ }).click();
+  await page.getByRole("radio", { name: /Copier un mouvement Kling/ }).click();
   await expect(page.locator("#prompt")).toHaveValue("");
   await page.getByRole("button", { name: /^Modèle :/ }).click();
   await page.getByRole("radio", { name: /Nano Banana 2\.1/ }).click();
   await expect(page.locator("#prompt")).toHaveValue("Un chat sur une plage au coucher du soleil");
+});
+
+test("images: Soul 2 through Higgsfield and GPT Image through kie.ai, each priced before sending", async ({ page }) => {
+  await page.goto("/");
+  await page.getByRole("button", { name: /^Modèle :/ }).click();
+  await page.getByRole("radio", { name: /^Soul 2/ }).click();
+  await page.locator("#prompt").fill("Portrait éditorial, veste en cuir, lumière douce");
+  await expect(page.getByRole("button", { name: /Prompt amélioré par Higgsfield/ })).toBeVisible();
+  // Text to image only: no reference button.
+  await expect(page.getByRole("button", { name: "Ajouter une référence" })).toHaveCount(0);
+  // 0.0057 $ in 1080p.
+  await expect(page.getByText("1,1 crédits")).toBeVisible();
+  await page.getByRole("button", { name: "Générer" }).click();
+  await expect(page.getByText("Soul 2 : génération prête")).toBeVisible({ timeout: 30_000 });
+
+  await page.getByRole("button", { name: /^Modèle :/ }).click();
+  await page.getByRole("radio", { name: /GPT Image 2\.5/ }).click();
+  await expect(page.locator("#prompt")).toHaveValue("Portrait éditorial, veste en cuir, lumière douce");
+  await expect(page.getByText("6 crédits")).toBeVisible();
 });

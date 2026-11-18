@@ -5,6 +5,11 @@
  */
 export const USD_PER_CREDIT = 0.005;
 
+/** Higgsfield bills in dollars: its prices go through the same credit unit as kie.ai (2 decimals). */
+export function usdToCredits(usd: number): number {
+  return Math.round((usd / USD_PER_CREDIT) * 100) / 100;
+}
+
 export function creditsToUsd(credits: number): number {
   return round(credits * USD_PER_CREDIT, 4);
 }

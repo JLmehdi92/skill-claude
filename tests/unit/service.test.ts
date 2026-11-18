@@ -163,18 +163,4 @@ describe("generation service (mock kie)", () => {
     expect(res).toEqual({ ok: false, status: 422, errors: ["Durée de la vidéo illisible. Réessaie avec un MP4."] });
     expect(svc.listGenerations().items.length).toBe(before);
   });
-
-  it("imports a Kling motion task with kie's mode as the resolution", async () => {
-    const { mockKieClient } = await import("@/lib/kie/mock");
-    const taskId = await mockKieClient().createTask("kling-3.0/motion-control", {
-      input_urls: ["https://x/i.png"],
-      video_urls: ["https://x/v.mp4"],
-      mode: "1080p",
-      character_orientation: "image",
-    });
-    const g = await svc.importTask(taskId);
-    expect(g.model).toBe("kling-3-0-motion-control");
-    expect(g.params).toMatchObject({ resolution: "1080p", character_orientation: "image" });
-    expect(g.params).not.toHaveProperty("mode");
-  });
 });

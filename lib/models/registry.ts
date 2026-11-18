@@ -1,13 +1,27 @@
 import { kindOfFile } from "./media";
 import type { MediaSummary, ModelDefinition, ModelMode, Params } from "./types";
+import { genjutsuMotion, genjutsuSwap } from "./genjutsu";
+import { gptImage25, gptImage26 } from "./gpt-image";
 import { kling30MotionControl } from "./kling-3-0-motion-control";
 import { nanoBanana21 } from "./nano-banana-2-1";
-import { seedance25Replace } from "./seedance-2-5-replace";
+import { seedance25Edit } from "./seedance-2-5-edit";
+import { soul2 } from "./soul-2";
 import { wan22AnimateReplace } from "./wan-2-2-animate-replace";
 import { wan30Video } from "./wan-3-0-video";
 
 /** Every model the studio can run. Adding a model = adding a definition file here. */
-export const MODELS: ModelDefinition[] = [wan30Video, nanoBanana21, kling30MotionControl, wan22AnimateReplace, seedance25Replace];
+export const MODELS: ModelDefinition[] = [
+  wan30Video,
+  soul2,
+  nanoBanana21,
+  gptImage25,
+  gptImage26,
+  kling30MotionControl,
+  genjutsuMotion,
+  wan22AnimateReplace,
+  genjutsuSwap,
+  seedance25Edit,
+];
 
 export function getModel(id: string): ModelDefinition | undefined {
   return MODELS.find((m) => m.id === id || m.kieModel === id);
