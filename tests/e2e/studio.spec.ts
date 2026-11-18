@@ -25,10 +25,14 @@ test("generate, follow progress, open details and remix", async ({ page }) => {
 
   await page.keyboard.press("Control+Enter");
   await expect(page.getByText("Génération lancée")).toBeVisible();
-  await expect(page.getByText(/génération prête/)).toBeVisible({ timeout: 30_000 });
 
+  // While it runs, the detail says where it is and how far.
   await page.locator("article button").first().click();
   const drawer = page.getByRole("dialog");
+  await expect(drawer.getByRole("progressbar", { name: "Progression" })).toHaveAttribute("aria-valuenow", /^\d+$/, { timeout: 10_000 });
+  await expect(drawer.getByText(/^\d+ %$/)).toBeVisible();
+
+  await expect(page.getByText(/génération prête/)).toBeVisible({ timeout: 30_000 });
   await expect(drawer.getByText("Terminée", { exact: true })).toBeVisible();
   await expect(drawer.getByText("8 s", { exact: true })).toBeVisible();
 

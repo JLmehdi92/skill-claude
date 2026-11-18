@@ -7,7 +7,7 @@ import { clientFor, kie, KieError } from "@/lib/kie";
 import { resolveMentions } from "@/lib/models/mentions";
 import { getModel, summarizeMedia, validateRequest, type FileMeta } from "@/lib/models/registry";
 import type { Category, MediaKind, Params } from "@/lib/models/types";
-import type { Generation, InputFile, OutputFile, Status } from "@/lib/types";
+import { isPending, type Generation, type InputFile, type OutputFile, type Status } from "@/lib/types";
 import { characterNotReady, listCharacters } from "./characters";
 import { config } from "./config";
 import { db, getSetting, type GenerationRow } from "./db";
@@ -264,7 +264,31 @@ async function completeGeneration(row: GenerationRow, resultUrls: string[], cred
 }
 
 function setStatus(id: string, status: Status, progress: number | null) {
-  db().prepare("UPDATE generations SET status = ?, progress = ?, error = NULL WHERE id = ?").run(status, progress, id);
+  db()
+    .prepare("UPDATE generations SET status = ?, progress = ?, error = NULL, started_at = CASE WHEN ? = 'generating' THEN COALESCE(started_at, ?) ELSE started_at END WHERE id = ?")
+    .run(status, progress, status, Date.now(), id);
+}
+
+const DEFAULT_MS: Record<string, number> = { video: 180_000, image: 30_000, audio: 60_000 };
+let typical: { at: number; byModel: Map<string, number> } | null = null;
+
+/**
+ * Average length of the model's successful generations, measured from the start of work, else a default per
+ * category. Only rows with started_at: imported tasks and older rows would count queue time or days of age.
+ */
+export function typicalMs(model: string, category: string): number {
+  // shortcut: one grouped query, reused for a minute; the averages move slowly.
+  if (!typical || Date.now() - typical.at > 60_000) {
+    const rows = db()
+      .prepare(
+        `SELECT model, AVG(completed_at - started_at) AS ms FROM generations
+         WHERE status = 'success' AND started_at IS NOT NULL AND completed_at > started_at
+           AND completed_at - started_at < 2 * 3600 * 1000 GROUP BY model`,
+      )
+      .all() as { model: string; ms: number }[];
+    typical = { at: Date.now(), byModel: new Map(rows.map((r) => [r.model, Math.round(r.ms)])) };
+  }
+  return typical.byModel.get(model) ?? DEFAULT_MS[category] ?? DEFAULT_MS.video;
 }
 
 export type CancelResult = { ok: true; generation: Generation } | { ok: false; status: 404 | 409 | 422; error: string };
@@ -429,6 +453,9 @@ export function toDto(row: GenerationRow): Generation {
     usdEurRate: row.usd_eur_rate,
     error: row.error,
     progress: row.progress,
+    provider: row.provider ?? "kie",
+    startedAt: row.started_at ?? null,
+    typicalMs: isPending(row.status) ? typicalMs(row.model, row.category) : null,
     favorite: row.favorite === 1,
     kieTaskId: row.kie_task_id,
     createdAt: row.created_at,

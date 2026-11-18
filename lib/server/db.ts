@@ -33,6 +33,7 @@ export interface GenerationRow {
   completed_at: number | null;
   deleted_at: number | null;
   provider: "kie" | "higgsfield";
+  started_at: number | null;
 }
 
 const SCHEMA = `
@@ -127,6 +128,8 @@ function migrate(conn: DatabaseSync) {
   if (!cols.has("deleted_at")) conn.exec("ALTER TABLE generations ADD COLUMN deleted_at INTEGER");
   // Which API runs the task: rows from before Higgsfield were all kie.ai.
   if (!cols.has("provider")) conn.exec("ALTER TABLE generations ADD COLUMN provider TEXT NOT NULL DEFAULT 'kie'");
+  // When the provider started working on it (first "generating"): the base of the progress estimate.
+  if (!cols.has("started_at")) conn.exec("ALTER TABLE generations ADD COLUMN started_at INTEGER");
 }
 
 export function getSetting(key: string): string | null {

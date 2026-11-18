@@ -32,6 +32,24 @@ beforeAll(() => setSetting("monthly_budget_eur", null));
 afterAll(() => fs.rmSync(dir, { recursive: true, force: true }));
 
 describe("generation service (mock kie)", () => {
+  it("records when work starts and learns the model's usual length for the progress estimate", async () => {
+    const res = await svc.submitGeneration("wan-3-0-video", params({ prompt: "Durée habituelle" }), []);
+    if (!res.ok) throw new Error(JSON.stringify(res));
+    // No history yet for this storage: the video default (3 min).
+    expect(res.generation.typicalMs).toBe(180_000);
+    let started: number | null = null;
+    for (let i = 0; i < 100 && started === null; i++) {
+      await svc.pollPending();
+      started = svc.getGeneration(res.generation.id)!.startedAt;
+      await sleep(5);
+    }
+    expect(started).toBeGreaterThanOrEqual(res.generation.createdAt);
+    const done = await waitDone(res.generation.id);
+    // Set once, not moved by later polls.
+    expect(done.startedAt).toBe(started);
+    expect(done.typicalMs).toBeNull();
+  });
+
   it("runs a generation end to end and stores the video locally", async () => {
     const png = fs.readFileSync(path.join(process.cwd(), "app/icon.svg"));
     const res = await svc.submitGeneration("wan-3-0-video", params(), [{ slot: "reference_image", name: "ref.png", mime: "image/png", data: png }]);

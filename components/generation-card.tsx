@@ -2,7 +2,9 @@
 
 import { useRef, useState } from "react";
 import { ArrowClockwise, Heart, SpeakerHigh, Warning } from "@phosphor-icons/react";
+import { useNow } from "@/lib/client/use-now";
 import { formatEur } from "@/lib/costs";
+import { formatProgress, progressOf, queueLabel } from "@/lib/progress";
 import { isPending, type Generation } from "@/lib/types";
 import { Tally, cx } from "./ui";
 
@@ -10,9 +12,17 @@ const RATIOS: Record<string, number> = { "16:9": 16 / 9, "9:16": 9 / 16, "1:1": 
 
 const STATUS_LABEL: Record<string, string> = {
   uploading: "Envoi des références",
-  queued: "En file d'attente",
   generating: "Génération",
 };
+
+/** The thin accent line: the progress when known, else a small fixed start (`rest`) so it reads as "begun". */
+export function ProgressLine({ value, rest, className }: { value: number | undefined; rest: number; className?: string }) {
+  return (
+    <div className={cx("h-[3px] bg-line", className)}>
+      <div className="progress-line h-full bg-accent" style={{ transform: `scaleX(${(value ?? rest) / 100})` }} />
+    </div>
+  );
+}
 
 export function generationRatio(g: Generation, natural?: number): number {
   return natural ?? RATIOS[String(g.params.aspect_ratio)] ?? 16 / 9;
@@ -116,19 +126,21 @@ export function GenerationCard({ gen, onOpen, onRetry }: { gen: Generation; onOp
 }
 
 function PendingState({ gen }: { gen: Generation }) {
-  const progress = gen.status === "generating" ? gen.progress : null;
-  const shown = progress ?? (gen.status === "queued" ? 8 : 3);
+  const now = useNow(true);
+  const progress = progressOf(gen, now);
   return (
     <div className="shimmer absolute inset-0 flex flex-col justify-end p-3 sm:p-4">
-      <p className="flex items-center gap-2 text-[13px] font-medium text-fg">
-        <Tally />
-        {STATUS_LABEL[gen.status]}
-        {progress !== null && progress !== undefined && <span className="font-normal text-muted">{progress} %</span>}
+      <p className="flex flex-wrap items-center gap-x-2 text-[13px] leading-snug font-medium text-fg">
+        {/* Dot and label stay together; a long label wraps beside the dot, the percentage after it. */}
+        <span className="flex min-w-0 items-center gap-2">
+          <Tally />
+          <span className="min-w-0">{gen.status === "queued" ? queueLabel(gen, now) : STATUS_LABEL[gen.status]}</span>
+        </span>
+        {progress && <span className="font-normal text-muted tabular-nums">{formatProgress(progress)}</span>}
       </p>
       {gen.error && <p className="mt-1 text-xs text-warn">{gen.error}</p>}
-      <div className="absolute inset-x-0 bottom-0 h-[3px] bg-line">
-        <div className="progress-line h-full bg-accent" style={{ transform: `scaleX(${shown / 100})` }} />
-      </div>
+      {/* Inside the card's button, where a progressbar role is not allowed: the text above says it. */}
+      <ProgressLine value={progress?.value} rest={gen.status === "queued" ? 8 : 3} className="absolute inset-x-0 bottom-0" />
     </div>
   );
 }

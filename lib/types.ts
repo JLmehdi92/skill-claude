@@ -34,7 +34,12 @@ export interface Generation {
   costEur: number | null;
   usdEurRate: number;
   error: string | null;
+  /** Reported by the API. Often missing: the client then estimates from startedAt and typicalMs (lib/progress.ts). */
   progress: number | null;
+  provider: "kie" | "higgsfield";
+  startedAt: number | null;
+  /** Usual length of a generation of this model, from the local history. Only while pending. */
+  typicalMs: number | null;
   favorite: boolean;
   kieTaskId: string | null;
   createdAt: number;

@@ -7,9 +7,12 @@ import { ArrowClockwise, Check, Copy, DownloadSimple, FilmStrip, Heart, LockSimp
 import { api, ApiError } from "@/lib/client/api";
 import { copyText } from "@/lib/client/clipboard";
 import { useMediaQuery } from "@/lib/client/use-media-query";
+import { useNow } from "@/lib/client/use-now";
+import { formatProgress, progressOf, providerName, queueLabel, SLOW_QUEUE_MS } from "@/lib/progress";
 import { formatCredits, formatEur } from "@/lib/costs";
 import { getModel, inferMode } from "@/lib/models/registry";
 import { isPending, type Generation } from "@/lib/types";
+import { ProgressLine } from "./generation-card";
 import { Button, buttonClass, cx, Tally } from "./ui";
 
 const STATUS: Record<string, string> = {
@@ -180,6 +183,7 @@ function DrawerBody({
           )}
           {gen.status === "success" && output?.kind === "audio" && <audio src={output.url} controls className="w-full p-4" />}
           {isPending(gen.status) && <div className="shimmer aspect-video w-full" />}
+          {isPending(gen.status) && <PendingProgress gen={gen} />}
           {gen.status === "queued" && model?.provider === "higgsfield" && (
             <div className="flex items-center justify-between gap-3 bg-surface px-4 py-3">
               <p className="text-sm leading-snug text-muted">En file d&apos;attente chez Higgsfield : annuler maintenant ne coûte rien.</p>
@@ -385,6 +389,48 @@ function Detail({ label, value, strong }: { label: string; value: string; strong
       <dd className={cx("mt-0.5 truncate", strong ? "font-medium text-fg" : "text-muted")} title={value}>
         {value}
       </dd>
+    </div>
+  );
+}
+
+/** Under the placeholder: where the generation is, how far, and why a long queue is not a bug. */
+function PendingProgress({ gen }: { gen: Generation }) {
+  const now = useNow(true);
+  const progress = progressOf(gen, now);
+  const label = gen.status === "queued" ? queueLabel(gen, now) : gen.status === "generating" ? `Génération chez ${providerName(gen)}` : STATUS.uploading;
+  const slow = gen.status === "queued" && now - gen.createdAt >= SLOW_QUEUE_MS;
+  return (
+    <div className="bg-surface px-4 pt-3 pb-3.5">
+      <p className="flex items-baseline justify-between gap-3 text-sm">
+        <span className="text-fg">{label}</span>
+        {/* The progressbar below says it in words ("environ 42 %"): read once, not twice. */}
+        {progress && (
+          <span aria-hidden className="shrink-0 text-muted tabular-nums">
+            {formatProgress(progress)}
+          </span>
+        )}
+      </p>
+      {/* Not live: the title already announces status changes, a value every second would be noise. */}
+      <div
+        role="progressbar"
+        aria-label="Progression"
+        aria-valuemin={0}
+        aria-valuemax={100}
+        aria-valuenow={progress?.value}
+        aria-valuetext={progress ? `${progress.estimated ? "environ " : ""}${progress.value} %` : label}
+        className="mt-2 overflow-hidden rounded-full"
+      >
+        <ProgressLine value={progress?.value} rest={gen.status === "queued" ? 8 : 3} />
+      </div>
+      {progress?.estimated && <p className="mt-1.5 text-xs text-faint">Estimation d&apos;après la durée de tes générations précédentes.</p>}
+      {/* Mounted empty so the help is announced once when it appears, after 10 min. */}
+      <div role="status">
+        {slow && (
+          <p className="mt-2 text-xs leading-snug text-muted">
+            {providerName(gen)} est chargé en ce moment : {gen.category === "image" ? "ton image attend" : "ta vidéo attend"} son tour chez eux. Elle partira toute seule, garde l&apos;app ouverte sur ton PC.
+          </p>
+        )}
+      </div>
     </div>
   );
 }

@@ -10,8 +10,17 @@ export class ApiError extends Error {
   }
 }
 
+/**
+ * Server clock minus this device's clock, from each response's Date header. Generation times are server
+ * times; the phone's clock can be minutes off, which would skew elapsed times and progress estimates.
+ */
+let clockSkew = 0;
+export const serverNow = () => Date.now() + clockSkew;
+
 async function request<T>(url: string, init?: RequestInit): Promise<T> {
   const res = await fetch(url, init);
+  const date = Date.parse(res.headers.get("date") ?? "");
+  if (!Number.isNaN(date)) clockSkew = date - Date.now();
   const body = await res.json().catch(() => null);
   if (!res.ok) {
     const errors = (body as { errors?: string[] } | null)?.errors ?? [`Erreur ${res.status}.`];
