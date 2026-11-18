@@ -11,6 +11,7 @@ const refs = (media: MediaSummary) => (media.reference_image?.count ?? 0) > 0;
 const referenceSlot = {
   key: "reference_image",
   kieField: "input_urls",
+  tagPrefix: "Image",
   label: "Images de référence",
   kind: "image" as const,
   accept: "image/jpeg,image/png,image/webp",

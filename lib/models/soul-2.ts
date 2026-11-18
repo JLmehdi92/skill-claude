@@ -12,6 +12,9 @@ const paramsSchema = z.object({
   resolution: z.enum(["720p", "1080p"]),
   aspect_ratio: z.enum(ASPECTS),
   enhance_prompt: z.boolean(),
+  // Soul ID character (Higgsfield reference id); defaults keep older generations valid.
+  custom_reference_id: z.string().min(1).max(200).nullable().default(null),
+  custom_reference_strength: z.enum(["1", "0.7", "0.4"]).default("1"),
 });
 
 type SoulParams = z.infer<typeof paramsSchema>;
@@ -23,7 +26,9 @@ export const soul2: ModelDefinition = {
   label: "Soul 2",
   vendor: "Higgsfield",
   group: "Créer une image",
+  mentions: "strip",
   category: "image",
+  characters: true,
   description: "Le modèle photo de Higgsfield : rendu mode et éditorial, très peu cher.",
   promptMaxLength: 20_000,
   placeholder: "Décris ta photo : sujet, tenue, lieu, lumière, cadrage...",
@@ -44,9 +49,27 @@ export const soul2: ModelDefinition = {
       type: "toggle",
       hint: "Higgsfield retravaille ton prompt avant de générer. Les prompts courts le sont parfois même sans.",
     },
+    {
+      key: "custom_reference_strength",
+      label: "Ressemblance",
+      type: "select",
+      showIf: "custom_reference_id",
+      options: [
+        { value: "1", label: "Ressemblance forte" },
+        { value: "0.7", label: "Ressemblance moyenne" },
+        { value: "0.4", label: "Ressemblance légère" },
+      ],
+    },
   ],
   mediaSlots: [],
-  defaults: { prompt: "", resolution: "1080p", aspect_ratio: "3:4", enhance_prompt: true } satisfies SoulParams,
+  defaults: {
+    prompt: "",
+    resolution: "1080p",
+    aspect_ratio: "3:4",
+    enhance_prompt: true,
+    custom_reference_id: null,
+    custom_reference_strength: "1",
+  } satisfies SoulParams,
   paramsSchema: paramsSchema as unknown as z.ZodType<Params>,
 
   validate: () => [],
@@ -57,6 +80,11 @@ export const soul2: ModelDefinition = {
 
   buildInput(raw) {
     const p = raw as unknown as SoulParams;
-    return { prompt: p.prompt, resolution: p.resolution, aspect_ratio: p.aspect_ratio, enhance_prompt: p.enhance_prompt, batch_size: 1 };
+    const input: Record<string, unknown> = { prompt: p.prompt, resolution: p.resolution, aspect_ratio: p.aspect_ratio, enhance_prompt: p.enhance_prompt, batch_size: 1 };
+    if (p.custom_reference_id) {
+      input.custom_reference_id = p.custom_reference_id;
+      input.custom_reference_strength = Number(p.custom_reference_strength);
+    }
+    return input;
   },
 };

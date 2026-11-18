@@ -35,6 +35,8 @@ export const wan30Video: ModelDefinition = {
   label: "Wan 3.0",
   vendor: "Alibaba",
   group: "Créer une vidéo",
+  // kie documents @Image1 / @Video1 / @Audio1 in the Wan 3.0 prompt.
+  mentions: "native",
   category: "video",
   description: "Vidéo multimodale jusqu'à 30 s : texte, images, vidéos, audio et keyframes.",
   promptMaxLength: 20_000,

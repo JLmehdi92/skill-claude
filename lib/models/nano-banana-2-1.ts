@@ -46,6 +46,7 @@ export const nanoBanana21: ModelDefinition = {
     {
       key: "reference_image",
       kieField: "image_input",
+      tagPrefix: "Image",
       label: "Images de référence",
       kind: "image",
       accept: "image/jpeg,image/png,image/webp",

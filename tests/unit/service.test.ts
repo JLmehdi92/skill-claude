@@ -143,6 +143,15 @@ describe("generation service (mock kie)", () => {
     expect(done.credits).toBe(80); // no creditsConsumed from kie: 720P x 5 s estimate
   });
 
+  it("keeps the typed @ mentions in history and sends them in the model's syntax", async () => {
+    const png = Buffer.from("png");
+    const res = await svc.submitGeneration("gpt-image-2-5", { prompt: "@Image1 en aquarelle", resolution: "1K", aspect_ratio: "auto" }, [{ slot: "reference_image", name: "r.png", mime: "image/png", data: png }]);
+    if (!res.ok) throw new Error(JSON.stringify(res));
+    const done = await waitDone(res.generation.id);
+    expect(done.prompt).toBe("@Image1 en aquarelle");
+    expect(JSON.parse(svc.getRow(done.id)!.kie_input_json!).prompt).toBe("image 1 en aquarelle");
+  });
+
   it("generates an image and keeps it as its own thumbnail", async () => {
     const res = await svc.submitGeneration("nano-banana-2-1", { prompt: "Un chat roux", resolution: "2K", aspect_ratio: "1:1" }, []);
     if (!res.ok) throw new Error("submit failed");

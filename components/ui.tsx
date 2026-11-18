@@ -268,6 +268,22 @@ export function Popover({
   );
 }
 
+/**
+ * Call before removing an item whose focused [data-remove] button is about to unmount: focus moves to the
+ * same place in the closest [data-removable] list (next X, else previous), else to `fallback`.
+ * Does nothing when focus is elsewhere (a tap on iOS does not focus the button).
+ */
+export function keepFocusOnRemove(fallback?: () => HTMLElement | null | undefined) {
+  const active = document.activeElement as HTMLElement | null;
+  const list = active?.matches("[data-remove]") ? active.closest<HTMLElement>("[data-removable]") : null;
+  if (!active || !list) return;
+  const index = [...list.querySelectorAll("[data-remove]")].indexOf(active);
+  requestAnimationFrame(() => {
+    const xs = list.isConnected ? [...list.querySelectorAll<HTMLElement>("[data-remove]")] : [];
+    (xs[Math.min(index, xs.length - 1)] ?? fallback?.())?.focus();
+  });
+}
+
 /** Arrow keys move focus between the radios of a group (put it on the role="radiogroup" element). */
 export function onRadioArrows(e: React.KeyboardEvent<HTMLElement>) {
   const step = { ArrowDown: 1, ArrowRight: 1, ArrowUp: -1, ArrowLeft: -1 }[e.key];

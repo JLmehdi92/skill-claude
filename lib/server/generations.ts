@@ -4,9 +4,11 @@ import path from "node:path";
 import { randomInt, randomUUID } from "node:crypto";
 import { creditsToEur, creditsToUsd } from "@/lib/costs";
 import { clientFor, kie, KieError } from "@/lib/kie";
+import { resolveMentions } from "@/lib/models/mentions";
 import { getModel, summarizeMedia, validateRequest, type FileMeta } from "@/lib/models/registry";
 import type { Category, MediaKind, Params } from "@/lib/models/types";
 import type { Generation, InputFile, OutputFile, Status } from "@/lib/types";
+import { characterNotReady, listCharacters } from "./characters";
 import { config } from "./config";
 import { db, getSetting, type GenerationRow } from "./db";
 import { makeThumbnail, probeDuration } from "./ffmpeg";
@@ -88,6 +90,12 @@ export async function submitGeneration(
   if (!check.ok) {
     await removeDir(path.join("inputs", id));
     return { ok: false, status: 422, errors: check.errors };
+  }
+
+  const character = model.characters && typeof check.params.custom_reference_id === "string" ? characterNotReady(check.params.custom_reference_id) : null;
+  if (character) {
+    await removeDir(path.join("inputs", id));
+    return { ok: false, status: 422, errors: [character] };
   }
 
   if (model.provider === "higgsfield" && !config.mock && !config.hfApiKey) {
@@ -175,7 +183,10 @@ async function startTask(id: string): Promise<void> {
       const url = await client.uploadFile(data, path.basename(input.path), input.mime, `higgsfield-local/${id}`);
       (urls[input.slot] ??= []).push(url);
     }
-    const params = JSON.parse(row.params_json) as Params;
+    const saved = JSON.parse(row.params_json) as Params;
+    // The API gets mentions in its own syntax; the saved prompt keeps what the user typed.
+    const names = model.mentions === "strip" ? listCharacters().map((c) => c.name) : [];
+    const params = { ...saved, prompt: resolveMentions(String(saved.prompt ?? ""), model, names) };
     const kieInput = model.buildInput(params, urls);
     const endpoint = model.endpoint?.(params, summarizeMedia(inputs.map((i) => ({ slot: i.slot, size: 0, duration: i.duration })))) ?? model.kieModel;
     const taskId = await client.createTask(endpoint, kieInput);

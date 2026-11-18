@@ -76,3 +76,29 @@ describe("Higgsfield client", () => {
     await expect(c.createTask("x", {})).rejects.toBeInstanceOf(HiggsfieldError);
   });
 });
+
+describe("Higgsfield Soul ID", () => {
+  it("creates a v2 character from image URLs and maps its training states", async () => {
+    const calls = stubFetch([
+      json({ id: "ref-1", status: "not_ready" }),
+      json({ id: "ref-1", status: "in_progress" }),
+      json({ id: "ref-1", status: "completed", thumbnail_url: "https://cdn/t.jpg" }),
+      json({ id: "ref-1", status: "failed", fail_reason: "Pas de visage" }),
+    ]);
+    const c = realHiggsfieldClient(KEY, API);
+    expect(await c.createCharacter("Léa", ["https://cdn/a.png", "https://cdn/b.png"])).toBe("ref-1");
+    expect(calls[0].url).toBe(`${API}/v1/custom-references`);
+    expect(JSON.parse(String(calls[0].init.body))).toEqual({
+      name: "Léa",
+      model_version: "v2",
+      input_images: [
+        { type: "image_url", image_url: "https://cdn/a.png" },
+        { type: "image_url", image_url: "https://cdn/b.png" },
+      ],
+    });
+    expect(await c.getCharacter("ref-1")).toEqual({ state: "training", thumbnailUrl: undefined, failReason: undefined });
+    expect((await c.getCharacter("ref-1")).state).toBe("ready");
+    expect(await c.getCharacter("ref-1")).toMatchObject({ state: "failed", failReason: "Pas de visage" });
+    expect(calls[1].url).toBe(`${API}/v1/custom-references/ref-1`);
+  });
+});

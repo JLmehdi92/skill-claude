@@ -2,6 +2,7 @@ import "server-only";
 import fs from "node:fs/promises";
 import path from "node:path";
 import { getModel } from "@/lib/models/registry";
+import type { CharacterClient } from "@/lib/higgsfield/client";
 import type { KieClient, KieTask } from "./types";
 
 /**
@@ -55,6 +56,20 @@ export function mockKieClient(): KieClient {
     async download(url) {
       if (!url.startsWith("mock://")) throw new Error("URL mock invalide.");
       return fs.readFile(path.join(process.cwd(), "fixtures", url.slice("mock://".length)));
+    },
+  };
+}
+
+/** Fake Soul ID training: ready after a few seconds; a name starting with "Fail" fails. */
+export function mockCharacterClient(): CharacterClient {
+  return {
+    async createCharacter(name) {
+      return `mockref_${Date.now()}_${name.startsWith("Fail") ? "f" : "s"}`;
+    },
+    async getCharacter(referenceId) {
+      const [, ts, outcome] = referenceId.split("_");
+      if ((Date.now() - Number(ts)) / 1000 < SECONDS) return { state: "training" };
+      return outcome === "f" ? { state: "failed", failReason: "Échec simulé (mode mock)." } : { state: "ready" };
     },
   };
 }

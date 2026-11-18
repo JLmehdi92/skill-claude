@@ -77,6 +77,16 @@ CREATE TABLE IF NOT EXISTS motions (
   duration REAL NOT NULL,
   created_at INTEGER NOT NULL
 );
+CREATE TABLE IF NOT EXISTS characters (
+  id TEXT PRIMARY KEY,
+  name TEXT NOT NULL,
+  hf_reference_id TEXT NOT NULL,
+  status TEXT NOT NULL,
+  thumb_path TEXT,
+  fail_reason TEXT,
+  ledger_id TEXT NOT NULL,
+  created_at INTEGER NOT NULL
+);
 `;
 
 const globalForDb = globalThis as unknown as { __hfDb?: DatabaseSync; __hfDbPath?: string };

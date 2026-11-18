@@ -207,3 +207,81 @@ test("images: Soul 2 through Higgsfield and GPT Image through kie.ai, each price
   await expect(page.locator("#prompt")).toHaveValue("Portrait éditorial, veste en cuir, lumière douce");
   await expect(page.getByText("6 crédits")).toBeVisible();
 });
+
+test("mentions: typing @ lists the attached files, arrows and Enter insert one", async ({ page }) => {
+  await page.goto("/");
+  await page.getByRole("radio", { name: "Référence" }).click();
+  const chooser = page.waitForEvent("filechooser");
+  await page.getByRole("button", { name: "Ajouter une référence" }).click();
+  await page.getByRole("button", { name: /^Images/ }).click();
+  await (await chooser).setFiles([image, image]);
+  await expect(page.getByRole("button", { name: "Insérer @Image2 dans le prompt" })).toBeVisible();
+
+  const prompt = page.locator("#prompt");
+  await prompt.fill("la femme de ");
+  await prompt.press("End");
+  await prompt.pressSequentially("@");
+  const list = page.getByRole("listbox", { name: "Mentions" });
+  await expect(list.getByRole("option", { name: /@Image1/ })).toBeVisible();
+  await expect(prompt).toHaveAttribute("aria-controls", "prompt-mentions");
+  await prompt.press("ArrowDown");
+  await prompt.press("Enter");
+  await expect(prompt).toHaveValue("la femme de @Image2 ");
+  await expect(list).toHaveCount(0);
+  // Escape closes without touching the text.
+  await prompt.pressSequentially("@Ima");
+  await prompt.press("Escape");
+  await expect(list).toHaveCount(0);
+  await expect(prompt).toHaveValue("la femme de @Image2 @Ima");
+});
+
+test("mentions: on an image model, @ then « Ajouter une image » inserts the new file's mention", async ({ page }) => {
+  await page.goto("/");
+  await page.getByRole("button", { name: /^Modèle :/ }).click();
+  await page.getByRole("radio", { name: /Nano Banana 2\.1/ }).click();
+  const prompt = page.locator("#prompt");
+  await prompt.fill("");
+  await prompt.pressSequentially("Portrait de @");
+  await expect(page.getByText("Aucun fichier joint pour l'instant.")).toBeVisible();
+  const chooser = page.waitForEvent("filechooser");
+  await page.getByRole("option", { name: /Ajouter une image/ }).click();
+  await (await chooser).setFiles(image);
+  await expect(prompt).toHaveValue("Portrait de @Image1 ");
+  await expect(page.getByRole("button", { name: "Insérer @Image1 dans le prompt" })).toBeVisible();
+});
+
+test("soul id: train a character, get notified, mention it with @ and generate; the training is in spending", async ({ page }) => {
+  test.setTimeout(90_000);
+  await page.request.put("/api/settings", { data: { monthlyBudgetEur: null } });
+  await page.goto("/");
+  await page.getByRole("button", { name: /^Modèle :/ }).click();
+  await page.getByRole("radio", { name: /^Soul 2/ }).click();
+  await page.getByRole("button", { name: "Personnage : aucun" }).click();
+  await expect(page.getByText(/Aucun personnage pour l'instant/)).toBeVisible();
+  await page.getByRole("button", { name: "Nouveau personnage" }).click();
+
+  const dialog = page.getByRole("dialog", { name: "Nouveau personnage" });
+  await dialog.getByRole("button", { name: "Entraîner" }).click();
+  await expect(dialog.getByText("Donne un nom au personnage.")).toBeVisible();
+  await dialog.getByLabel("Nom").fill("Lea");
+  await dialog.locator('input[type="file"]').setInputFiles([path.join(process.cwd(), "fixtures/sample.png"), path.join(process.cwd(), "fixtures/sample.png"), path.join(process.cwd(), "fixtures/sample.png")]);
+  await expect(dialog.getByText("3 photos")).toBeVisible();
+  await expect(dialog.getByText(/Entraînement : 2,50 \$ ≈/)).toBeVisible();
+  await dialog.getByRole("button", { name: "Entraîner" }).click();
+  await expect(page.getByText("Entraînement lancé : Lea")).toBeVisible();
+  await expect(page.getByText("Personnage prêt : Lea")).toBeVisible({ timeout: 30_000 });
+
+  const prompt = page.locator("#prompt");
+  await prompt.fill("");
+  await prompt.pressSequentially("@Le");
+  await page.getByRole("option", { name: /@Lea/ }).click();
+  await expect(prompt).toHaveValue("@Lea ");
+  await expect(page.getByRole("button", { name: "Personnage : Lea" })).toBeVisible();
+  await expect(page.getByRole("button", { name: /^Ressemblance/ })).toBeVisible();
+  await prompt.pressSequentially("en veste de cuir, lumière douce");
+  await page.getByRole("button", { name: "Générer" }).click();
+  await expect(page.getByText("Soul 2 : génération prête")).toBeVisible({ timeout: 30_000 });
+
+  await page.goto("/depenses");
+  await expect(page.getByText("Soul ID (entraînement)").first()).toBeVisible();
+});

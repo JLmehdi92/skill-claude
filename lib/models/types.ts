@@ -29,7 +29,7 @@ export interface SelectOption {
 }
 
 export type Field =
-  | { key: string; label: string; type: "select"; options: SelectOption[]; advanced?: boolean }
+  | { key: string; label: string; type: "select"; options: SelectOption[]; advanced?: boolean; /** Shown only when this param is set. */ showIf?: string }
   | { key: string; label: string; type: "duration"; min: number; max: number; allowAuto: boolean; advanced?: boolean }
   | { key: string; label: string; type: "toggle"; hint?: string; advanced?: boolean }
   | { key: string; label: string; type: "seed"; advanced?: boolean }
@@ -83,6 +83,10 @@ export interface ModelDefinition {
   promptUse?: "optional" | "none";
   /** Prompt placeholder for models without modes; with promptUse "none", the line shown instead of the prompt. */
   placeholder?: string;
+  /** Takes a Soul ID character (custom_reference_id): the composer shows the "Personnage" chip. */
+  characters?: boolean;
+  /** How "@Image1" mentions reach the API: as is ("native"), as words ("image 1", default) or removed ("strip"). */
+  mentions?: "native" | "words" | "strip";
   /** Media slots shown as tiles above the prompt (one file each), instead of the "+" menu. */
   tiles?: boolean;
   fields: Field[];

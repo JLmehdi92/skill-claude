@@ -1,4 +1,5 @@
 import { kindOfFile } from "./media";
+import { orphanMentions } from "./mentions";
 import type { MediaSummary, ModelDefinition, ModelMode, Params } from "./types";
 import { genjutsuMotion, genjutsuSwap } from "./genjutsu";
 import { gptImage25, gptImage26 } from "./gpt-image";
@@ -112,6 +113,7 @@ export function validateRequest(model: ModelDefinition, rawParams: unknown, file
     }
   }
   const media = summarizeMedia(files);
+  for (const tag of orphanMentions(String(parsed.data.prompt ?? ""), model, media)) errors.push(`${tag} ne correspond à aucun fichier joint.`);
   errors.push(...model.validate(parsed.data, media));
   return errors.length ? { ok: false, errors } : { ok: true, params: parsed.data, media };
 }

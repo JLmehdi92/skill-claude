@@ -84,3 +84,15 @@ export interface Motion {
   duration: number;
   createdAt: number;
 }
+
+/** A Soul ID character trained at Higgsfield, usable with Soul 2. */
+export interface Character {
+  id: string;
+  name: string;
+  /** Higgsfield reference id, sent as custom_reference_id. */
+  referenceId: string;
+  status: "training" | "ready" | "failed";
+  thumbUrl: string | null;
+  failReason: string | null;
+  createdAt: number;
+}

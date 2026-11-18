@@ -17,7 +17,7 @@ const MESSAGES: Record<number, string> = {
   404: "Requête introuvable chez Higgsfield.",
   422: "Higgsfield a refusé les paramètres.",
   423: "Ce modèle est temporairement bloqué chez Higgsfield.",
-  429: "Trop de requêtes vers Higgsfield. Réessaie dans un instant.",
+  429: "Trop de requêtes vers Higgsfield (ou trop de personnages en entraînement). Réessaie dans un instant.",
   500: "Erreur serveur chez Higgsfield.",
   503: "Ce modèle n'est pas disponible chez Higgsfield pour l'instant.",
 };
@@ -57,8 +57,16 @@ async function toMp4(data: Buffer): Promise<Buffer> {
   }
 }
 
+export type CharacterState = "training" | "ready" | "failed";
+
+export interface CharacterClient {
+  /** Starts a Soul ID training (Soul 2 family) from public image URLs. Returns the reference id. */
+  createCharacter(name: string, imageUrls: string[]): Promise<string>;
+  getCharacter(referenceId: string): Promise<{ state: CharacterState; thumbnailUrl?: string; failReason?: string }>;
+}
+
 /** apiKey: the complete copied credential, sent as "Key <apiKey>" without splitting it. */
-export function realHiggsfieldClient(apiKey: string, API: string): KieClient {
+export function realHiggsfieldClient(apiKey: string, API: string): KieClient & CharacterClient {
   async function call<T>(url: string, init: RequestInit = {}, attempt = 0): Promise<T> {
     if (!apiKey) throw new HiggsfieldError(401);
     let res: Response;
@@ -145,6 +153,22 @@ export function realHiggsfieldClient(apiKey: string, API: string): KieClient {
 
     async getCredits() {
       throw new Error("Le solde Higgsfield se consulte sur open.higgsfield.ai.");
+    },
+
+    // Source: https://docs.higgsfield.ai/docs/models/soul-id/create-character
+    async createCharacter(name, imageUrls) {
+      const data = await call<{ id: string }>(`${API}/v1/custom-references`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "Idempotency-Key": randomUUID() },
+        body: JSON.stringify({ name, model_version: "v2", input_images: imageUrls.map((image_url) => ({ type: "image_url", image_url })) }),
+      });
+      return data.id;
+    },
+
+    async getCharacter(referenceId) {
+      const d = await call<{ status: string; thumbnail_url?: string | null; fail_reason?: string | null }>(`${API}/v1/custom-references/${encodeURIComponent(referenceId)}`);
+      const state: CharacterState = d.status === "completed" ? "ready" : d.status === "failed" ? "failed" : "training";
+      return { state, thumbnailUrl: d.thumbnail_url ?? undefined, failReason: d.fail_reason ?? undefined };
     },
 
     async download(url) {

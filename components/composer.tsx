@@ -23,6 +23,7 @@ import {
 import { api, ApiError, notifyStatsChanged, type BudgetConflict } from "@/lib/client/api";
 import { newId } from "@/lib/client/id";
 import { measureDuration } from "@/lib/client/media";
+import { activeMention, matchesMention } from "@/lib/client/mentions";
 import { creditsToEur, formatCredits, formatEur } from "@/lib/costs";
 import { kindOfFile } from "@/lib/models/media";
 import { getMode, inferMode, MODELS, summarizeMedia, validateRequest } from "@/lib/models/registry";
@@ -30,9 +31,11 @@ import type { Field, MediaKind, MediaSlot, ModelDefinition, ModelMode, Params } 
 import { PRESETS, getPreset } from "@/lib/presets/registry";
 import { PRESET_CATEGORY_LABELS, type Preset, type PresetCategory } from "@/lib/presets/types";
 import { enhancePrompt } from "@/lib/prompt-enhancer";
-import type { Generation, Motion } from "@/lib/types";
+import type { Character, Generation, Motion } from "@/lib/types";
+import { CharacterMenu, CharacterTrainer } from "./characters";
+import { MentionMenu, type MentionOption } from "./mention-menu";
 import { MotionGallery } from "./motion-gallery";
-import { Button, Chip, ChipCaret, cx, fieldClass, Kbd, MenuItem, Modal, ModalActions, onRadioArrows, Popover, Segmented, Stepper, Switch } from "./ui";
+import { Button, Chip, ChipCaret, cx, fieldClass, Kbd, keepFocusOnRemove, MenuItem, Modal, ModalActions, onRadioArrows, Popover, Segmented, Stepper, Switch } from "./ui";
 
 interface Attachment {
   id: string;
@@ -106,6 +109,13 @@ export const Composer = forwardRef<
   const [enhanceEnabled, setEnhanceEnabled] = useState(false);
   const [showEnhanced, setShowEnhanced] = useState(false);
   const [galleryOpen, setGalleryOpen] = useState(false);
+  // "@" being typed in the prompt, and the highlighted suggestion.
+  const [mention, setMention] = useState<{ start: number; query: string } | null>(null);
+  const [mentionActive, setMentionActive] = useState(0);
+  // An "@" waiting for a file being picked ("Ajouter une image"): replaced by its mention once the file is in.
+  const pendingMention = useRef<{ start: number; end: number } | null>(null);
+  const [characters, setCharacters] = useState<Character[]>([]);
+  const [trainerOpen, setTrainerOpen] = useState(false);
   const pickSeq = useRef(0);
   const scenePrompt = useRef("");
   // Announces a model switch (also said by the toast when files were removed).
@@ -288,16 +298,17 @@ export const Composer = forwardRef<
 
   /** Never fails silently: any unexpected error ends up in a toast. */
   /** replace: the files take the place of what is in forcedSlot, only once they pass the checks. */
-  const addFiles = async (files: File[], forcedSlot?: MediaSlot, replace = false) => {
+  /** mentionAt: the "@" this pick came from, replaced by the new files' mentions. */
+  const addFiles = async (files: File[], forcedSlot?: MediaSlot, replace = false, mentionAt?: { start: number; end: number }) => {
     try {
-      await addFilesUnsafe(files, forcedSlot, replace);
+      await addFilesUnsafe(files, forcedSlot, replace, mentionAt);
     } catch (err) {
       console.error(err);
       toast.error("Impossible d'ajouter le fichier.", { description: err instanceof Error ? err.message : String(err) });
     }
   };
 
-  const addFilesUnsafe = async (files: File[], forcedSlot?: MediaSlot, replace = false) => {
+  const addFilesUnsafe = async (files: File[], forcedSlot?: MediaSlot, replace = false, mentionAt?: { start: number; end: number }) => {
     if (!files.length) return;
     const replaced = (current: Attachment[]) => (replace && forcedSlot ? current.filter((a) => a.slot === forcedSlot.key) : []);
     let target = mode;
@@ -341,8 +352,20 @@ export const Composer = forwardRef<
     if (accepted.length) {
       const gone = replaced(attachmentsRef.current);
       gone.forEach((a) => URL.revokeObjectURL(a.url));
-      commitAttachments([...attachmentsRef.current.filter((a) => !gone.includes(a)), ...accepted]);
+      const next = [...attachmentsRef.current.filter((a) => !gone.includes(a)), ...accepted];
+      commitAttachments(next);
       setServerErrors([]);
+      const slot = mentionAt && slotByKey(accepted[0].slot);
+      if (mentionAt && slot?.tagPrefix) {
+        // Every file picked at once gets its mention ("@Image2 @Image3").
+        const inSlot = next.filter((a) => a.slot === slot.key);
+        const tags = accepted
+          .filter((a) => a.slot === slot.key)
+          .map((a) => `@${slot.tagPrefix}${inSlot.indexOf(a) + 1}`)
+          .join(" ");
+        pendingCaret.current = mentionAt.start + tags.length + 1;
+        setParams((p) => ({ ...p, prompt: `${String(p.prompt).slice(0, mentionAt.start)}${tags} ${String(p.prompt).slice(mentionAt.end)}` }));
+      }
     }
   };
 
@@ -368,6 +391,7 @@ export const Composer = forwardRef<
   };
 
   const removeAttachment = (id: string) => {
+    keepFocusOnRemove(() => textareaRef.current);
     // The removed file's URL may be shared with an undo snapshot.
     dropUndo();
     const gone = attachmentsRef.current.find((a) => a.id === id);
@@ -533,6 +557,7 @@ export const Composer = forwardRef<
 
   const openPicker = (slot: MediaSlot) => {
     pendingSlot.current = slot;
+    pendingMention.current = null;
     const input = fileInputRef.current!;
     input.accept = slot.accept;
     input.multiple = slot.max > 1;
@@ -546,8 +571,170 @@ export const Composer = forwardRef<
     openPicker(slot);
   };
 
+  const selectCharacter = (c: Character | null) => set("custom_reference_id", c?.referenceId ?? null);
+
+  const removeCharacter = async (c: Character) => {
+    try {
+      await api.removeCharacter(c.id);
+      setCharacters((prev) => prev.filter((x) => x.id !== c.id));
+      if (params.custom_reference_id === c.referenceId) selectCharacter(null);
+      toast(`${c.name} retiré de la liste`, { description: "Il reste enregistré chez Higgsfield." });
+    } catch (err) {
+      toast.error(err instanceof ApiError ? err.errors[0] : "Impossible de retirer ce personnage.");
+    }
+  };
+
+  // Characters: loaded once, then followed while one trains (a toast says when it is ready).
+  const lastStatus = useRef(new Map<string, Character["status"]>());
+  // A failed poll bumps this so the effect schedules the next one.
+  const [pollRetry, setPollRetry] = useState(0);
+  // The "Utiliser" toast is clicked later, on whatever model is open by then.
+  const useCharacter = useRef<(c: Character) => void>(() => {});
+  useEffect(() => {
+    useCharacter.current = (c) => {
+      const soul = MODELS.find((m) => m.characters);
+      if (!soul) return;
+      if (soul.id !== model.id) switchModel(soul.id);
+      set("custom_reference_id", c.referenceId);
+    };
+  });
+  useEffect(() => {
+    api
+      .characters()
+      .then(setCharacters)
+      .catch(() => {});
+  }, []);
+  useEffect(() => {
+    for (const c of characters) {
+      const before = lastStatus.current.get(c.id);
+      if (before === "training" && c.status === "ready") {
+        toast.success(`Personnage prêt : ${c.name}`, {
+          action: {
+            label: "Utiliser",
+            onClick: () => useCharacter.current(c),
+          },
+        });
+      }
+      if (before === "training" && c.status === "failed") toast.error(`Entraînement échoué : ${c.name}`, { description: c.failReason ?? undefined });
+      lastStatus.current.set(c.id, c.status);
+    }
+    if (!characters.some((c) => c.status === "training")) return;
+    const t = setTimeout(() => {
+      api
+        .characters()
+        .then(setCharacters)
+        .catch(() => setPollRetry((n) => n + 1));
+    }, 5000);
+    return () => clearTimeout(t);
+  }, [characters, pollRetry]);
+
+  const mentionOptions: MentionOption[] = useMemo(() => {
+    if (!mention || model.promptUse === "none") return [];
+    const files: MentionOption[] = attachments.flatMap((a) => {
+      const slot = model.mediaSlots.find((s) => s.key === a.slot);
+      if (!slot?.tagPrefix) return [];
+      const label = `@${slot.tagPrefix}${attachments.filter((x) => x.slot === a.slot).indexOf(a) + 1}`;
+      const sub = a.duration !== undefined ? `${Math.round(a.duration)} s` : a.file.name;
+      return [{ id: `file-${a.id}`, group: "files" as const, label, sub, thumb: { url: a.url, kind: a.kind === "document" ? "audio" : a.kind } }];
+    });
+    const chars: MentionOption[] = model.characters
+      ? characters
+          .filter((c) => c.status !== "failed")
+          .map((c) => ({
+            id: `char-${c.id}`,
+            group: "characters" as const,
+            label: `@${c.name}`,
+            sub: c.status === "training" ? "En entraînement" : "Personnage",
+            thumb: c.thumbUrl ? { url: c.thumbUrl, kind: "avatar" as const } : undefined,
+            disabled: c.status === "training",
+            training: c.status === "training",
+          }))
+      : [];
+    // One "Ajouter" row per kind the model takes in a prompt, while there is room.
+    const kinds = new Map<string, MediaSlot>();
+    for (const s of model.mediaSlots) {
+      if (!s.tagPrefix || kinds.has(s.kind) || attachments.filter((a) => a.slot === s.key).length >= s.max) continue;
+      kinds.set(s.kind, s);
+    }
+    const nouns: Record<string, string> = { image: "une image", video: "une vidéo", audio: "un audio" };
+    const actions: MentionOption[] = [...kinds.values()].map((s) => ({ id: `add-${s.key}`, group: "actions" as const, label: `Ajouter ${nouns[s.kind] ?? "un fichier"}` }));
+    if (model.characters) actions.push({ id: "new-character", group: "actions", label: "Nouveau personnage" });
+    return [...files, ...chars, ...actions].filter((o) => matchesMention(o.label, mention.query));
+  }, [mention, model, attachments, characters]);
+  const mentionOpen = mentionOptions.length > 0;
+  // Never start on a row that cannot be picked (a character still training).
+  const clamped = Math.min(mentionActive, mentionOptions.length - 1);
+  const activeIndex = mentionOptions[clamped]?.disabled ? Math.max(0, mentionOptions.findIndex((o) => !o.disabled)) : clamped;
+  const activeOption = mentionOpen ? mentionOptions[activeIndex] : undefined;
+
+  const readMention = (el: HTMLTextAreaElement) => {
+    const m = el.selectionStart === el.selectionEnd ? activeMention(el.value, el.selectionStart) : null;
+    if (!m || !mention || mention.start !== m.start) setMentionActive(0);
+    setMention(m);
+  };
+
+  const replaceMention = (text: string) => {
+    if (!mention) return;
+    const el = textareaRef.current;
+    const prompt = String(params.prompt);
+    const end = el?.selectionStart ?? prompt.length;
+    pendingCaret.current = mention.start + text.length + 1;
+    set("prompt", `${prompt.slice(0, mention.start)}${text} ${prompt.slice(end)}`);
+    setMention(null);
+  };
+
+  const pickMention = (o: MentionOption) => {
+    if (o.disabled || !mention) return;
+    if (o.group === "files") return replaceMention(o.label);
+    if (o.group === "characters") {
+      const c = characters.find((x) => `char-${x.id}` === o.id);
+      replaceMention(o.label);
+      if (c) selectCharacter(c);
+      return;
+    }
+    if (o.id === "new-character") {
+      setMention(null);
+      return setTrainerOpen(true);
+    }
+    const slot = slotByKey(o.id.slice("add-".length));
+    if (!slot) return;
+    const end = textareaRef.current?.selectionStart ?? String(params.prompt).length;
+    const at = { start: mention.start, end };
+    setMention(null);
+    pickSlot(slot);
+    pendingMention.current = at;
+  };
+
+  const onPromptKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if (!mentionOpen || e.nativeEvent.isComposing) return;
+    const n = mentionOptions.length;
+    if (e.key === "ArrowDown" || e.key === "ArrowUp") {
+      e.preventDefault();
+      // Skip rows that cannot be picked (a character still training).
+      const step = e.key === "ArrowDown" ? 1 : n - 1;
+      let next = activeIndex;
+      for (let k = 0; k < n; k++) {
+        next = (next + step) % n;
+        if (!mentionOptions[next].disabled) break;
+      }
+      setMentionActive(mentionOptions[next].disabled ? activeIndex : next);
+    } else if (((e.key === "Enter" && !e.metaKey && !e.ctrlKey) || e.key === "Tab") && activeOption && !activeOption.disabled) {
+      e.preventDefault();
+      pickMention(activeOption);
+    } else if (e.key === "Escape") {
+      e.preventDefault();
+      e.stopPropagation();
+      setMention(null);
+    } else if (e.key === "Enter") {
+      setMention(null);
+    }
+  };
+
+  const mentionCount = mentionOpen ? mentionOptions.length : 0;
+
   const hidden = new Set(mode?.hiddenFields ?? []);
-  const mainFields = model.fields.filter((f) => !f.advanced && !hidden.has(f.key));
+  const shown = (f: Field) => !(f.type === "select" && f.showIf && !params[f.showIf]);
+  const mainFields = model.fields.filter((f) => !f.advanced && !hidden.has(f.key) && shown(f));
   const advancedFields = model.fields.filter((f) => f.advanced && !hidden.has(f.key));
   const keyframes = mode?.id === "keyframes";
   const frameSlots = keyframes ? mode.slots.map((k) => slotByKey(k)!).filter(Boolean) : model.tiles ? model.mediaSlots : [];
@@ -591,7 +778,7 @@ export const Composer = forwardRef<
           )}
 
           {frameSlots.length > 0 && (
-            <ul className="flex flex-wrap gap-2 px-3 pt-3 pb-1" aria-label={keyframes ? "Images clés" : "Fichiers d'entrée"}>
+            <ul className="flex flex-wrap gap-2 px-3 pt-3 pb-1" aria-label={keyframes ? "Images clés" : "Fichiers d'entrée"} data-removable>
               {frameSlots.map((slot) => {
                 const mine = attachments.filter((x) => x.slot === slot.key);
                 const needsFirst = keyframes && slot.key !== frameSlots[0].key && !attachments.some((x) => x.slot === frameSlots[0].key);
@@ -605,7 +792,8 @@ export const Composer = forwardRef<
                       wide
                       label={mine.length > 1 ? `${name} ${i + 1}` : name}
                       isTag={false}
-                      onInsert={() => {}}
+                      tag={model.promptUse !== "none" && slot.tagPrefix ? `@${slot.tagPrefix}${i + 1}` : undefined}
+                      onInsert={() => slot.tagPrefix && insertTag(`@${slot.tagPrefix}${i + 1}`)}
                       onRemove={() => removeAttachment(a.id)}
                     />
                   )),
@@ -642,7 +830,7 @@ export const Composer = forwardRef<
           )}
 
           {frameSlots.length === 0 && attachments.length > 0 && (
-            <ul className="flex flex-wrap gap-2 px-3 pt-3.5 pb-1" aria-label="Références jointes">
+            <ul className="flex flex-wrap gap-2 px-3 pt-3.5 pb-1" aria-label="Références jointes" data-removable>
               {attachments.map((a) => (
                 <AttachmentThumb
                   key={a.id}
@@ -663,14 +851,41 @@ export const Composer = forwardRef<
             <p className="px-4 pt-3 pb-2 text-[15px] leading-relaxed text-muted">{model.placeholder}</p>
           ) : (
             <>
+              {mentionOpen && (
+                <MentionMenu
+                  id="prompt-mentions"
+                  options={mentionOptions}
+                  active={activeIndex}
+                  noFiles={!attachments.some((a) => slotByKey(a.slot)?.tagPrefix) && model.mediaSlots.some((s) => s.tagPrefix)}
+                  onPick={pickMention}
+                  onActive={setMentionActive}
+                />
+              )}
               <label htmlFor="prompt" className="sr-only">
                 Prompt
               </label>
+              <p id="prompt-mention-hint" className="sr-only">
+                Tape @ pour citer un fichier. Flèches pour choisir, Entrée pour insérer.
+              </p>
+              <p className="sr-only" aria-live="polite">
+                {mentionCount ? `${mentionCount} suggestion${mentionCount > 1 ? "s" : ""}` : ""}
+              </p>
               <textarea
                 id="prompt"
                 ref={textareaRef}
                 value={String(params.prompt)}
-                onChange={(e) => set("prompt", e.target.value)}
+                onChange={(e) => {
+                  pendingMention.current = null;
+                  set("prompt", e.target.value);
+                  if (!(e.nativeEvent as InputEvent).isComposing) readMention(e.target);
+                }}
+                onSelect={(e) => readMention(e.currentTarget)}
+                onBlur={() => setMention(null)}
+                onKeyDown={onPromptKeyDown}
+                aria-autocomplete="list"
+                aria-controls={mentionOpen ? "prompt-mentions" : undefined}
+                aria-activedescendant={activeOption ? `prompt-mentions-${activeOption.id}` : undefined}
+                aria-describedby="prompt-mention-hint"
                 rows={2}
                 maxLength={model.promptMaxLength}
                 placeholder={mode?.placeholder ?? model.placeholder ?? "Décris ta scène. Cite tes références avec @Image1, @Video1..."}
@@ -723,6 +938,15 @@ export const Composer = forwardRef<
             <div className="flex flex-wrap items-center gap-1.5 sm:min-w-0 sm:flex-1">
               {frameSlots.length === 0 && model.mediaSlots.length > 0 && <AddMenu model={model} mode={mode} attachments={attachments} params={params} onPick={pickSlot} />}
               <ModelMenu model={model} onSelect={switchModel} />
+              {model.characters && (
+                <CharacterMenu
+                  characters={characters}
+                  selectedId={(params.custom_reference_id as string | null | undefined) ?? null}
+                  onSelect={selectCharacter}
+                  onRemove={(c) => void removeCharacter(c)}
+                  onNew={() => setTrainerOpen(true)}
+                />
+              )}
               {promptDriven && (
                 <PresetMenu selected={selectedPresets} onToggle={(id) => setSelectedPresets((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]))} />
               )}
@@ -788,6 +1012,13 @@ export const Composer = forwardRef<
           )}
         </form>
         <MotionGallery open={galleryOpen} onClose={() => setGalleryOpen(false)} onPick={(m) => void pickMotion(m)} />
+        <CharacterTrainer
+          open={trainerOpen}
+          onClose={() => setTrainerOpen(false)}
+          usdEurRate={usdEurRate}
+          takenNames={characters.map((c) => c.name)}
+          onTrained={(c) => setCharacters((prev) => [c, ...prev])}
+        />
         <p className="sr-only" aria-live="polite">
           {announce}
         </p>
@@ -803,7 +1034,9 @@ export const Composer = forwardRef<
         onChange={(e) => {
           const files = [...(e.target.files ?? [])];
           e.target.value = "";
-          if (files.length && pendingSlot.current) void addFiles(files, pendingSlot.current);
+          const at = pendingMention.current ?? undefined;
+          pendingMention.current = null;
+          if (files.length && pendingSlot.current) void addFiles(files, pendingSlot.current, false, at);
         }}
       />
 
@@ -835,10 +1068,13 @@ function AttachmentThumb({
   onInsert,
   onRemove,
   wide,
+  tag,
 }: {
   attachment: Attachment;
   label: string;
   isTag: boolean;
+  /** Input tiles: the mention a tap inserts in the prompt, shown under the tile's name. */
+  tag?: string;
   /** Input tiles carry a word ("Personnage") that must not be cut. */
   wide?: boolean;
   onInsert: () => void;
@@ -850,9 +1086,9 @@ function AttachmentThumb({
       <button
         type="button"
         onClick={onInsert}
-        disabled={!isTag}
-        title={isTag ? `Insérer ${label} dans le prompt` : a.file.name}
-        aria-label={isTag ? `Insérer ${label} dans le prompt` : `${label} : ${a.file.name}`}
+        disabled={!isTag && !tag}
+        title={isTag ? `Insérer ${label} dans le prompt` : tag ? `Insérer ${tag} dans le prompt` : a.file.name}
+        aria-label={isTag ? `Insérer ${label} dans le prompt` : tag ? `${label} : ${a.file.name}. Insérer ${tag} dans le prompt` : `${label} : ${a.file.name}`}
         className={cx("pressable block overflow-hidden rounded-control border border-line-strong bg-raised", wide ? "w-[88px]" : "w-[72px]")}
       >
         <div className="flex h-16 items-center justify-center bg-sunken">
@@ -872,11 +1108,13 @@ function AttachmentThumb({
         <span className={cx("block border-t border-line px-1.5 py-1 text-center text-xs", isTag ? "font-medium text-accent" : "text-muted")}>
           {label}
           {a.duration !== undefined && <span className="font-normal text-faint"> {Math.round(a.duration)} s</span>}
+          {tag && <span className="block text-[11px] font-medium text-accent">{tag}</span>}
         </span>
       </button>
       <button
         type="button"
         onClick={onRemove}
+        data-remove
         aria-label={`Retirer ${a.file.name}`}
         // 22px dot, 44px hit area through the pseudo-element.
         className="pressable absolute -top-2 -right-2 flex size-[22px] items-center justify-center rounded-full border border-line-strong bg-raised text-muted shadow-thumb after:absolute after:-inset-[11px] after:content-[''] hover:text-fg"

@@ -1,4 +1,4 @@
-import type { AppConfig, Generation, Motion, Stats } from "@/lib/types";
+import type { AppConfig, Character, Generation, Motion, Stats } from "@/lib/types";
 
 export class ApiError extends Error {
   constructor(
@@ -60,6 +60,9 @@ export const api = {
       body: JSON.stringify({ generationId }),
     }),
   removeMotion: (id: string) => request<{ ok: true }>(`/api/motions/${id}`, { method: "DELETE" }),
+  characters: () => request<Character[]>("/api/characters"),
+  trainCharacter: (form: FormData) => request<Character>("/api/characters", { method: "POST", body: form }),
+  removeCharacter: (id: string) => request<{ ok: true }>(`/api/characters/${id}`, { method: "DELETE" }),
   importTask: (taskId: string) =>
     request<Generation>("/api/generations", {
       method: "POST",
